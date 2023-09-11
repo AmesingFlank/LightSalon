@@ -1,0 +1,11 @@
+[package]
+name = "pepe_exe"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+winit = "0.28"
+env_logger = "0.10"
+log = "0.4"
+wgpu = "0.17"
+pollster = "0.3.0"
