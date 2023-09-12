@@ -1,3 +1,4 @@
+use pepe_core::{engine::Engine, runtime::Runtime};
 use std::{borrow::Cow, time::Instant};
 use winit::{
     event::{Event, WindowEvent},
@@ -5,82 +6,84 @@ use winit::{
     window::Window,
 };
 
-pub struct App {}
+pub struct App {
+    event_loop: EventLoop<()>,
+    window: Window,
+    engine: pepe_core::engine::Engine,
+}
 
 impl App {
-    pub fn main(&self) {
+    pub async fn new() -> App {
         let event_loop = EventLoop::new();
         let window = winit::window::Window::new(&event_loop).unwrap();
-        {
-            env_logger::init();
-            pollster::block_on(self.run(event_loop, window));
+        let engine = Engine {
+            runtime: Runtime::create_with_native_window(&window).await,
+        };
+        App {
+            engine: engine,
+            event_loop: event_loop,
+            window: window,
         }
     }
 
-    pub async fn run(&self, event_loop: EventLoop<()>, window: Window) {
-        let size = window.inner_size();
+    pub fn main(self) {
+        env_logger::init();
+        pollster::block_on(self.run());
+    }
 
-        let instance = wgpu::Instance::default();
-
-        let surface = unsafe { instance.create_surface(&window) }.unwrap();
-        let adapter = instance
-            .request_adapter(&wgpu::RequestAdapterOptions {
-                power_preference: wgpu::PowerPreference::default(),
-                force_fallback_adapter: false,
-                // Request an adapter which can render to our surface
-                compatible_surface: Some(&surface),
-            })
-            .await
-            .expect("Failed to find an appropriate adapter");
-
-        // Create the logical device and command queue
-        let (device, queue) = adapter
-            .request_device(
-                &wgpu::DeviceDescriptor {
-                    label: None,
-                    features: wgpu::Features::empty(),
-                    // Make sure we use the texture resolution limits from the adapter, so we can support images the size of the swapchain.
-                    limits: wgpu::Limits::downlevel_webgl2_defaults()
-                        .using_resolution(adapter.limits()),
-                },
-                None,
-            )
-            .await
-            .expect("Failed to create device");
-
+    pub async fn run(self) {
+        let size = self.window.inner_size();
         // Load the shaders from disk
-        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: None,
-            source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("shader.wgsl"))),
-        });
+        let shader =
+            self.engine
+                .runtime
+                .device
+                .create_shader_module(wgpu::ShaderModuleDescriptor {
+                    label: None,
+                    source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("shader.wgsl"))),
+                });
 
-        let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: None,
-            bind_group_layouts: &[],
-            push_constant_ranges: &[],
-        });
+        let pipeline_layout =
+            self.engine
+                .runtime
+                .device
+                .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                    label: None,
+                    bind_group_layouts: &[],
+                    push_constant_ranges: &[],
+                });
 
-        let swapchain_capabilities = surface.get_capabilities(&adapter);
+        let swapchain_capabilities = self
+            .engine
+            .runtime
+            .surface
+            .as_ref()
+            .unwrap()
+            .get_capabilities(&self.engine.runtime.adapter);
         let swapchain_format = swapchain_capabilities.formats[0];
 
-        let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: None,
-            layout: Some(&pipeline_layout),
-            vertex: wgpu::VertexState {
-                module: &shader,
-                entry_point: "vs_main",
-                buffers: &[],
-            },
-            fragment: Some(wgpu::FragmentState {
-                module: &shader,
-                entry_point: "fs_main",
-                targets: &[Some(swapchain_format.into())],
-            }),
-            primitive: wgpu::PrimitiveState::default(),
-            depth_stencil: None,
-            multisample: wgpu::MultisampleState::default(),
-            multiview: None,
-        });
+        let render_pipeline =
+            self.engine
+                .runtime
+                .device
+                .create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                    label: None,
+                    layout: Some(&pipeline_layout),
+                    vertex: wgpu::VertexState {
+                        module: &shader,
+                        entry_point: "vs_main",
+                        buffers: &[],
+                    },
+                    fragment: Some(wgpu::FragmentState {
+                        module: &shader,
+                        entry_point: "fs_main",
+                        targets: &[Some(swapchain_format.into())],
+                    }),
+                    primitive: wgpu::PrimitiveState::default(),
+                    depth_stencil: None,
+                    multisample: wgpu::MultisampleState::default(),
+                    multiview: None,
+                });
 
         let mut config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
@@ -92,18 +95,23 @@ impl App {
             view_formats: vec![],
         };
 
-        surface.configure(&device, &config);
+        self.engine
+            .runtime
+            .surface
+            .as_ref()
+            .unwrap()
+            .configure(&self.engine.runtime.device, &config);
 
         let mut imgui = imgui::Context::create();
         let mut platform = imgui_winit_support::WinitPlatform::init(&mut imgui);
         platform.attach_window(
             imgui.io_mut(),
-            &window,
+            &self.window,
             imgui_winit_support::HiDpiMode::Default,
         );
         imgui.set_ini_filename(None);
 
-        let hidpi_factor = window.scale_factor();
+        let hidpi_factor = self.window.scale_factor();
         let font_size = (13.0 * hidpi_factor) as f32;
         imgui.io_mut().font_global_scale = (1.0 / hidpi_factor) as f32;
 
@@ -132,16 +140,26 @@ impl App {
             ..Default::default()
         };
 
-        let mut renderer = imgui_wgpu::Renderer::new(&mut imgui, &device, &queue, renderer_config);
+        let mut renderer = imgui_wgpu::Renderer::new(
+            &mut imgui,
+            &self.engine.runtime.device,
+            &self.engine.runtime.queue,
+            renderer_config,
+        );
 
         let mut last_frame = Instant::now();
         let mut last_cursor = None;
 
-        event_loop.run(move |event, _, control_flow| {
+        self.event_loop.run(move |event, _, control_flow| {
             // Have the closure take ownership of the resources.
             // `event_loop.run` never returns, therefore we must do this to ensure
             // the resources are properly cleaned up.
-            let _ = (&instance, &adapter, &shader, &pipeline_layout);
+            let _ = (
+                &self.engine.runtime.instance,
+                &self.engine.runtime.adapter,
+                &shader,
+                &pipeline_layout,
+            );
 
             *control_flow = ControlFlow::Wait;
             match event {
@@ -152,9 +170,14 @@ impl App {
                     // Reconfigure the surface with the new size
                     config.width = size.width;
                     config.height = size.height;
-                    surface.configure(&device, &config);
+                    self.engine
+                        .runtime
+                        .surface
+                        .as_ref()
+                        .unwrap()
+                        .configure(&self.engine.runtime.device, &config);
                     // On macos the window needs to be redrawn manually after resizing
-                    window.request_redraw();
+                    self.window.request_redraw();
                 }
                 Event::RedrawEventsCleared => {
                     let delta_s = last_frame.elapsed();
@@ -162,7 +185,7 @@ impl App {
                     imgui.io_mut().update_delta_time(now - last_frame);
                     last_frame = now;
                     platform
-                        .prepare_frame(imgui.io_mut(), &window)
+                        .prepare_frame(imgui.io_mut(), &self.window)
                         .expect("Failed to prepare frame");
                     let ui = imgui.frame();
 
@@ -192,14 +215,21 @@ impl App {
                         ui.show_demo_window(&mut demo_open);
                     }
 
-                    let frame = surface
+                    let frame = self
+                        .engine
+                        .runtime
+                        .surface
+                        .as_ref()
+                        .unwrap()
                         .get_current_texture()
                         .expect("Failed to acquire next swap chain texture");
                     let view = frame
                         .texture
                         .create_view(&wgpu::TextureViewDescriptor::default());
-                    let mut encoder = device
-                        .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+                    let mut encoder =
+                        self.engine.runtime.device.create_command_encoder(
+                            &wgpu::CommandEncoderDescriptor { label: None },
+                        );
                     {
                         let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                             label: None,
@@ -218,15 +248,20 @@ impl App {
 
                         if last_cursor != Some(ui.mouse_cursor()) {
                             last_cursor = Some(ui.mouse_cursor());
-                            platform.prepare_render(ui, &window);
+                            platform.prepare_render(ui, &self.window);
                         }
 
                         renderer
-                            .render(imgui.render(), &queue, &device, &mut rpass)
+                            .render(
+                                imgui.render(),
+                                &self.engine.runtime.queue,
+                                &self.engine.runtime.device,
+                                &mut rpass,
+                            )
                             .expect("Rendering failed");
                     }
 
-                    queue.submit(Some(encoder.finish()));
+                    self.engine.runtime.queue.submit(Some(encoder.finish()));
                     frame.present();
                 }
                 Event::WindowEvent {
@@ -236,7 +271,7 @@ impl App {
                 _ => {}
             }
 
-            platform.handle_event(imgui.io_mut(), &window, &event);
+            platform.handle_event(imgui.io_mut(), &self.window, &event);
         });
     }
 }

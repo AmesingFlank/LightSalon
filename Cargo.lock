@@ -1144,6 +1144,7 @@ dependencies = [
  "imgui-winit-support",
  "log",
  "pollster",
+ "raw-window-handle 0.5.2",
  "wgpu",
  "winit",
 ]
