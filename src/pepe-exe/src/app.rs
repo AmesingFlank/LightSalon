@@ -11,6 +11,15 @@ pub struct App {
 }
 
 impl App {
+    pub fn main(&self) {
+        let event_loop = EventLoop::new();
+        let window = winit::window::Window::new(&event_loop).unwrap();
+        {
+            env_logger::init();
+            pollster::block_on(self.run(event_loop, window));
+        }
+    }
+
     pub async fn run(&self, event_loop: EventLoop<()>, window: Window) {
         let size = window.inner_size();
     
