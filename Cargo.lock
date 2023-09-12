@@ -1135,7 +1135,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "de3145af08024dea9fa9914f381a17b8fc6034dfb00f3a84013f7ff43f29ed4c"
 
 [[package]]
-name = "pepe-exe"
+name = "pepe_core"
 version = "0.1.0"
 dependencies = [
  "env_logger",
@@ -1143,6 +1143,21 @@ dependencies = [
  "imgui-wgpu",
  "imgui-winit-support",
  "log",
+ "pollster",
+ "wgpu",
+ "winit",
+]
+
+[[package]]
+name = "pepe_exe"
+version = "0.1.0"
+dependencies = [
+ "env_logger",
+ "imgui",
+ "imgui-wgpu",
+ "imgui-winit-support",
+ "log",
+ "pepe_core",
  "pollster",
  "wgpu",
  "winit",

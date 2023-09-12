@@ -1,5 +1,6 @@
 [workspace]
 resolver = "2"
 members = [
-    "src/pepe-exe",
+    "src/pepe_exe",
+    "src/pepe_core",
 ]

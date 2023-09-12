@@ -1,11 +1,11 @@
 [package]
-name = "pepe-exe"
+name = "pepe_core"
 version = "0.1.0"
 edition = "2021"
 
-[[bin]]
-name = "pepe-exe"
-path = "src/main.rs"
+[lib]
+name = "pepe_core"
+path = "src/lib.rs"
 
 [dependencies]
 winit = "0.27"
