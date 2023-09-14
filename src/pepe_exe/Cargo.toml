@@ -8,14 +8,13 @@ name = "pepe_exe"
 path = "src/main.rs"
 
 [dependencies]
-winit = "0.27"
 env_logger = "0.10"
 log = "0.4"
 wgpu = "0.17.0"
 pollster = "0.3.0"
 
-imgui = "0.11"
-imgui-wgpu = "0.24"
-imgui-winit-support = "0.11"
-
 pepe_core = { path = "../pepe_core" }
+
+eframe = { version = "0.22.0", features = ["wgpu"], git = "https://github.com/emilk/egui" }
+
+bytemuck = "1.7.1"
