@@ -1,4 +1,5 @@
 mod app;
+mod ui;
 
 use eframe::egui;
 use std::num::NonZeroU64;
