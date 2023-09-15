@@ -6,41 +6,12 @@ use eframe::{
     egui_wgpu::wgpu::util::DeviceExt,
     egui_wgpu::{self, wgpu},
 };
-
+ 
 pub struct App {
-    //engine: pepe_core::engine::Engine,
-}
-
-impl App {
-    pub async fn new() -> App {
-        // let engine = Engine {
-        //     runtime: Runtime::create_with_native_window(&window).await,
-        // };
-        App {
-            //engine: engine,
-        }
-    }
-
-    pub fn main(self) {
-        env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
-        let options = eframe::NativeOptions {
-            initial_window_size: Some(egui::vec2(320.0, 240.0)),
-            renderer: eframe::Renderer::Wgpu,
-            ..Default::default()
-        };
-        eframe::run_native(
-            "My egui App",
-            options,
-            Box::new(|_cc| Box::new(Custom3d::new(_cc))),
-        );
-    }
-}
-
-pub struct Custom3d {
     angle: f32,
 }
 
-impl Custom3d {
+impl App {
     pub fn new<'a>(cc: &'a eframe::CreationContext<'a>) -> Self {
         // Get the WGPU render state from the eframe creation context. This can also be retrieved
         // from `eframe::Frame` when you don't have a `CreationContext` available.
@@ -126,7 +97,7 @@ impl Custom3d {
     }
 }
 
-impl eframe::App for Custom3d {
+impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             egui::ScrollArea::both()
@@ -197,7 +168,7 @@ impl egui_wgpu::CallbackTrait for CustomTriangleCallback {
     }
 }
 
-impl Custom3d {
+impl App {
     fn custom_painting(&mut self, ui: &mut egui::Ui) {
         let (rect, response) =
             ui.allocate_exact_size(egui::Vec2::splat(300.0), egui::Sense::drag());
