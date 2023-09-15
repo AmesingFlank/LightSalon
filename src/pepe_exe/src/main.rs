@@ -16,7 +16,7 @@ fn main() {
         ..Default::default()
     };
     eframe::run_native(
-        "My egui App",
+        "PEPE",
         options,
         Box::new(|_cc| Box::new(app::App::new(_cc))),
     );

@@ -6,9 +6,10 @@ use eframe::{
     egui_wgpu::wgpu::util::DeviceExt,
     egui_wgpu::{self, wgpu},
 };
- 
+
 pub struct App {
     angle: f32,
+    engine: Engine,
 }
 
 impl App {
@@ -16,6 +17,13 @@ impl App {
         // Get the WGPU render state from the eframe creation context. This can also be retrieved
         // from `eframe::Frame` when you don't have a `CreationContext` available.
         let wgpu_render_state = cc.wgpu_render_state.as_ref().unwrap();
+
+        let runtime = Runtime {
+            adapter: wgpu_render_state.adapter.clone(),
+            device: wgpu_render_state.device.clone(),
+            queue: wgpu_render_state.queue.clone(),
+        };
+        let engine = Engine { runtime: runtime };
 
         let device = &wgpu_render_state.device;
 
@@ -93,7 +101,10 @@ impl App {
                 uniform_buffer,
             });
 
-        Self { angle: 0.0 }
+        Self {
+            angle: 0.0,
+            engine: engine,
+        }
     }
 }
 
