@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use image::GenericImageView;
 
 use crate::runtime;
@@ -8,9 +10,21 @@ pub struct Image {
 }
 
 impl Image {
+    pub fn create_from_path(runtime: &runtime::Runtime, path: PathBuf) -> Result<Self, String> {
+        let img = image::open(path.clone());
+        match img {
+            Ok(i) => Ok(Self::create_from_image(runtime, i)),
+            Err(_) => {
+                Err("could not open image at path ".to_string() + path.to_str().unwrap_or(""))
+            }
+        }
+    }
     pub fn create_from_bytes(runtime: &runtime::Runtime) -> Self {
         let bytes = include_bytes!("../../../assets/images/car.jpg");
-        let image = image::load_from_memory(bytes).unwrap();
+        let img = image::load_from_memory(bytes).unwrap();
+        Image::create_from_image(runtime, img)
+    }
+    pub fn create_from_image(runtime: &runtime::Runtime, image: image::DynamicImage) -> Self {
         let rgba = image.to_rgba8();
 
         let dimensions = image.dimensions();
@@ -21,11 +35,14 @@ impl Image {
         };
         let texture = runtime.device.create_texture(&wgpu::TextureDescriptor {
             size: size,
-            mip_level_count: 1, 
+            mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format: wgpu::TextureFormat::Rgba8Unorm,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::STORAGE_BINDING | wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::COPY_SRC,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING
+                | wgpu::TextureUsages::STORAGE_BINDING
+                | wgpu::TextureUsages::COPY_DST
+                | wgpu::TextureUsages::COPY_SRC,
             label: None,
             view_formats: &[],
         });
@@ -51,7 +68,7 @@ impl Image {
         Image {
             dimensions,
             texture,
-            texture_view
+            texture_view,
         }
     }
 }
