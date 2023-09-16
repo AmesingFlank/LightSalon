@@ -9,7 +9,6 @@ use eframe::{
 };
 
 pub struct App {
-    angle: f32,
     engine: Engine,
 }
 
@@ -37,7 +36,6 @@ impl App {
             .insert(main_image_render_resources);
 
         Self {
-            angle: 0.0,
             engine: engine,
         }
     }
@@ -71,10 +69,9 @@ impl App {
         let (rect, response) =
             ui.allocate_exact_size(egui::Vec2::splat(300.0), egui::Sense::drag());
 
-        self.angle += response.drag_delta().x * 0.01;
         ui.painter().add(egui_wgpu::Callback::new_paint_callback(
             rect,
-            ui::main_image::MainImageCallback { angle: self.angle },
+            ui::main_image::MainImageCallback { arg: 1.0 },
         ));
     }
 }

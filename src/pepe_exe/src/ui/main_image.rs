@@ -4,7 +4,7 @@ use eframe::{egui, egui_wgpu};
 use wgpu::util::DeviceExt;
 
 pub struct MainImageCallback {
-    pub angle: f32,
+    pub arg: f32,
 }
 
 impl egui_wgpu::CallbackTrait for MainImageCallback {
@@ -16,7 +16,7 @@ impl egui_wgpu::CallbackTrait for MainImageCallback {
         resources: &mut egui_wgpu::CallbackResources,
     ) -> Vec<wgpu::CommandBuffer> {
         let resources: &MainImageRenderResources = resources.get().unwrap();
-        resources.prepare(device, queue, self.angle);
+        resources.prepare(device, queue, self.arg);
         Vec::new()
     }
 
@@ -107,12 +107,12 @@ impl MainImageRenderResources {
         }
 
     }
-    fn prepare(&self, _device: &wgpu::Device, queue: &wgpu::Queue, angle: f32) {
+    fn prepare(&self, _device: &wgpu::Device, queue: &wgpu::Queue, arg: f32) {
         // Update our uniform buffer with the angle from the UI
         queue.write_buffer(
             &self.uniform_buffer,
             0,
-            bytemuck::cast_slice(&[angle, 0.0, 0.0, 0.0]),
+            bytemuck::cast_slice(&[arg, 0.0, arg, 1.0]),
         );
     }
 
@@ -120,6 +120,6 @@ impl MainImageRenderResources {
         // Draw our triangle!
         render_pass.set_pipeline(&self.pipeline);
         render_pass.set_bind_group(0, &self.bind_group, &[]);
-        render_pass.draw(0..3, 0..1);
+        render_pass.draw(0..6, 0..1);
     }
 }
