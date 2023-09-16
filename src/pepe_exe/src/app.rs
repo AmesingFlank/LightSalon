@@ -83,12 +83,14 @@ impl eframe::App for App {
 
                     if self.session.working_image_history.len() > 0 {
                         egui::Frame::canvas(ui.style()).show(ui, |ui| {
-                            let (rect, response) = ui.allocate_exact_size(egui::Vec2 { x: 200.0, y: 300.0 }, egui::Sense::drag());
+                            let image =  self.session.working_image_history.last().unwrap().clone();
+                            let size = egui::Vec2 { x: image.dimensions.0 as f32, y: image.dimensions.1 as f32};
+                            let (rect, response) = ui.allocate_exact_size(size, egui::Sense::drag());
                             ui.painter().add(egui_wgpu::Callback::new_paint_callback(
                                 rect,
                                 ui::main_image::MainImageCallback {
                                     arg: 1.0,
-                                    image: self.session.working_image_history.last().unwrap().clone()
+                                    image: image
                                 },
                             ));
                         });
