@@ -1,6 +1,6 @@
 use eframe::egui;
 use pepe_core::{engine::Engine, runtime::Runtime};
-use std::num::NonZeroU64;
+use std::{num::NonZeroU64, sync::Arc};
 use crate::ui;
 
 use eframe::{
@@ -10,6 +10,7 @@ use eframe::{
 
 pub struct App {
     engine: Engine,
+    img: Arc<pepe_core::image::Image>,
 }
 
 impl App {
@@ -35,8 +36,11 @@ impl App {
             .callback_resources
             .insert(main_image_render_resources);
 
+        let img = Arc::new(pepe_core::image::Image::create_from_bytes(&engine.runtime));
+
         Self {
             engine: engine,
+            img: img
         }
     }
 }
@@ -71,7 +75,7 @@ impl App {
 
         ui.painter().add(egui_wgpu::Callback::new_paint_callback(
             rect,
-            ui::main_image::MainImageCallback { arg: 1.0 },
+            ui::main_image::MainImageCallback { arg: 1.0, image: self.img.clone() },
         ));
     }
 }

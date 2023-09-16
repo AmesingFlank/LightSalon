@@ -2084,10 +2084,7 @@ checksum = "de3145af08024dea9fa9914f381a17b8fc6034dfb00f3a84013f7ff43f29ed4c"
 name = "pepe_core"
 version = "0.1.0"
 dependencies = [
- "env_logger",
- "log",
- "pollster",
- "raw-window-handle",
+ "image",
  "wgpu",
 ]
 
