@@ -1,6 +1,6 @@
 use crate::ui;
 use eframe::egui;
-use pepe_core::{engine::Engine, runtime::Runtime};
+use pepe_core::{engine::Engine, runtime::Runtime, session::Session};
 use std::{num::NonZeroU64, sync::Arc};
 
 use eframe::{
@@ -9,8 +9,7 @@ use eframe::{
 };
 
 pub struct App {
-    engine: Engine,
-    img: Arc<pepe_core::image::Image>,
+    session: Session,
 }
 
 impl App {
@@ -23,18 +22,7 @@ impl App {
         };
         let _ = eframe::run_native("PEPE", options, Box::new(|_cc| Box::new(App::new(_cc))));
     }
-    fn custom_painting(&mut self, ui: &mut egui::Ui) {
-        let (rect, response) =
-            ui.allocate_exact_size(egui::Vec2::splat(300.0), egui::Sense::drag());
 
-        ui.painter().add(egui_wgpu::Callback::new_paint_callback(
-            rect,
-            ui::main_image::MainImageCallback {
-                arg: 1.0,
-                image: self.img.clone(),
-            },
-        ));
-    }
     pub fn new<'a>(cc: &'a eframe::CreationContext<'a>) -> Self {
         // Get the WGPU render state from the eframe creation context. This can also be retrieved
         // from `eframe::Frame` when you don't have a `CreationContext` available.
@@ -46,6 +34,10 @@ impl App {
             queue: wgpu_render_state.queue.clone(),
         };
         let engine = Engine { runtime: runtime };
+        let session = Session {
+            engine: engine,
+            working_image_history: Vec::new(),
+        };
 
         let main_image_render_resources = ui::main_image::MainImageRenderResources::create(
             &wgpu_render_state.device,
@@ -57,12 +49,11 @@ impl App {
             .callback_resources
             .insert(main_image_render_resources);
 
-        let img = Arc::new(pepe_core::image::Image::create_from_bytes(&engine.runtime));
+        let img = Arc::new(pepe_core::image::Image::create_from_bytes(
+            &session.engine.runtime,
+        ));
 
-        Self {
-            engine: engine,
-            img: img,
-        }
+        Self { session }
     }
 }
 
@@ -82,14 +73,26 @@ impl eframe::App for App {
 
                     if ui.button("Select image file").clicked(){
                         if let Some(path) = rfd::FileDialog::new().pick_file() {
-                            let path_str = path.display();
-                            println!("path {path_str}");
+                            let loaded_img = pepe_core::image::Image::create_from_path(&self.session.engine.runtime, path);
+                            match loaded_img {
+                                Ok(img) => self.session.working_image_history.push(Arc::new(img)),
+                                Err(e) => {println!("couldn't open image {e}")}
+                            }
                         }
                     }
 
-                    egui::Frame::canvas(ui.style()).show(ui, |ui| {
-                        self.custom_painting(ui);
-                    });
+                    if self.session.working_image_history.len() > 0 {
+                        egui::Frame::canvas(ui.style()).show(ui, |ui| {
+                            let (rect, response) = ui.allocate_exact_size(egui::Vec2 { x: 200.0, y: 300.0 }, egui::Sense::drag());
+                            ui.painter().add(egui_wgpu::Callback::new_paint_callback(
+                                rect,
+                                ui::main_image::MainImageCallback {
+                                    arg: 1.0,
+                                    image: self.session.working_image_history.last().unwrap().clone()
+                                },
+                            ));
+                        });
+                    }
                 });
         });
     }
