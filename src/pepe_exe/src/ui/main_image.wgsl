@@ -31,6 +31,7 @@ fn vs_main(@builtin(vertex_index) v_idx: u32) -> VertexOut {
     var out: VertexOut;
     out.position = vec4<f32>(v_positions[v_idx], 0.0, 1.0);
     out.uv = (out.position.xy + 1.0) * 0.5;
+    out.uv.y = 1.0 - out.uv.y;
     return out;
 }
 
