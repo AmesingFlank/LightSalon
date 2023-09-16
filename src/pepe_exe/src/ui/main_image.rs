@@ -108,7 +108,6 @@ impl MainImageRenderResources {
 
     }
     fn prepare(&self, _device: &wgpu::Device, queue: &wgpu::Queue, arg: f32) {
-        // Update our uniform buffer with the angle from the UI
         queue.write_buffer(
             &self.uniform_buffer,
             0,
@@ -117,7 +116,6 @@ impl MainImageRenderResources {
     }
 
     fn paint<'rp>(&'rp self, render_pass: &mut wgpu::RenderPass<'rp>) {
-        // Draw our triangle!
         render_pass.set_pipeline(&self.pipeline);
         render_pass.set_bind_group(0, &self.bind_group, &[]);
         render_pass.draw(0..6, 0..1);
