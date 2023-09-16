@@ -30,7 +30,7 @@ var<private> v_positions: array<vec2<f32>, 6> = array<vec2<f32>, 6>(
 fn vs_main(@builtin(vertex_index) v_idx: u32) -> VertexOut {
     var out: VertexOut;
     out.position = vec4<f32>(v_positions[v_idx], 0.0, 1.0);
-    out.uv = out.position.xy;
+    out.uv = (out.position.xy + 1.0) * 0.5;
     return out;
 }
 
