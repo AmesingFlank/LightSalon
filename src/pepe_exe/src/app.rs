@@ -51,6 +51,25 @@ impl App {
 }
 
 impl App {
+    fn file_dialogue_import_image(&mut self) {
+        if let Some(path) = rfd::FileDialog::new().pick_file() {
+            let add_result = self.session.library.as_mut().add(path.to_str().unwrap());
+            let selected_image: Option<u32> = match add_result {
+                AddImageResult::AddedNewImage(i) => Some(i),
+                AddImageResult::ImageAlreadyExists(i) => Some(i),
+                AddImageResult::Error(_) => None,
+            };
+            match selected_image {
+                Some(i) => {
+                    let img = self.session.library.as_mut().get_image(i);
+                    self.session.working_image_history.clear();
+                    self.session.working_image_history.push(img);
+                }
+                None => {}
+            };
+        }
+    }
+
     fn main_image(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame, ui: &mut Ui) {
         if self.session.working_image_history.len() > 0 {
             egui::Frame::canvas(ui.style()).show(ui, |ui| {
@@ -76,38 +95,16 @@ impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         egui::TopBottomPanel::top("top_bar").show(ctx, |ui| {
             ui.horizontal_wrapped(|ui| {
-                ui.label("top");
+                ui.menu_button("File", |ui| {
+                    if ui.button("Import Image").clicked() {
+                        ui.close_menu();
+                        self.file_dialogue_import_image();
+                    }
+                });
             });
         });
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                ui.spacing_mut().item_spacing.x = 0.0;
-                ui.label("The triangle is being painted using ");
-                ui.hyperlink_to("WGPU", "https://wgpu.rs");
-                ui.label(" (Portable Rust graphics API awesomeness)");
-            });
-            ui.label(
-                "It's not a very impressive demo, but it shows you can embed 3D inside of egui.",
-            );
-
-            if ui.button("Select image file").clicked() {
-                if let Some(path) = rfd::FileDialog::new().pick_file() {
-                    let add_result = self.session.library.as_mut().add(path.to_str().unwrap());
-                    let selected_image: Option<u32> = match add_result {
-                        AddImageResult::AddedNewImage(i) => Some(i),
-                        AddImageResult::ImageAlreadyExists(i) => Some(i),
-                        AddImageResult::Error(_) => None,
-                    };
-                    match selected_image {
-                        Some(i) => {
-                            let img = self.session.library.as_mut().get_image(i);
-                            self.session.working_image_history.clear();
-                            self.session.working_image_history.push(img);
-                        }
-                        None => {}
-                    };
-                }
-            }
+            if ui.button("Select image file").clicked() {}
             self.main_image(ctx, frame, ui);
         });
     }
