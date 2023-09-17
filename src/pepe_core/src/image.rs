@@ -10,7 +10,7 @@ pub struct Image {
 }
 
 impl Image {
-    pub fn create_from_path(runtime: &runtime::Runtime, path: PathBuf) -> Result<Self, String> {
+    pub fn create_from_path(runtime: &runtime::Runtime, path: &PathBuf) -> Result<Self, String> {
         let img = image::open(path.clone());
         match img {
             Ok(i) => Ok(Self::create_from_image(runtime, i)),

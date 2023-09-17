@@ -1,5 +1,7 @@
+use std::sync::Arc;
+
 use crate::runtime::Runtime;
 
 pub struct Engine {
-    pub runtime: Runtime
+    pub runtime: Arc<Runtime>,
 }

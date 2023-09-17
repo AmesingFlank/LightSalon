@@ -33,11 +33,8 @@ impl App {
             device: wgpu_render_state.device.clone(),
             queue: wgpu_render_state.queue.clone(),
         };
-        let engine = Engine { runtime: runtime };
-        let session = Session {
-            engine: engine,
-            working_image_history: Vec::new(),
-        };
+
+        let session = Session::new(Arc::new(runtime));
 
         let main_image_render_resources = ui::main_image::MainImageRenderResources::create(
             &wgpu_render_state.device,
@@ -50,7 +47,7 @@ impl App {
             .insert(main_image_render_resources);
 
         let img = Arc::new(pepe_core::image::Image::create_from_bytes(
-            &session.engine.runtime,
+            session.engine.runtime.as_ref(),
         ));
 
         Self { session }
@@ -101,7 +98,7 @@ impl eframe::App for App {
                 if let Some(path) = rfd::FileDialog::new().pick_file() {
                     let loaded_img = pepe_core::image::Image::create_from_path(
                         &self.session.engine.runtime,
-                        path,
+                        &path,
                     );
                     match loaded_img {
                         Ok(img) => self.session.working_image_history.push(Arc::new(img)),
