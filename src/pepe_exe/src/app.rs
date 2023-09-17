@@ -1,5 +1,5 @@
 use crate::ui;
-use eframe::egui;
+use eframe::egui::{self, Ui};
 use pepe_core::{engine::Engine, runtime::Runtime, session::Session};
 use std::{num::NonZeroU64, sync::Arc};
 
@@ -57,45 +57,61 @@ impl App {
     }
 }
 
-impl eframe::App for App {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::CentralPanel::default().show(ctx, |ui| {
-            egui::ScrollArea::both()
-                .auto_shrink([false; 2])
-                .show(ui, |ui| {
-                    ui.horizontal(|ui| {
-                        ui.spacing_mut().item_spacing.x = 0.0;
-                        ui.label("The triangle is being painted using ");
-                        ui.hyperlink_to("WGPU", "https://wgpu.rs");
-                        ui.label(" (Portable Rust graphics API awesomeness)");
-                    });
-                    ui.label("It's not a very impressive demo, but it shows you can embed 3D inside of egui.");
+impl App {
+    fn main_image(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame, ui: &mut Ui) {
+        if self.session.working_image_history.len() > 0 {
+            egui::Frame::canvas(ui.style()).show(ui, |ui| {
+                let image = self.session.working_image_history.last().unwrap().clone();
+                let size = egui::Vec2 {
+                    x: image.dimensions.0 as f32,
+                    y: image.dimensions.1 as f32,
+                };
+                let (rect, response) = ui.allocate_exact_size(size, egui::Sense::drag());
+                ui.painter().add(egui_wgpu::Callback::new_paint_callback(
+                    rect,
+                    ui::main_image::MainImageCallback {
+                        arg: 1.0,
+                        image: image,
+                    },
+                ));
+            });
+        }
+    }
+}
 
-                    if ui.button("Select image file").clicked(){
-                        if let Some(path) = rfd::FileDialog::new().pick_file() {
-                            let loaded_img = pepe_core::image::Image::create_from_path(&self.session.engine.runtime, path);
-                            match loaded_img {
-                                Ok(img) => self.session.working_image_history.push(Arc::new(img)),
-                                Err(e) => {println!("couldn't open image {e}")}
-                            }
+impl eframe::App for App {
+    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+        egui::TopBottomPanel::top("top_bar").show(ctx, |ui| {
+            ui.horizontal_wrapped(|ui| {
+                ui.label("top");
+            });
+        });
+        egui::CentralPanel::default().show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                ui.spacing_mut().item_spacing.x = 0.0;
+                ui.label("The triangle is being painted using ");
+                ui.hyperlink_to("WGPU", "https://wgpu.rs");
+                ui.label(" (Portable Rust graphics API awesomeness)");
+            });
+            ui.label(
+                "It's not a very impressive demo, but it shows you can embed 3D inside of egui.",
+            );
+
+            if ui.button("Select image file").clicked() {
+                if let Some(path) = rfd::FileDialog::new().pick_file() {
+                    let loaded_img = pepe_core::image::Image::create_from_path(
+                        &self.session.engine.runtime,
+                        path,
+                    );
+                    match loaded_img {
+                        Ok(img) => self.session.working_image_history.push(Arc::new(img)),
+                        Err(e) => {
+                            println!("couldn't open image {e}")
                         }
                     }
-
-                    if self.session.working_image_history.len() > 0 {
-                        egui::Frame::canvas(ui.style()).show(ui, |ui| {
-                            let image =  self.session.working_image_history.last().unwrap().clone();
-                            let size = egui::Vec2 { x: image.dimensions.0 as f32, y: image.dimensions.1 as f32};
-                            let (rect, response) = ui.allocate_exact_size(size, egui::Sense::drag());
-                            ui.painter().add(egui_wgpu::Callback::new_paint_callback(
-                                rect,
-                                ui::main_image::MainImageCallback {
-                                    arg: 1.0,
-                                    image: image
-                                },
-                            ));
-                        });
-                    }
-                });
+                }
+            }
+            self.main_image(ctx, frame, ui);
         });
     }
 }
