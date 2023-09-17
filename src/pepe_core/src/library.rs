@@ -1,12 +1,18 @@
-use std::{path::PathBuf, collections::HashMap, sync::Arc};
+use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use crate::image::Image;
 use crate::runtime::Runtime;
 
 pub trait Library {
     fn num_images(&self) -> u32;
-    fn add(&mut self, resource: &str) -> Result<(), String>;
+    fn add(&mut self, resource: &str) -> AddImageResult;
     fn get_image(&mut self, index: u32) -> Arc<Image>;
+}
+
+pub enum AddImageResult {
+    AddedNewImage(u32),
+    ImageAlreadyExists(u32),
+    Error(String),
 }
 
 pub struct LocalLibrary {
@@ -29,13 +35,19 @@ impl Library for LocalLibrary {
     fn num_images(&self) -> u32 {
         self.paths.len() as u32
     }
-    fn add(&mut self, resource: &str) -> Result<(), String> {
+    fn add(&mut self, resource: &str) -> AddImageResult {
         let pathbuf = PathBuf::from(resource);
         if !std::path::Path::exists(&pathbuf.as_path()) {
-            return Err("cannot open ".to_owned()+resource)
+            return AddImageResult::Error("cannot open ".to_owned() + resource);
         }
+        for i in 0..self.paths.len() {
+            if self.paths[i] == pathbuf {
+                return AddImageResult::ImageAlreadyExists(i as u32);
+            }
+        }
+        let i = self.num_images();
         self.paths.push(pathbuf);
-        Ok(())
+        AddImageResult::AddedNewImage(i)
     }
     fn get_image(&mut self, index: u32) -> Arc<Image> {
         let existing = self.images.get(&index);

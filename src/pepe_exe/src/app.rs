@@ -1,6 +1,6 @@
 use crate::ui;
 use eframe::egui::{self, Ui};
-use pepe_core::{engine::Engine, runtime::Runtime, session::Session};
+use pepe_core::{engine::Engine, library::AddImageResult, runtime::Runtime, session::Session};
 use std::{num::NonZeroU64, sync::Arc};
 
 use eframe::{
@@ -45,10 +45,6 @@ impl App {
             .write()
             .callback_resources
             .insert(main_image_render_resources);
-
-        let img = Arc::new(pepe_core::image::Image::create_from_bytes(
-            session.engine.runtime.as_ref(),
-        ));
 
         Self { session }
     }
@@ -96,16 +92,20 @@ impl eframe::App for App {
 
             if ui.button("Select image file").clicked() {
                 if let Some(path) = rfd::FileDialog::new().pick_file() {
-                    let loaded_img = pepe_core::image::Image::create_from_path(
-                        &self.session.engine.runtime,
-                        &path,
-                    );
-                    match loaded_img {
-                        Ok(img) => self.session.working_image_history.push(Arc::new(img)),
-                        Err(e) => {
-                            println!("couldn't open image {e}")
+                    let add_result = self.session.library.as_mut().add(path.to_str().unwrap());
+                    let selected_image: Option<u32> = match add_result {
+                        AddImageResult::AddedNewImage(i) => Some(i),
+                        AddImageResult::ImageAlreadyExists(i) => Some(i),
+                        AddImageResult::Error(_) => None,
+                    };
+                    match selected_image {
+                        Some(i) => {
+                            let img = self.session.library.as_mut().get_image(i);
+                            self.session.working_image_history.clear();
+                            self.session.working_image_history.push(img);
                         }
-                    }
+                        None => {}
+                    };
                 }
             }
             self.main_image(ctx, frame, ui);
