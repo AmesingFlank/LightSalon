@@ -104,7 +104,10 @@ impl eframe::App for App {
             });
         });
         egui::CentralPanel::default().show(ctx, |ui| {
-            if ui.button("Select image file").clicked() {}
+            ui.columns(2, |columns| {
+                columns[0].label("First column");
+                columns[1].label("Second column");
+            });
             self.main_image(ctx, frame, ui);
         });
     }

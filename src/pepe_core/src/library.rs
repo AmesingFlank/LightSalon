@@ -7,6 +7,7 @@ pub trait Library {
     fn num_images(&self) -> u32;
     fn add(&mut self, resource: &str) -> AddImageResult;
     fn get_image(&mut self, index: u32) -> Arc<Image>;
+    fn get_thumbnail(&mut self, index: u32) -> Arc<Image>;
 }
 
 pub enum AddImageResult {
@@ -61,5 +62,8 @@ impl Library for LocalLibrary {
                 img.clone()
             }
         }
+    }
+    fn get_thumbnail(&mut self, index: u32) -> Arc<Image>{
+        self.get_image(index)
     }
 }
