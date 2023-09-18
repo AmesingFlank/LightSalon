@@ -72,20 +72,37 @@ impl App {
 
     fn main_image(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame, ui: &mut Ui) {
         if self.session.working_image_history.len() > 0 {
-            egui::Frame::canvas(ui.style()).show(ui, |ui| {
-                let image = self.session.working_image_history.last().unwrap().clone();
-                let size = egui::Vec2 {
-                    x: image.dimensions.0 as f32,
-                    y: image.dimensions.1 as f32,
-                };
-                let (rect, response) = ui.allocate_exact_size(size, egui::Sense::drag());
-                ui.painter().add(egui_wgpu::Callback::new_paint_callback(
-                    rect,
-                    ui::main_image::MainImageCallback {
-                        arg: 1.0,
-                        image: image,
-                    },
-                ));
+            let max_x = ui.available_width();
+            let max_y = ui.available_height();
+            let ui_aspect_ratio = max_y / max_x;
+
+            let image = self.session.working_image_history.last().unwrap().clone();
+            let image_aspect_ratio = image.dimensions.1 as f32 / image.dimensions.0 as f32;
+
+            let size = if image_aspect_ratio >= ui_aspect_ratio {
+                egui::Vec2 {
+                    x: max_y / image_aspect_ratio,
+                    y: max_y,
+                }
+            } else {
+                egui::Vec2 {
+                    x: max_x,
+                    y: max_x * image_aspect_ratio,
+                }
+            };
+            ui.centered_and_justified(|ui| {
+                egui::Frame::canvas(ui.style()).show(ui, |ui| {
+                    let (rect, response) = ui.allocate_exact_size(size, egui::Sense::drag());
+                    ui.horizontal_centered(|ui| {
+                        ui.painter().add(egui_wgpu::Callback::new_paint_callback(
+                            rect,
+                            ui::main_image::MainImageCallback {
+                                arg: 1.0,
+                                image: image,
+                            },
+                        ));
+                    });
+                });
             });
         }
     }
@@ -105,6 +122,12 @@ impl eframe::App for App {
             });
         });
         egui::SidePanel::left("library_panel")
+            .default_width(frame_size.x * 0.2)
+            .resizable(true)
+            .show(ctx, |ui| {
+                ui.set_width(ui.available_width());
+            });
+        egui::SidePanel::right("tools_panel")
             .default_width(frame_size.x * 0.2)
             .resizable(true)
             .show(ctx, |ui| {
