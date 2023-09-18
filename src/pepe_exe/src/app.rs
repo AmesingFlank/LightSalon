@@ -1,5 +1,6 @@
 use crate::ui;
-use eframe::egui::{self, Ui};
+use eframe::egui::{self, accesskit::Vec2, Ui};
+use egui_extras::{Column, TableBuilder};
 use pepe_core::{engine::Engine, library::AddImageResult, runtime::Runtime, session::Session};
 use std::{num::NonZeroU64, sync::Arc};
 
@@ -10,6 +11,7 @@ use eframe::{
 
 pub struct App {
     session: Session,
+    ui_state: AppUiState,
 }
 
 impl App {
@@ -46,7 +48,10 @@ impl App {
             .callback_resources
             .insert(main_image_render_resources);
 
-        Self { session }
+        Self {
+            session,
+            ui_state: AppUiState::new(),
+        }
     }
 }
 
@@ -70,7 +75,7 @@ impl App {
         }
     }
 
-    fn main_image(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame, ui: &mut Ui) {
+    fn main_image(&mut self, _ctx: &egui::Context, _frame: &mut eframe::Frame, ui: &mut Ui) {
         if self.session.working_image_history.len() > 0 {
             let max_x = ui.available_width();
             let max_y = ui.available_height();
@@ -104,11 +109,32 @@ impl App {
             });
         }
     }
+
+    fn image_library(&mut self, ui: &mut Ui) {
+        let mut table = TableBuilder::new(ui).column(Column::auto());
+        let row_height = self.ui_state.last_frame_size.unwrap().1 * 0.1;
+        table.body(|mut body| {
+            body.rows(row_height, self.session.library.num_images() as usize, |row_index, mut row| {
+                row.col(|ui| {
+                    ui.label(row_index.to_string());
+                });
+            });
+        });
+    }
 }
 
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-        let frame_size = frame.info().window_info.size;
+        let is_first_frame = self.ui_state.last_frame_size.is_none();
+        let last_frame_size = frame.info().window_info.size; // egui has a 1-frame delay
+        self.ui_state.last_frame_size = Some((last_frame_size.x, last_frame_size.y));
+
+        if is_first_frame {
+            // if the screen is smaller than then window size we requested, then, on the first frame, 
+            // the frame size won't accurately reflection the actual frame size, so the sizing of side panels will be off
+            return;
+        }
+
         egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
             ui.horizontal_wrapped(|ui| {
                 ui.menu_button("File", |ui| {
@@ -120,13 +146,14 @@ impl eframe::App for App {
             });
         });
         egui::SidePanel::left("library_panel")
-            .default_width(frame_size.x * 0.2)
+            .default_width(last_frame_size.x * 0.2)
             .resizable(true)
             .show(ctx, |ui| {
                 ui.set_width(ui.available_width());
+                self.image_library(ui);
             });
         egui::SidePanel::right("tools_panel")
-            .default_width(frame_size.x * 0.2)
+            .default_width(last_frame_size.x * 0.2)
             .resizable(true)
             .show(ctx, |ui| {
                 ui.set_width(ui.available_width());
@@ -134,5 +161,17 @@ impl eframe::App for App {
         egui::CentralPanel::default().show(ctx, |ui| {
             self.main_image(ctx, frame, ui);
         });
+    }
+}
+
+struct AppUiState {
+    last_frame_size: Option<(f32, f32)>,
+}
+
+impl AppUiState {
+    fn new() -> Self {
+        AppUiState {
+            last_frame_size: None,
+        }
     }
 }
