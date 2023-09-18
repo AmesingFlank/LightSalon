@@ -91,17 +91,15 @@ impl App {
                 }
             };
             ui.centered_and_justified(|ui| {
-                egui::Frame::canvas(ui.style()).show(ui, |ui| {
-                    let (rect, response) = ui.allocate_exact_size(size, egui::Sense::drag());
-                    ui.horizontal_centered(|ui| {
-                        ui.painter().add(egui_wgpu::Callback::new_paint_callback(
-                            rect,
-                            ui::main_image::MainImageCallback {
-                                arg: 1.0,
-                                image: image,
-                            },
-                        ));
-                    });
+                let (rect, response) = ui.allocate_exact_size(size, egui::Sense::drag());
+                ui.horizontal_centered(|ui| {
+                    ui.painter().add(egui_wgpu::Callback::new_paint_callback(
+                        rect,
+                        ui::main_image::MainImageCallback {
+                            arg: 1.0,
+                            image: image,
+                        },
+                    ));
                 });
             });
         }
