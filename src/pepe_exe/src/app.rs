@@ -93,7 +93,8 @@ impl App {
 
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-        egui::TopBottomPanel::top("top_bar").show(ctx, |ui| {
+        let frame_size = frame.info().window_info.size;
+        egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
             ui.horizontal_wrapped(|ui| {
                 ui.menu_button("File", |ui| {
                     if ui.button("Import Image").clicked() {
@@ -103,11 +104,13 @@ impl eframe::App for App {
                 });
             });
         });
-        egui::CentralPanel::default().show(ctx, |ui| {
-            ui.columns(2, |columns| {
-                columns[0].label("First column");
-                columns[1].label("Second column");
+        egui::SidePanel::left("library_panel")
+            .default_width(frame_size.x * 0.2)
+            .resizable(true)
+            .show(ctx, |ui| {
+                ui.set_width(ui.available_width());
             });
+        egui::CentralPanel::default().show(ctx, |ui| {
             self.main_image(ctx, frame, ui);
         });
     }
