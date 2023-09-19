@@ -71,4 +71,7 @@ impl Image {
             texture_view,
         }
     }
+    pub fn aspect_ratio(&self) -> f32 {
+        self.dimensions.1 as f32 / self.dimensions.0 as f32
+    }
 }

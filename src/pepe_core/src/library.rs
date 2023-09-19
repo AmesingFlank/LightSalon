@@ -4,21 +4,21 @@ use crate::image::Image;
 use crate::runtime::Runtime;
 
 pub trait Library {
-    fn num_images(&self) -> u32;
+    fn num_images(&self) -> usize;
     fn add(&mut self, resource: &str) -> AddImageResult;
-    fn get_image(&mut self, index: u32) -> Arc<Image>;
-    fn get_thumbnail(&mut self, index: u32) -> Arc<Image>;
+    fn get_image(&mut self, index: usize) -> Arc<Image>;
+    fn get_thumbnail(&mut self, index: usize) -> Arc<Image>;
 }
 
 pub enum AddImageResult {
-    AddedNewImage(u32),
-    ImageAlreadyExists(u32),
+    AddedNewImage(usize),
+    ImageAlreadyExists(usize),
     Error(String),
 }
 
 pub struct LocalLibrary {
     paths: Vec<PathBuf>,
-    images: HashMap<u32, Arc<Image>>,
+    images: HashMap<usize, Arc<Image>>,
     runtime: Arc<Runtime>,
 }
 
@@ -33,8 +33,8 @@ impl LocalLibrary {
 }
 
 impl Library for LocalLibrary {
-    fn num_images(&self) -> u32 {
-        self.paths.len() as u32
+    fn num_images(&self) -> usize {
+        self.paths.len() as usize
     }
     fn add(&mut self, resource: &str) -> AddImageResult {
         let pathbuf = PathBuf::from(resource);
@@ -43,19 +43,19 @@ impl Library for LocalLibrary {
         }
         for i in 0..self.paths.len() {
             if self.paths[i] == pathbuf {
-                return AddImageResult::ImageAlreadyExists(i as u32);
+                return AddImageResult::ImageAlreadyExists(i);
             }
         }
         let i = self.num_images();
         self.paths.push(pathbuf);
         AddImageResult::AddedNewImage(i)
     }
-    fn get_image(&mut self, index: u32) -> Arc<Image> {
+    fn get_image(&mut self, index: usize) -> Arc<Image> {
         let existing = self.images.get(&index);
         match existing {
             Some(img) => img.clone(),
             None => {
-                let path = &self.paths[index as usize];
+                let path = &self.paths[index];
                 let img = Image::create_from_path(self.runtime.as_ref(), path).unwrap();
                 let img = Arc::new(img);
                 self.images.insert(index, img.clone());
@@ -63,7 +63,7 @@ impl Library for LocalLibrary {
             }
         }
     }
-    fn get_thumbnail(&mut self, index: u32) -> Arc<Image>{
+    fn get_thumbnail(&mut self, index: usize) -> Arc<Image>{
         self.get_image(index)
     }
 }

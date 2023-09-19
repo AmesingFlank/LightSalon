@@ -4,11 +4,11 @@ use std::sync::Arc;
 use eframe::{egui, egui_wgpu};
 use wgpu::util::DeviceExt;
 
-pub struct MainImageCallback {
+pub struct ThumbnailCallback {
     pub image: Arc<pepe_core::image::Image>,
 }
 
-impl egui_wgpu::CallbackTrait for MainImageCallback {
+impl egui_wgpu::CallbackTrait for ThumbnailCallback {
     fn prepare(
         &self,
         device: &wgpu::Device,
@@ -16,7 +16,7 @@ impl egui_wgpu::CallbackTrait for MainImageCallback {
         _egui_encoder: &mut wgpu::CommandEncoder,
         resources: &mut egui_wgpu::CallbackResources,
     ) -> Vec<wgpu::CommandBuffer> {
-        let mut resources: &mut MainImageRenderResources = resources.get_mut().unwrap();
+        let mut resources: &mut ThumbnailRenderResources = resources.get_mut().unwrap();
         resources.prepare(device, queue, self.image.clone());
         Vec::new()
     }
@@ -27,12 +27,12 @@ impl egui_wgpu::CallbackTrait for MainImageCallback {
         render_pass: &mut wgpu::RenderPass<'a>,
         resources: &'a egui_wgpu::CallbackResources,
     ) {
-        let resources: &MainImageRenderResources = resources.get().unwrap();
+        let resources: &ThumbnailRenderResources = resources.get().unwrap();
         resources.paint(render_pass);
     }
 }
 
-pub struct MainImageRenderResources {
+pub struct ThumbnailRenderResources {
     pipeline: wgpu::RenderPipeline,
     bind_group_layout: wgpu::BindGroupLayout,
     bind_group: Option<wgpu::BindGroup>,
@@ -40,11 +40,11 @@ pub struct MainImageRenderResources {
     texture_sampler: wgpu::Sampler,
 }
 
-impl MainImageRenderResources {
+impl ThumbnailRenderResources {
     pub fn create(device: &wgpu::Device, target_format: wgpu::TextureFormat) -> Self {
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: None,
-            source: wgpu::ShaderSource::Wgsl(include_str!("./main_image.wgsl").into()),
+            source: wgpu::ShaderSource::Wgsl(include_str!("./thumbnail.wgsl").into()),
         });
 
         let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -122,7 +122,7 @@ impl MainImageRenderResources {
             ..Default::default()
         });
 
-        MainImageRenderResources {
+        ThumbnailRenderResources {
             pipeline,
             bind_group_layout,
             bind_group: None,

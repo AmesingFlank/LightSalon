@@ -48,6 +48,16 @@ impl App {
             .callback_resources
             .insert(main_image_render_resources);
 
+        let thumbnail_render_resources = ui::thumbnail::ThumbnailRenderResources::create(
+            &wgpu_render_state.device,
+            wgpu_render_state.target_format,
+        );
+        wgpu_render_state
+            .renderer
+            .write()
+            .callback_resources
+            .insert(thumbnail_render_resources);
+
         Self {
             session,
             ui_state: AppUiState::new(),
@@ -59,7 +69,7 @@ impl App {
     fn file_dialogue_import_image(&mut self) {
         if let Some(path) = rfd::FileDialog::new().pick_file() {
             let add_result = self.session.library.as_mut().add(path.to_str().unwrap());
-            let selected_image: Option<u32> = match add_result {
+            let selected_image: Option<usize> = match add_result {
                 AddImageResult::AddedNewImage(i) => Some(i),
                 AddImageResult::ImageAlreadyExists(i) => Some(i),
                 AddImageResult::Error(_) => None,
@@ -82,7 +92,7 @@ impl App {
             let ui_aspect_ratio = max_y / max_x;
 
             let image = self.session.working_image_history.last().unwrap().clone();
-            let image_aspect_ratio = image.dimensions.1 as f32 / image.dimensions.0 as f32;
+            let image_aspect_ratio = image.aspect_ratio();
 
             let size = if image_aspect_ratio >= ui_aspect_ratio {
                 egui::Vec2 {
@@ -97,28 +107,43 @@ impl App {
             };
             ui.centered_and_justified(|ui| {
                 let (rect, response) = ui.allocate_exact_size(size, egui::Sense::drag());
-                ui.horizontal_centered(|ui| {
-                    ui.painter().add(egui_wgpu::Callback::new_paint_callback(
-                        rect,
-                        ui::main_image::MainImageCallback {
-                            arg: 1.0,
-                            image: image,
-                        },
-                    ));
-                });
+                ui.painter().add(egui_wgpu::Callback::new_paint_callback(
+                    rect,
+                    ui::main_image::MainImageCallback { image: image },
+                ));
             });
         }
     }
 
     fn image_library(&mut self, ui: &mut Ui) {
-        let mut table = TableBuilder::new(ui).column(Column::auto());
+        let mut table = TableBuilder::new(ui).column(Column::auto()).cell_layout(
+            egui::Layout::centered_and_justified(egui::Direction::TopDown),
+        );
         let row_height = self.ui_state.last_frame_size.unwrap().1 * 0.1;
+        let image_height = row_height * 0.8;
         table.body(|mut body| {
-            body.rows(row_height, self.session.library.num_images() as usize, |row_index, mut row| {
-                row.col(|ui| {
-                    ui.label(row_index.to_string());
-                });
-            });
+            body.rows(
+                row_height,
+                self.session.library.num_images() as usize,
+                |row_index, mut row| {
+                    row.col(|ui| {
+                        let image = self.session.library.get_image(row_index);
+                        let aspect_ratio = image.aspect_ratio();
+                        let image_width = image_height / aspect_ratio;
+                        let size = egui::Vec2 {
+                            x: image_width,
+                            y: image_height,
+                        };
+                        let (rect, response) = ui.allocate_exact_size(size, egui::Sense::drag());
+                        ui.centered_and_justified(|ui| {
+                            ui.painter().add(egui_wgpu::Callback::new_paint_callback(
+                                rect,
+                                ui::thumbnail::ThumbnailCallback { image: image },
+                            ));
+                        });
+                    });
+                },
+            );
         });
     }
 }
@@ -130,7 +155,7 @@ impl eframe::App for App {
         self.ui_state.last_frame_size = Some((last_frame_size.x, last_frame_size.y));
 
         if is_first_frame {
-            // if the screen is smaller than then window size we requested, then, on the first frame, 
+            // if the screen is smaller than then window size we requested, then, on the first frame,
             // the frame size won't accurately reflection the actual frame size, so the sizing of side panels will be off
             return;
         }
@@ -149,7 +174,7 @@ impl eframe::App for App {
             .default_width(last_frame_size.x * 0.2)
             .resizable(true)
             .show(ctx, |ui| {
-                ui.set_width(ui.available_width());
+                // ui.set_width(ui.available_width());
                 self.image_library(ui);
             });
         egui::SidePanel::right("tools_panel")
