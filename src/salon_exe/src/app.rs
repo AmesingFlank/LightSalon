@@ -22,7 +22,11 @@ impl App {
             renderer: eframe::Renderer::Wgpu,
             ..Default::default()
         };
-        let _ = eframe::run_native("Light Salon", options, Box::new(|_cc| Box::new(App::new(_cc))));
+        let _ = eframe::run_native(
+            "Light Salon",
+            options,
+            Box::new(|_cc| Box::new(App::new(_cc))),
+        );
     }
 
     pub fn new<'a>(cc: &'a eframe::CreationContext<'a>) -> Self {
@@ -76,9 +80,7 @@ impl App {
             };
             match selected_image {
                 Some(i) => {
-                    let img = self.session.library.as_mut().get_image(i);
-                    self.session.working_image_history.clear();
-                    self.session.working_image_history.push(img);
+                    self.session.set_current_image(i)
                 }
                 None => {}
             };
@@ -134,13 +136,16 @@ impl App {
                             x: image_width,
                             y: image_height,
                         };
-                        let (rect, response) = ui.allocate_exact_size(size, egui::Sense::drag());
+                        let (rect, response) = ui.allocate_exact_size(size, egui::Sense::click());
                         ui.centered_and_justified(|ui| {
                             ui.painter().add(egui_wgpu::Callback::new_paint_callback(
                                 rect,
                                 ui::thumbnail::ThumbnailCallback { image: image },
                             ));
                         });
+                        if response.clicked() {
+                            self.session.set_current_image(row_index);
+                        }
                     });
                 },
             );
