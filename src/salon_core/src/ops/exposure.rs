@@ -14,7 +14,7 @@ struct ExposureOpResources {
 }
 
 impl ExposureOp {
-    fn new(runtime: Arc<Runtime>) -> Self {
+    pub fn new(runtime: Arc<Runtime>) -> Self {
         let shader = runtime
             .device
             .create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -31,10 +31,10 @@ impl ExposureOp {
                         wgpu::BindGroupLayoutEntry {
                             binding: 0,
                             visibility: wgpu::ShaderStages::COMPUTE,
-                            ty: wgpu::BindingType::StorageTexture {
-                                access: wgpu::StorageTextureAccess::ReadOnly,
-                                format: wgpu::TextureFormat::Rgba8Unorm,
+                            ty: wgpu::BindingType::Texture {
+                                multisampled: false,
                                 view_dimension: wgpu::TextureViewDimension::D2,
+                                sample_type: wgpu::TextureSampleType::Float { filterable: false },
                             },
                             count: None,
                         },
@@ -42,7 +42,7 @@ impl ExposureOp {
                             binding: 1,
                             visibility: wgpu::ShaderStages::COMPUTE,
                             ty: wgpu::BindingType::StorageTexture {
-                                access: wgpu::StorageTextureAccess::ReadWrite,
+                                access: wgpu::StorageTextureAccess::WriteOnly,
                                 format: wgpu::TextureFormat::Rgba8Unorm,
                                 view_dimension: wgpu::TextureViewDimension::D2,
                             },
@@ -87,5 +87,46 @@ impl ExposureOp {
         from_value: f32,
         to_value: f32,
     ) {
+        let bind_group = self
+            .runtime
+            .device
+            .create_bind_group(&wgpu::BindGroupDescriptor {
+                label: None,
+                layout: &self.resources.bind_group_layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: wgpu::BindingResource::TextureView(&input.texture_view),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::TextureView(&output.texture_view),
+                    },
+                ],
+            });
+        self.resources
+            .bind_groups
+            .insert((input.uuid, output.uuid), bind_group);
+        let mut encoder = self
+            .runtime
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+        {
+            let mut cpass =
+                encoder.begin_compute_pass(&wgpu::ComputePassDescriptor { label: None });
+            cpass.set_pipeline(&self.resources.pipeline);
+            cpass.set_bind_group(
+                0,
+                &self
+                    .resources
+                    .bind_groups
+                    .get(&(input.uuid, output.uuid))
+                    .unwrap(),
+                &[],
+            );
+            cpass.insert_debug_marker("compute collatz iterations");
+            cpass.dispatch_workgroups(input.dimensions.0, input.dimensions.1, 1);
+        }
+        self.runtime.queue.submit(Some(encoder.finish()));
     }
 }
