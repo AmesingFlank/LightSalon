@@ -1,10 +1,10 @@
 [package]
-name = "pepe_exe"
+name = "salon_exe"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "pepe_exe"
+name = "salon_exe"
 path = "src/main.rs"
 
 [dependencies]
@@ -16,7 +16,7 @@ bytemuck = "1.7.1"
 image = "0.24.0"
 rfd = "0.12.0"
 
-pepe_core = { path = "../pepe_core" }
+salon_core = { path = "../salon_core" }
 
 eframe = { version = "0.22.0", features = ["wgpu"], git = "https://github.com/emilk/egui" }
 egui_extras = { version = "0.22.0",  git = "https://github.com/emilk/egui"}

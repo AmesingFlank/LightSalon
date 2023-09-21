@@ -1,2 +1,2 @@
-# PEPE
+# LightSalon
 Programmatically-Extendable Photo Editor

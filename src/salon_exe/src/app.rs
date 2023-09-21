@@ -1,7 +1,7 @@
 use crate::ui;
 use eframe::egui::{self, accesskit::Vec2, Ui};
 use egui_extras::{Column, TableBuilder};
-use pepe_core::{engine::Engine, library::AddImageResult, runtime::Runtime, session::Session};
+use salon_core::{engine::Engine, library::AddImageResult, runtime::Runtime, session::Session};
 use std::{num::NonZeroU64, sync::Arc};
 
 use eframe::{
@@ -22,7 +22,7 @@ impl App {
             renderer: eframe::Renderer::Wgpu,
             ..Default::default()
         };
-        let _ = eframe::run_native("PEPE", options, Box::new(|_cc| Box::new(App::new(_cc))));
+        let _ = eframe::run_native("Light Salon", options, Box::new(|_cc| Box::new(App::new(_cc))));
     }
 
     pub fn new<'a>(cc: &'a eframe::CreationContext<'a>) -> Self {

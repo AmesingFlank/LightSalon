@@ -2282,30 +2282,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "de3145af08024dea9fa9914f381a17b8fc6034dfb00f3a84013f7ff43f29ed4c"
 
 [[package]]
-name = "pepe_core"
-version = "0.1.0"
-dependencies = [
- "image",
- "wgpu",
-]
-
-[[package]]
-name = "pepe_exe"
-version = "0.1.0"
-dependencies = [
- "bytemuck",
- "eframe",
- "egui_extras",
- "env_logger",
- "image",
- "log",
- "pepe_core",
- "pollster",
- "rfd",
- "wgpu",
-]
-
-[[package]]
 name = "percent-encoding"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2601,6 +2577,30 @@ dependencies = [
  "libc",
  "linux-raw-sys 0.4.7",
  "windows-sys 0.48.0",
+]
+
+[[package]]
+name = "salon_core"
+version = "0.1.0"
+dependencies = [
+ "image",
+ "wgpu",
+]
+
+[[package]]
+name = "salon_exe"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "eframe",
+ "egui_extras",
+ "env_logger",
+ "image",
+ "log",
+ "pollster",
+ "rfd",
+ "salon_core",
+ "wgpu",
 ]
 
 [[package]]
