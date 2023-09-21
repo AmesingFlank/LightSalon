@@ -11,6 +11,7 @@ pub struct Session {
 
     pub current_image_index: Option<usize>,
     pub working_image_history: Vec<Arc<Image>>,
+    pub exposure_val: f32,
 }
 
 impl Session {
@@ -22,6 +23,7 @@ impl Session {
             library: Box::new(library),
             current_image_index: None,
             working_image_history: Vec::new(),
+            exposure_val: 0.0,
         }
     }
 

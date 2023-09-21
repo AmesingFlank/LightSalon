@@ -151,6 +151,16 @@ impl App {
             );
         });
     }
+
+    fn tools(&mut self, ui: &mut Ui){
+        {
+            let old_exposure = self.session.exposure_val.clone();
+            ui.add(egui::Slider::new(&mut self.session.exposure_val, 0.0..=100.0).text("Exposure"));
+            if old_exposure != self.session.exposure_val {
+                
+            }
+        }
+    }
 }
 
 impl eframe::App for App {
@@ -187,6 +197,7 @@ impl eframe::App for App {
             .resizable(true)
             .show(ctx, |ui| {
                 ui.set_width(ui.available_width());
+                self.tools(ui);
             });
         egui::CentralPanel::default().show(ctx, |ui| {
             self.main_image(ctx, frame, ui);
