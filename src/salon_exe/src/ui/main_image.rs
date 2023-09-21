@@ -1,4 +1,4 @@
-use std::num::NonZeroU64;
+use std::{num::NonZeroU64, collections::HashMap};
 use std::sync::Arc;
 
 use eframe::{egui, egui_wgpu};
@@ -17,7 +17,7 @@ impl egui_wgpu::CallbackTrait for MainImageCallback {
         resources: &mut egui_wgpu::CallbackResources,
     ) -> Vec<wgpu::CommandBuffer> {
         let mut resources: &mut MainImageRenderResources = resources.get_mut().unwrap();
-        resources.prepare(device, queue, self.image.clone());
+        resources.prepare(device, queue, self.image.as_ref());
         Vec::new()
     }
 
@@ -28,14 +28,14 @@ impl egui_wgpu::CallbackTrait for MainImageCallback {
         resources: &'a egui_wgpu::CallbackResources,
     ) {
         let resources: &MainImageRenderResources = resources.get().unwrap();
-        resources.paint(render_pass);
+        resources.paint(render_pass, self.image.uuid);
     }
 }
 
 pub struct MainImageRenderResources {
     pipeline: wgpu::RenderPipeline,
     bind_group_layout: wgpu::BindGroupLayout,
-    bind_group: Option<wgpu::BindGroup>,
+    bind_groups: HashMap<u32, wgpu::BindGroup>,
     uniform_buffer: wgpu::Buffer,
     texture_sampler: wgpu::Sampler,
 }
@@ -125,13 +125,13 @@ impl MainImageRenderResources {
         MainImageRenderResources {
             pipeline,
             bind_group_layout,
-            bind_group: None,
+            bind_groups: HashMap::new(),
             uniform_buffer,
             texture_sampler,
         }
     }
 
-    fn prepare(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, image: Arc<salon_core::image::Image>) {
+    fn prepare(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, image: &salon_core::image::Image) {
         queue.write_buffer(
             &self.uniform_buffer,
             0,
@@ -156,12 +156,13 @@ impl MainImageRenderResources {
                 },
             ],
         });
-        self.bind_group = Some(bind_group);
+        let uuid = image.uuid;
+        self.bind_groups.insert(uuid, bind_group);
     }
 
-    fn paint<'rp>(&'rp self, render_pass: &mut wgpu::RenderPass<'rp>) {
+    fn paint<'rp>(&'rp self, render_pass: &mut wgpu::RenderPass<'rp>, image_uuid: u32) {
         render_pass.set_pipeline(&self.pipeline);
-        render_pass.set_bind_group(0, &self.bind_group.as_ref().unwrap(), &[]);
+        render_pass.set_bind_group(0, &self.bind_groups.get(&image_uuid).unwrap(), &[]);
         render_pass.draw(0..6, 0..1);
     }
 }
