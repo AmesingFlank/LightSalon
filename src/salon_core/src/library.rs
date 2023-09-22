@@ -56,7 +56,7 @@ impl Library for LocalLibrary {
             Some(img) => img.clone(),
             None => {
                 let path = &self.paths[index];
-                let img = Image::create_from_path(self.runtime.as_ref(), path).unwrap();
+                let img = self.runtime.create_image_from_path(path).unwrap();
                 let img = Arc::new(img);
                 self.images.insert(index, img.clone());
                 img.clone()
