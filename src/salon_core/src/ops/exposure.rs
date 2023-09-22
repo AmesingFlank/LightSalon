@@ -80,7 +80,7 @@ impl ExposureOp {
         }
     }
 
-    fn apply<'img>(
+    pub fn apply<'img>(
         &'img mut self,
         input: &'img Image,
         output: &'img Image,

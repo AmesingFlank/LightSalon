@@ -4,7 +4,7 @@ use crate::{runtime::Runtime, ops::exposure::ExposureOp};
 
 pub struct Engine {
     pub runtime: Arc<Runtime>,
-    exposure_op: ExposureOp,
+    pub exposure_op: ExposureOp,
 }
 
 impl Engine {

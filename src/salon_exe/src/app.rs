@@ -79,9 +79,7 @@ impl App {
                 AddImageResult::Error(_) => None,
             };
             match selected_image {
-                Some(i) => {
-                    self.session.set_current_image(i)
-                }
+                Some(i) => self.session.set_current_image(i),
                 None => {}
             };
         }
@@ -152,12 +150,30 @@ impl App {
         });
     }
 
-    fn tools(&mut self, ui: &mut Ui){
+    fn tools(&mut self, ui: &mut Ui) {
         {
             let old_exposure = self.session.exposure_val.clone();
             ui.add(egui::Slider::new(&mut self.session.exposure_val, 0.0..=100.0).text("Exposure"));
             if old_exposure != self.session.exposure_val {
-                
+                if self.session.working_image_history.len() > 0 {
+                    if self.session.working_image_history.len() == 1 {
+                        let dimensions = self.session.working_image_history[0].dimensions;
+                        let output = self
+                            .session
+                            .engine
+                            .runtime
+                            .create_image_of_size(dimensions);
+                        self.session.working_image_history.push(Arc::new(output));
+                    }
+                    let input = self.session.working_image_history[0].as_ref();
+                    let output = self.session.working_image_history[1].as_ref();
+                    self.session.engine.exposure_op.apply(
+                        input,
+                        output,
+                        old_exposure,
+                        self.session.exposure_val,
+                    );
+                }
             }
         }
     }

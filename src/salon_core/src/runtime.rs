@@ -1,4 +1,4 @@
-use std::{sync::Arc, path::PathBuf};
+use std::{path::PathBuf, sync::Arc};
 
 use image::GenericImageView;
 
@@ -11,20 +11,7 @@ pub struct Runtime {
 }
 
 impl Runtime {
-    pub fn create_image_from_path(&self, path: &PathBuf) -> Result<Image, String> {
-        let img = image::open(path.clone());
-        match img {
-            Ok(i) => Ok(self.create_image_from_dynamic_image(i)),
-            Err(_) => {
-                Err("could not open image at path ".to_string() + path.to_str().unwrap_or(""))
-            }
-        }
-    }
-    
-    pub fn create_image_from_dynamic_image(&self, image: image::DynamicImage) -> Image {
-        let rgba = image.to_rgba8();
-
-        let dimensions = image.dimensions();
+    pub fn create_image_of_size(&self, dimensions: (u32, u32)) -> Image {
         let size = wgpu::Extent3d {
             width: dimensions.0,
             height: dimensions.1,
@@ -44,11 +31,39 @@ impl Runtime {
             view_formats: &[],
         });
         let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+        Image {
+            dimensions,
+            texture,
+            texture_view,
+            uuid: crate::uuid::get_next_uuid(),
+        }
+    }
+
+    pub fn create_image_from_path(&self, path: &PathBuf) -> Result<Image, String> {
+        let img = image::open(path.clone());
+        match img {
+            Ok(dynamic_image) => Ok(self.create_image_from_dynamic_image(dynamic_image)),
+            Err(_) => {
+                Err("could not open image at path ".to_string() + path.to_str().unwrap_or(""))
+            }
+        }
+    }
+
+    pub fn create_image_from_dynamic_image(&self, dynamic_image: image::DynamicImage) -> Image {
+        let dimensions = dynamic_image.dimensions();
+        let result = self.create_image_of_size(dimensions);
+        let rgba = dynamic_image.to_rgba8();
+
+        let size = wgpu::Extent3d {
+            width: dimensions.0,
+            height: dimensions.1,
+            depth_or_array_layers: 1,
+        };
 
         self.queue.write_texture(
             // Tells wgpu where to copy the pixel data
             wgpu::ImageCopyTexture {
-                texture: &texture,
+                texture: &result.texture,
                 mip_level: 0,
                 origin: wgpu::Origin3d::ZERO,
                 aspect: wgpu::TextureAspect::All,
@@ -61,12 +76,6 @@ impl Runtime {
             },
             size,
         );
-
-        Image {
-            dimensions,
-            texture,
-            texture_view,
-            uuid: crate::uuid::get_next_uuid(),
-        }
+        result
     }
 }
