@@ -10,3 +10,4 @@ path = "src/lib.rs"
 [dependencies]
 wgpu = "0.17.0"
 image = "0.24.0"
+serde_json = "1.0"
