@@ -4,27 +4,18 @@ use crate::{image::Image, runtime::Runtime};
 
 pub struct ExposureOp {
     runtime: Arc<Runtime>,
-    resources: ExposureOpResources,
+    pipeline: wgpu::ComputePipeline,
+    bind_group_layout: wgpu::BindGroupLayout,
 }
-
-struct ExposureOpResources {
-    pub pipeline: wgpu::ComputePipeline,
-    pub bind_group_layout: wgpu::BindGroupLayout,
-    pub bind_groups: HashMap<(u32, u32), wgpu::BindGroup>,
-}
-
 impl ExposureOp {
     pub fn new(runtime: Arc<Runtime>) -> Self {
-        let (pipeline, bind_group_layout) = runtime.create_compute_pipeline(include_str!("./exposure.wgsl"));
+        let (pipeline, bind_group_layout) =
+            runtime.create_compute_pipeline(include_str!("./exposure.wgsl"));
 
-        let resources = ExposureOpResources {
+        ExposureOp {
+            runtime,
             pipeline,
             bind_group_layout,
-            bind_groups: HashMap::new(),
-        };
-        ExposureOp {
-            runtime: runtime,
-            resources,
         }
     }
 
@@ -40,7 +31,7 @@ impl ExposureOp {
             .device
             .create_bind_group(&wgpu::BindGroupDescriptor {
                 label: None,
-                layout: &self.resources.bind_group_layout,
+                layout: &self.bind_group_layout,
                 entries: &[
                     wgpu::BindGroupEntry {
                         binding: 0,
@@ -52,9 +43,7 @@ impl ExposureOp {
                     },
                 ],
             });
-        self.resources
-            .bind_groups
-            .insert((input.uuid, output.uuid), bind_group);
+
         let mut encoder = self
             .runtime
             .device
@@ -62,17 +51,8 @@ impl ExposureOp {
         {
             let mut cpass =
                 encoder.begin_compute_pass(&wgpu::ComputePassDescriptor { label: None });
-            cpass.set_pipeline(&self.resources.pipeline);
-            cpass.set_bind_group(
-                0,
-                &self
-                    .resources
-                    .bind_groups
-                    .get(&(input.uuid, output.uuid))
-                    .unwrap(),
-                &[],
-            );
-            cpass.insert_debug_marker("compute collatz iterations");
+            cpass.set_pipeline(&self.pipeline);
+            cpass.set_bind_group(0, &bind_group, &[]);
             cpass.dispatch_workgroups(input.dimensions.0, input.dimensions.1, 1);
         }
         self.runtime.queue.submit(Some(encoder.finish()));
