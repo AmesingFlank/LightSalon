@@ -63,6 +63,10 @@ impl Op for ExposureOp {
                             binding: 1,
                             resource: wgpu::BindingResource::TextureView(&outputs[i].texture_view),
                         },
+                        wgpu::BindGroupEntry {
+                            binding: 2,
+                            resource: self.uniform_buffer.as_entire_binding(),
+                        },
                     ],
                 });
             bind_groups.push(bind_group);
