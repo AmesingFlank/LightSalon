@@ -3,7 +3,4 @@ pub mod runtime;
 pub mod image;
 pub mod session;
 pub mod library;
-pub mod edit;
 pub mod uuid;
-pub mod op;
-pub mod ops;

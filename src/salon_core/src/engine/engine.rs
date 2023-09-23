@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{runtime::Runtime, ops::exposure::ExposureOp};
+use crate::{runtime::Runtime, engine::ExposureOp};
 
 pub struct Engine {
     pub runtime: Arc<Runtime>,
