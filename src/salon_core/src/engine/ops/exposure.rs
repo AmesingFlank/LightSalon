@@ -22,52 +22,16 @@ impl ExposureOp {
                 source: wgpu::ShaderSource::Wgsl(include_str!("./exposure.wgsl").into()),
             });
 
-        let bind_group_layout =
-            runtime
-                .device
-                .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                    label: None,
-                    entries: &[
-                        wgpu::BindGroupLayoutEntry {
-                            binding: 0,
-                            visibility: wgpu::ShaderStages::COMPUTE,
-                            ty: wgpu::BindingType::Texture {
-                                multisampled: false,
-                                view_dimension: wgpu::TextureViewDimension::D2,
-                                sample_type: wgpu::TextureSampleType::Float { filterable: false },
-                            },
-                            count: None,
-                        },
-                        wgpu::BindGroupLayoutEntry {
-                            binding: 1,
-                            visibility: wgpu::ShaderStages::COMPUTE,
-                            ty: wgpu::BindingType::StorageTexture {
-                                access: wgpu::StorageTextureAccess::WriteOnly,
-                                format: wgpu::TextureFormat::Rgba8Unorm,
-                                view_dimension: wgpu::TextureViewDimension::D2,
-                            },
-                            count: None,
-                        },
-                    ],
-                });
-
-        let pipeline_layout =
-            runtime
-                .device
-                .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                    label: None,
-                    bind_group_layouts: &[&bind_group_layout],
-                    push_constant_ranges: &[],
-                });
-
         let pipeline = runtime
             .device
             .create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
                 label: None,
-                layout: Some(&pipeline_layout),
+                layout: None,
                 module: &shader,
                 entry_point: "cs_main",
             });
+
+        let bind_group_layout = pipeline.get_bind_group_layout(0);
 
         let resources = ExposureOpResources {
             pipeline,
