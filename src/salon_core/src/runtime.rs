@@ -96,7 +96,7 @@ impl Runtime {
             dimensions,
             texture,
             texture_view,
-            uuid: crate::uuid::get_next_uuid(),
+            uuid: crate::utils::uuid::get_next_uuid(),
         }
     }
 
