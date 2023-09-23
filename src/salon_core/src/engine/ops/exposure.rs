@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
-use crate::{image::Image, runtime::Runtime};
+use crate::{engine::Op, image::Image, runtime::Runtime};
 
 pub struct ExposureOp {
     runtime: Arc<Runtime>,
@@ -18,31 +18,39 @@ impl ExposureOp {
             bind_group_layout,
         }
     }
-
-    pub fn apply<'img>(
-        &'img mut self,
-        input: &'img Image,
-        output: &'img Image,
-        from_value: f32,
-        to_value: f32,
+}
+impl Op for ExposureOp {
+    fn apply(
+        &mut self,
+        inputs: Vec<Arc<Image>>,
+        outputs: Vec<Arc<Image>>,
+        params: serde_json::Value,
     ) {
-        let bind_group = self
-            .runtime
-            .device
-            .create_bind_group(&wgpu::BindGroupDescriptor {
-                label: None,
-                layout: &self.bind_group_layout,
-                entries: &[
-                    wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: wgpu::BindingResource::TextureView(&input.texture_view),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: wgpu::BindingResource::TextureView(&output.texture_view),
-                    },
-                ],
-            });
+        assert!(
+            inputs.len() == outputs.len(),
+            "expecting inputs and outputs to have equal size"
+        );
+        let mut bind_groups = Vec::new();
+        for i in 0..inputs.len() {
+            let bind_group = self
+                .runtime
+                .device
+                .create_bind_group(&wgpu::BindGroupDescriptor {
+                    label: None,
+                    layout: &self.bind_group_layout,
+                    entries: &[
+                        wgpu::BindGroupEntry {
+                            binding: 0,
+                            resource: wgpu::BindingResource::TextureView(&inputs[i].texture_view),
+                        },
+                        wgpu::BindGroupEntry {
+                            binding: 1,
+                            resource: wgpu::BindingResource::TextureView(&outputs[i].texture_view),
+                        },
+                    ],
+                });
+            bind_groups.push(bind_group);
+        }
 
         let mut encoder = self
             .runtime
@@ -52,8 +60,10 @@ impl ExposureOp {
             let mut cpass =
                 encoder.begin_compute_pass(&wgpu::ComputePassDescriptor { label: None });
             cpass.set_pipeline(&self.pipeline);
-            cpass.set_bind_group(0, &bind_group, &[]);
-            cpass.dispatch_workgroups(input.dimensions.0, input.dimensions.1, 1);
+            for i in 0..inputs.len() {
+                cpass.set_bind_group(0, &bind_groups[i], &[]);
+                cpass.dispatch_workgroups(inputs[i].dimensions.0, inputs[i].dimensions.1, 1);
+            }
         }
         self.runtime.queue.submit(Some(encoder.finish()));
     }

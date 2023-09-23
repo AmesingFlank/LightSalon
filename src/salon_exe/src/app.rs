@@ -1,7 +1,7 @@
 use crate::ui;
 use eframe::egui::{self, accesskit::Vec2, Ui};
 use egui_extras::{Column, TableBuilder};
-use salon_core::{engine::Engine, library::AddImageResult, runtime::Runtime, session::Session};
+use salon_core::{engine::{Engine, Op}, library::AddImageResult, runtime::Runtime, session::Session};
 use std::{num::NonZeroU64, sync::Arc};
 
 use eframe::{
@@ -161,13 +161,12 @@ impl App {
                         let output = self.session.engine.runtime.create_image_of_size(dimensions);
                         self.session.working_image_history.push(Arc::new(output));
                     }
-                    let input = self.session.working_image_history[0].as_ref();
-                    let output = self.session.working_image_history[1].as_ref();
+                    let inputs = vec![self.session.working_image_history[0].clone()];
+                    let outputs = vec![self.session.working_image_history[1].clone()];
                     self.session.engine.exposure_op.apply(
-                        input,
-                        output,
-                        old_exposure,
-                        self.session.exposure_val,
+                        inputs,
+                        outputs,
+                        serde_json::Value::Null
                     );
                 }
             }

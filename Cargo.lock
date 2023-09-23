@@ -2613,6 +2613,7 @@ dependencies = [
  "pollster",
  "rfd",
  "salon_core",
+ "serde_json",
  "wgpu",
 ]
 

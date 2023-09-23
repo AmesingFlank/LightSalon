@@ -15,8 +15,9 @@ pollster = "0.3.0"
 bytemuck = "1.7.1"
 image = "0.24.0"
 rfd = "0.12.0"
-
-salon_core = { path = "../salon_core" }
+serde_json = "1.0"
 
 eframe = { version = "0.22.0", features = ["wgpu"], git = "https://github.com/emilk/egui" }
 egui_extras = { version = "0.22.0",  git = "https://github.com/emilk/egui"}
+
+salon_core = { path = "../salon_core" }
