@@ -34,16 +34,16 @@ impl App {
         // from `eframe::Frame` when you don't have a `CreationContext` available.
         let wgpu_render_state = cc.wgpu_render_state.as_ref().unwrap();
 
-        let runtime = Runtime {
+        let runtime = Arc::new(Runtime {
             adapter: wgpu_render_state.adapter.clone(),
             device: wgpu_render_state.device.clone(),
             queue: wgpu_render_state.queue.clone(),
-        };
+        });
 
-        let session = Session::new(Arc::new(runtime));
+        let session = Session::new(runtime.clone());
 
         let main_image_render_resources = ui::main_image::MainImageRenderResources::create(
-            &wgpu_render_state.device,
+            runtime.as_ref(),
             wgpu_render_state.target_format,
         );
         wgpu_render_state
@@ -53,7 +53,7 @@ impl App {
             .insert(main_image_render_resources);
 
         let thumbnail_render_resources = ui::thumbnail::ThumbnailRenderResources::create(
-            &wgpu_render_state.device,
+            runtime.as_ref(),
             wgpu_render_state.target_format,
         );
         wgpu_render_state
@@ -158,11 +158,7 @@ impl App {
                 if self.session.working_image_history.len() > 0 {
                     if self.session.working_image_history.len() == 1 {
                         let dimensions = self.session.working_image_history[0].dimensions;
-                        let output = self
-                            .session
-                            .engine
-                            .runtime
-                            .create_image_of_size(dimensions);
+                        let output = self.session.engine.runtime.create_image_of_size(dimensions);
                         self.session.working_image_history.push(Arc::new(output));
                     }
                     let input = self.session.working_image_history[0].as_ref();

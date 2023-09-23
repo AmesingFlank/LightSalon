@@ -11,6 +11,67 @@ pub struct Runtime {
 }
 
 impl Runtime {
+    pub fn create_compute_pipeline(
+        &self,
+        wgsl_code: &str,
+    ) -> (wgpu::ComputePipeline, wgpu::BindGroupLayout) {
+        let shader = self
+            .device
+            .create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: None,
+                source: wgpu::ShaderSource::Wgsl(wgsl_code.into()),
+            });
+
+        let pipeline = self
+            .device
+            .create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+                label: None,
+                layout: None,
+                module: &shader,
+                entry_point: "cs_main",
+            });
+
+        let bind_group_layout = pipeline.get_bind_group_layout(0);
+        (pipeline, bind_group_layout)
+    }
+
+    pub fn create_render_pipeline(
+        &self,
+        wgsl_code: &str,
+        target_format: wgpu::TextureFormat
+    ) -> (wgpu::RenderPipeline, wgpu::BindGroupLayout) {
+        let shader = self
+            .device
+            .create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: None,
+                source: wgpu::ShaderSource::Wgsl(wgsl_code.into()),
+            });
+
+        let pipeline = self
+            .device
+            .create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                label: None,
+                layout: None,
+                vertex: wgpu::VertexState {
+                    module: &shader,
+                    entry_point: "vs_main",
+                    buffers: &[],
+                },
+                fragment: Some(wgpu::FragmentState {
+                    module: &shader,
+                    entry_point: "fs_main",
+                    targets: &[Some(target_format.into())],
+                }),
+                primitive: wgpu::PrimitiveState::default(),
+                depth_stencil: None,
+                multisample: wgpu::MultisampleState::default(),
+                multiview: None,
+            });
+
+        let bind_group_layout = pipeline.get_bind_group_layout(0);
+        (pipeline, bind_group_layout)
+    }
+
     pub fn create_image_of_size(&self, dimensions: (u32, u32)) -> Image {
         let size = wgpu::Extent3d {
             width: dimensions.0,

@@ -1,7 +1,8 @@
-use std::{num::NonZeroU64, collections::HashMap};
 use std::sync::Arc;
+use std::{collections::HashMap, num::NonZeroU64};
 
 use eframe::{egui, egui_wgpu};
+use salon_core::runtime::Runtime;
 use wgpu::util::DeviceExt;
 
 pub struct ThumbnailCallback {
@@ -41,34 +42,11 @@ pub struct ThumbnailRenderResources {
 }
 
 impl ThumbnailRenderResources {
-    pub fn create(device: &wgpu::Device, target_format: wgpu::TextureFormat) -> Self {
-        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: None,
-            source: wgpu::ShaderSource::Wgsl(include_str!("./thumbnail.wgsl").into()),
-        }); 
+    pub fn create(runtime: &Runtime, target_format: wgpu::TextureFormat) -> Self {
+        let (pipeline, bind_group_layout) =
+            runtime.create_render_pipeline(include_str!("./thumbnail.wgsl"), target_format);
 
-        let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: None,
-            layout: None,
-            vertex: wgpu::VertexState {
-                module: &shader,
-                entry_point: "vs_main",
-                buffers: &[],
-            },
-            fragment: Some(wgpu::FragmentState {
-                module: &shader,
-                entry_point: "fs_main",
-                targets: &[Some(target_format.into())],
-            }),
-            primitive: wgpu::PrimitiveState::default(),
-            depth_stencil: None,
-            multisample: wgpu::MultisampleState::default(),
-            multiview: None,
-        });
-
-        let bind_group_layout = pipeline.get_bind_group_layout(0);
-
-        let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        let uniform_buffer = runtime.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: None,
             contents: bytemuck::cast_slice(&[0.0_f32; 4]), // 16 bytes aligned!
             // Mapping at creation (as done by the create_buffer_init utility) doesn't require us to to add the MAP_WRITE usage
@@ -76,7 +54,7 @@ impl ThumbnailRenderResources {
             usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM,
         });
 
-        let texture_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+        let texture_sampler = runtime.device.create_sampler(&wgpu::SamplerDescriptor {
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
             address_mode_w: wgpu::AddressMode::ClampToEdge,
@@ -95,7 +73,12 @@ impl ThumbnailRenderResources {
         }
     }
 
-    fn prepare(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, image: &salon_core::image::Image) {
+    fn prepare(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        image: &salon_core::image::Image,
+    ) {
         queue.write_buffer(
             &self.uniform_buffer,
             0,

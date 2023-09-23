@@ -15,23 +15,7 @@ struct ExposureOpResources {
 
 impl ExposureOp {
     pub fn new(runtime: Arc<Runtime>) -> Self {
-        let shader = runtime
-            .device
-            .create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: None,
-                source: wgpu::ShaderSource::Wgsl(include_str!("./exposure.wgsl").into()),
-            });
-
-        let pipeline = runtime
-            .device
-            .create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-                label: None,
-                layout: None,
-                module: &shader,
-                entry_point: "cs_main",
-            });
-
-        let bind_group_layout = pipeline.get_bind_group_layout(0);
+        let (pipeline, bind_group_layout) = runtime.create_compute_pipeline(include_str!("./exposure.wgsl"));
 
         let resources = ExposureOpResources {
             pipeline,
