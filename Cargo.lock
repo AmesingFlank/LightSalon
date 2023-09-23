@@ -2595,6 +2595,7 @@ checksum = "1ad4cc8da4ef723ed60bced201181d83791ad433213d8c24efffda1eec85d741"
 name = "salon_core"
 version = "0.1.0"
 dependencies = [
+ "bytemuck",
  "image",
  "serde_json",
  "wgpu",

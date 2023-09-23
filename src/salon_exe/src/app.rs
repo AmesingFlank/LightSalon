@@ -153,7 +153,7 @@ impl App {
     fn tools(&mut self, ui: &mut Ui) {
         {
             let old_exposure = self.session.exposure_val.clone();
-            ui.add(egui::Slider::new(&mut self.session.exposure_val, 0.0..=100.0).text("Exposure"));
+            ui.add(egui::Slider::new(&mut self.session.exposure_val, -4.0..=4.0).text("Exposure"));
             if old_exposure != self.session.exposure_val {
                 if self.session.working_image_history.len() > 0 {
                     if self.session.working_image_history.len() == 1 {
@@ -163,10 +163,11 @@ impl App {
                     }
                     let inputs = vec![self.session.working_image_history[0].clone()];
                     let outputs = vec![self.session.working_image_history[1].clone()];
+                    let params = serde_json::Value::from(self.session.exposure_val);
                     self.session.engine.exposure_op.apply(
                         inputs,
                         outputs,
-                        serde_json::Value::Null
+                        params,
                     );
                 }
             }

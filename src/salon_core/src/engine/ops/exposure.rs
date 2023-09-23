@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, mem::size_of, sync::Arc};
 
 use crate::{engine::Op, image::Image, runtime::Runtime};
 
@@ -6,16 +6,25 @@ pub struct ExposureOp {
     runtime: Arc<Runtime>,
     pipeline: wgpu::ComputePipeline,
     bind_group_layout: wgpu::BindGroupLayout,
+    uniform_buffer: wgpu::Buffer,
 }
 impl ExposureOp {
     pub fn new(runtime: Arc<Runtime>) -> Self {
         let (pipeline, bind_group_layout) =
             runtime.create_compute_pipeline(include_str!("./exposure.wgsl"));
 
+        let uniform_buffer = runtime.device.create_buffer(&wgpu::BufferDescriptor {
+            label: None,
+            size: size_of::<f32>() as u64,
+            mapped_at_creation: false,
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM,
+        });
+
         ExposureOp {
             runtime,
             pipeline,
             bind_group_layout,
+            uniform_buffer,
         }
     }
 }
@@ -30,6 +39,13 @@ impl Op for ExposureOp {
             inputs.len() == outputs.len(),
             "expecting inputs and outputs to have equal size"
         );
+        let value = params.as_f64().unwrap() as f32;
+        self.runtime.queue.write_buffer(
+            &self.uniform_buffer,
+            0,
+            bytemuck::cast_slice(&[value]),
+        );
+
         let mut bind_groups = Vec::new();
         for i in 0..inputs.len() {
             let bind_group = self
