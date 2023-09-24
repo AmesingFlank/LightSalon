@@ -27,7 +27,12 @@ impl MipmapGenerator {
         }
     }
 
-    pub fn generate<'i>(&'i self, runtime: &'i Runtime, img: &'i Image) {
+    pub fn encode_mipmap_generation_command<'i>(
+        &'i self,
+        runtime: &'i Runtime,
+        img: &'i Image,
+        encoder: &'i mut wgpu::CommandEncoder,
+    ) {
         let mip_count = Image::mip_level_count(&img.dimensions);
         let views = (0..mip_count)
             .map(|mip| {
@@ -43,10 +48,6 @@ impl MipmapGenerator {
                 })
             })
             .collect::<Vec<_>>();
-
-        let mut encoder = runtime
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
         for target_mip in 1..mip_count as usize {
             let bind_group = runtime
@@ -64,7 +65,7 @@ impl MipmapGenerator {
                         },
                     ],
                     label: None,
-                }); 
+                });
 
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: None,
@@ -73,7 +74,7 @@ impl MipmapGenerator {
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color::WHITE),
-                        store: true
+                        store: true,
                     },
                 })],
                 depth_stencil_attachment: None,
@@ -82,6 +83,13 @@ impl MipmapGenerator {
             rpass.set_bind_group(0, &bind_group, &[]);
             rpass.draw(0..3, 0..1);
         }
+    }
+
+    pub fn generate<'i>(&'i self, runtime: &'i Runtime, img: &'i Image) {
+        let mut encoder = runtime
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+        self.encode_mipmap_generation_command(runtime, img, &mut encoder);
         runtime.queue.submit(Some(encoder.finish()));
     }
 }

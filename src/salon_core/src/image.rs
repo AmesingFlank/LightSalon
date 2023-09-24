@@ -6,6 +6,7 @@ pub struct Image {
     pub dimensions: (u32, u32),
     pub texture: wgpu::Texture,
     pub texture_view: wgpu::TextureView,
+    pub texture_view_base_mip: wgpu::TextureView,
     pub uuid: u32,
 }
 

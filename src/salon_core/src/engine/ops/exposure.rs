@@ -61,7 +61,7 @@ impl Op for ExposureOp {
                         },
                         wgpu::BindGroupEntry {
                             binding: 1,
-                            resource: wgpu::BindingResource::TextureView(&outputs[i].texture_view),
+                            resource: wgpu::BindingResource::TextureView(&outputs[i].texture_view_base_mip),
                         },
                         wgpu::BindGroupEntry {
                             binding: 2,
@@ -84,6 +84,9 @@ impl Op for ExposureOp {
                 cpass.set_bind_group(0, &bind_groups[i], &[]);
                 cpass.dispatch_workgroups(inputs[i].dimensions.0, inputs[i].dimensions.1, 1);
             }
+        }
+        for i in 0..inputs.len() {
+            self.runtime.encode_mipmap_generation_command(outputs[i].as_ref(), &mut encoder);
         }
         self.runtime.queue.submit(Some(encoder.finish()));
     }

@@ -1,4 +1,9 @@
-use std::{fs::File, io::{Read, BufReader, Cursor}, path::PathBuf, sync::Arc};
+use std::{
+    fs::File,
+    io::{BufReader, Cursor, Read},
+    path::PathBuf,
+    sync::Arc,
+};
 
 use image::{imageops, DynamicImage, GenericImageView};
 
@@ -9,30 +14,50 @@ pub struct Runtime {
     pub device: Arc<wgpu::Device>,
     pub queue: Arc<wgpu::Queue>,
 
-    toolbox: Option<ToolBox>
+    toolbox: Option<ToolBox>,
 }
 
 struct ToolBox {
-    pub mipmap_generator: MipmapGenerator
+    pub mipmap_generator: MipmapGenerator,
 }
 
 impl Runtime {
-    pub fn new(adapter: Arc<wgpu::Adapter>, device: Arc<wgpu::Device>, queue: Arc<wgpu::Queue>) -> Self {
+    pub fn new(
+        adapter: Arc<wgpu::Adapter>,
+        device: Arc<wgpu::Device>,
+        queue: Arc<wgpu::Queue>,
+    ) -> Self {
         let mut runtime = Runtime {
             adapter,
             device,
             queue,
-            toolbox: None
+            toolbox: None,
         };
         let toolbox = ToolBox {
-            mipmap_generator: MipmapGenerator::new(&runtime)
+            mipmap_generator: MipmapGenerator::new(&runtime),
         };
         runtime.toolbox = Some(toolbox);
         runtime
     }
 
     pub fn ensure_mipmap(&self, image: &Image) {
-        self.toolbox.as_ref().unwrap().mipmap_generator.generate(self, image);
+        self.toolbox
+            .as_ref()
+            .unwrap()
+            .mipmap_generator
+            .generate(self, image);
+    }
+
+    pub fn encode_mipmap_generation_command(
+        &self,
+        image: &Image,
+        encoder: &mut wgpu::CommandEncoder,
+    ) {
+        self.toolbox
+            .as_ref()
+            .unwrap()
+            .mipmap_generator
+            .encode_mipmap_generation_command(self, image, encoder);
     }
 
     pub fn create_compute_pipeline(
@@ -117,10 +142,16 @@ impl Runtime {
             view_formats: &[],
         });
         let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let texture_view_base_mip = texture.create_view(&wgpu::TextureViewDescriptor{
+            base_mip_level: 0,
+            mip_level_count: Some(1),
+            ..Default::default()
+        });
         Image {
             dimensions,
             texture,
             texture_view,
+            texture_view_base_mip,
             uuid: crate::utils::uuid::get_next_uuid(),
         }
     }
