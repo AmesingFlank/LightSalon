@@ -1,7 +1,12 @@
 use crate::ui;
 use eframe::egui::{self, accesskit::Vec2, Ui};
 use egui_extras::{Column, TableBuilder};
-use salon_core::{engine::{Engine, Op}, library::AddImageResult, runtime::Runtime, session::Session};
+use salon_core::{
+    engine::{Engine, Op},
+    library::AddImageResult,
+    runtime::Runtime,
+    session::Session,
+};
 use std::{num::NonZeroU64, sync::Arc};
 
 use eframe::{
@@ -34,15 +39,15 @@ impl App {
         // from `eframe::Frame` when you don't have a `CreationContext` available.
         let wgpu_render_state = cc.wgpu_render_state.as_ref().unwrap();
 
-        let runtime = Arc::new(Runtime {
-            adapter: wgpu_render_state.adapter.clone(),
-            device: wgpu_render_state.device.clone(),
-            queue: wgpu_render_state.queue.clone(),
-        });
+        let runtime = Arc::new(Runtime::new(
+            wgpu_render_state.adapter.clone(),
+            wgpu_render_state.device.clone(),
+            wgpu_render_state.queue.clone(),
+        ));
 
         let session = Session::new(runtime.clone());
 
-        let main_image_render_resources = ui::main_image::MainImageRenderResources::create(
+        let main_image_render_resources = ui::main_image::MainImageRenderResources::new(
             runtime.as_ref(),
             wgpu_render_state.target_format,
         );
@@ -52,7 +57,7 @@ impl App {
             .callback_resources
             .insert(main_image_render_resources);
 
-        let thumbnail_render_resources = ui::thumbnail::ThumbnailRenderResources::create(
+        let thumbnail_render_resources = ui::thumbnail::ThumbnailRenderResources::new(
             runtime.as_ref(),
             wgpu_render_state.target_format,
         );
@@ -164,11 +169,10 @@ impl App {
                     let inputs = vec![self.session.working_image_history[0].clone()];
                     let outputs = vec![self.session.working_image_history[1].clone()];
                     let params = serde_json::Value::from(self.session.exposure_val);
-                    self.session.engine.exposure_op.apply(
-                        inputs,
-                        outputs,
-                        params,
-                    );
+                    self.session
+                        .engine
+                        .exposure_op
+                        .apply(inputs, outputs, params);
                 }
             }
         }

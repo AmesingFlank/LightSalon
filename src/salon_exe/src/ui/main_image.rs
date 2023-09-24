@@ -42,7 +42,7 @@ pub struct MainImageRenderResources {
 }
 
 impl MainImageRenderResources {
-    pub fn create(runtime: &Runtime, target_format: wgpu::TextureFormat) -> Self {
+    pub fn new(runtime: &Runtime, target_format: wgpu::TextureFormat) -> Self {
         let (pipeline, bind_group_layout) =
             runtime.create_render_pipeline(include_str!("./main_image.wgsl"), target_format);
 

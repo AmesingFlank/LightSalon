@@ -2,15 +2,39 @@ use std::{fs::File, io::{Read, BufReader, Cursor}, path::PathBuf, sync::Arc};
 
 use image::{imageops, DynamicImage, GenericImageView};
 
-use crate::image::Image;
+use crate::{image::Image, utils::mipmap::MipmapGenerator};
 
 pub struct Runtime {
     pub adapter: Arc<wgpu::Adapter>,
     pub device: Arc<wgpu::Device>,
     pub queue: Arc<wgpu::Queue>,
+
+    toolbox: Option<ToolBox>
+}
+
+struct ToolBox {
+    pub mipmap_generator: MipmapGenerator
 }
 
 impl Runtime {
+    pub fn new(adapter: Arc<wgpu::Adapter>, device: Arc<wgpu::Device>, queue: Arc<wgpu::Queue>) -> Self {
+        let mut runtime = Runtime {
+            adapter,
+            device,
+            queue,
+            toolbox: None
+        };
+        let toolbox = ToolBox {
+            mipmap_generator: MipmapGenerator::new(&runtime)
+        };
+        runtime.toolbox = Some(toolbox);
+        runtime
+    }
+
+    pub fn ensure_mipmap(&self, image: &Image) {
+        self.toolbox.as_ref().unwrap().mipmap_generator.generate(self, image);
+    }
+
     pub fn create_compute_pipeline(
         &self,
         wgsl_code: &str,
@@ -80,14 +104,15 @@ impl Runtime {
         };
         let texture = self.device.create_texture(&wgpu::TextureDescriptor {
             size: size,
-            mip_level_count: 1,
+            mip_level_count: Image::mip_level_count(&dimensions),
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format: wgpu::TextureFormat::Rgba8Unorm,
             usage: wgpu::TextureUsages::TEXTURE_BINDING
                 | wgpu::TextureUsages::STORAGE_BINDING
                 | wgpu::TextureUsages::COPY_DST
-                | wgpu::TextureUsages::COPY_SRC,
+                | wgpu::TextureUsages::COPY_SRC
+                | wgpu::TextureUsages::RENDER_ATTACHMENT,
             label: None,
             view_formats: &[],
         });
@@ -178,6 +203,7 @@ impl Runtime {
             },
             size,
         );
+        self.ensure_mipmap(&result);
         result
     }
 }
