@@ -16,3 +16,23 @@ pub trait Op {
     );
 }
 
+pub trait SingleImageOp {
+    fn apply(
+        &mut self,
+        input: Arc<Image>,
+        output: Arc<Image>,
+        params: serde_json::Value
+    );
+}
+
+pub struct OpFromSingleImgeOp {
+    op: Box<dyn SingleImageOp>
+}
+
+impl OpFromSingleImgeOp {
+    pub fn new(op: Box<dyn SingleImageOp>) -> Self {
+        OpFromSingleImgeOp {
+            op
+        }
+    }
+}
