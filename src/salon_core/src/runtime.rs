@@ -142,7 +142,7 @@ impl Runtime {
             view_formats: &[],
         });
         let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-        let texture_view_base_mip = texture.create_view(&wgpu::TextureViewDescriptor{
+        let texture_view_base_mip = texture.create_view(&wgpu::TextureViewDescriptor {
             base_mip_level: 0,
             mip_level_count: Some(1),
             ..Default::default()
@@ -176,17 +176,19 @@ impl Runtime {
         // https://github.com/image-rs/image/issues/1958
         let exif_reader = exif::Reader::new();
         let mut cursor = Cursor::new(image_bytes.as_slice());
-        let exif = exif_reader
-            .read_from_container(&mut cursor)
-            .expect("failed to read the exifreader");
+        let exif = exif_reader.read_from_container(&mut cursor);
 
-        let orientation: u32 = match exif.get_field(exif::Tag::Orientation, exif::In::PRIMARY) {
-            Some(orientation) => match orientation.value.get_uint(0) {
-                Some(v @ 1..=8) => v,
-                _ => 1,
+        let orientation: u32 = match exif {
+            Ok(exif) => match exif.get_field(exif::Tag::Orientation, exif::In::PRIMARY) {
+                Some(orientation) => match orientation.value.get_uint(0) {
+                    Some(v @ 1..=8) => v,
+                    _ => 1,
+                },
+                None => 1,
             },
-            None => 1,
+            Err(_) => 1,
         };
+
         if orientation == 2 {
             img = DynamicImage::ImageRgba8(imageops::flip_horizontal(&img));
         } else if orientation == 3 {
