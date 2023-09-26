@@ -165,10 +165,11 @@ impl App {
                     let input_image_index = self.session.current_image_index.unwrap();
                     let input_image = self.session.library.get_image(input_image_index);
                     let mut module = Module::new_trivial();
+                    let current_output_id = module.output_id().expect("expecting an output id");
                     let exposure_adjusted_image_id = module.alloc_id();
                     let op = Op::ExposureAdjust(ExposureAdjust {
                         result: exposure_adjusted_image_id,
-                        arg: 0,
+                        arg: current_output_id,
                         exposure: self.session.exposure_val,
                     });
                     module.push_op(op);
