@@ -168,11 +168,11 @@ impl App {
                     }
                     let inputs = vec![self.session.working_image_history[0].clone()];
                     let outputs = vec![self.session.working_image_history[1].clone()];
-                    let params = serde_json::Value::from(self.session.exposure_val);
-                    self.session
-                        .engine
-                        .exposure_op
-                        .apply(inputs, outputs, params);
+                    self.session.engine.exposure_op.apply(
+                        inputs,
+                        outputs,
+                        self.session.exposure_val,
+                    );
                 }
             }
         }

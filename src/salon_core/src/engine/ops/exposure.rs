@@ -28,22 +28,21 @@ impl ExposureOp {
         }
     }
 }
-impl Op for ExposureOp {
-    fn apply(
+impl ExposureOp {
+    pub fn apply(
         &mut self,
         inputs: Vec<Arc<Image>>,
         outputs: Vec<Arc<Image>>,
-        params: serde_json::Value,
+        exposure: f32,
     ) {
         assert!(
             inputs.len() == outputs.len(),
             "expecting inputs and outputs to have equal size"
         );
-        let value = params.as_f64().unwrap() as f32;
         self.runtime.queue.write_buffer(
             &self.uniform_buffer,
             0,
-            bytemuck::cast_slice(&[value]),
+            bytemuck::cast_slice(&[exposure]),
         );
 
         let mut bind_groups = Vec::new();
