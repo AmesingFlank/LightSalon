@@ -2,7 +2,8 @@ use crate::ui;
 use eframe::egui::{self, accesskit::Vec2, Ui};
 use egui_extras::{Column, TableBuilder};
 use salon_core::{
-    engine::{Engine},
+    engine::Engine,
+    ir::{ExposureAdjust, Module, Op},
     library::AddImageResult,
     runtime::Runtime,
     session::Session,
@@ -91,12 +92,12 @@ impl App {
     }
 
     fn main_image(&mut self, _ctx: &egui::Context, _frame: &mut eframe::Frame, ui: &mut Ui) {
-        if self.session.working_image_history.len() > 0 {
+        if self.session.working_image.is_some() {
             let max_x = ui.available_width();
             let max_y = ui.available_height();
             let ui_aspect_ratio = max_y / max_x;
 
-            let image = self.session.working_image_history.last().unwrap().clone();
+            let image = self.session.working_image.as_ref().unwrap().clone();
             let image_aspect_ratio = image.aspect_ratio();
 
             let size = if image_aspect_ratio >= ui_aspect_ratio {
@@ -160,19 +161,20 @@ impl App {
             let old_exposure = self.session.exposure_val.clone();
             ui.add(egui::Slider::new(&mut self.session.exposure_val, -4.0..=4.0).text("Exposure"));
             if old_exposure != self.session.exposure_val {
-                if self.session.working_image_history.len() > 0 {
-                    if self.session.working_image_history.len() == 1 {
-                        let dimensions = self.session.working_image_history[0].dimensions;
-                        let output = self.session.engine.runtime.create_image_of_size(dimensions);
-                        self.session.working_image_history.push(Arc::new(output));
-                    }
-                    let inputs = vec![self.session.working_image_history[0].clone()];
-                    let outputs = vec![self.session.working_image_history[1].clone()];
-                    self.session.engine.exposure_op.apply(
-                        inputs,
-                        outputs,
-                        self.session.exposure_val,
-                    );
+                if self.session.current_image_index.is_some() {
+                    let input_image_index = self.session.current_image_index.unwrap();
+                    let input_image = self.session.library.get_image(input_image_index);
+                    let mut module = Module::new_trivial();
+                    let exposure_adjusted_image_id = module.alloc_id();
+                    let op = Op::ExposureAdjust(ExposureAdjust {
+                        result: exposure_adjusted_image_id,
+                        arg: 0,
+                        exposure: self.session.exposure_val,
+                    });
+                    module.push_op(op);
+                    module.set_output_id(exposure_adjusted_image_id);
+                    let output_image = self.session.engine.execute_module(&module, input_image);
+                    self.session.working_image = Some(output_image.clone());
                 }
             }
         }

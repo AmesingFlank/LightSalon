@@ -1,30 +1,30 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    engine::ExposureOp,
     image::Image,
     ir::{Id, Input, Module, Op, Value},
     runtime::Runtime,
 };
 
+use super::{op_impl_collection::OpImplCollection, ops::exposure::ExposureAdjustImpl};
+
 pub struct Engine {
     pub runtime: Arc<Runtime>,
-    pub exposure_op: ExposureOp,
+    pub op_impls: OpImplCollection,
     pub value_store: HashMap<Id, Value>,
 }
 
 impl Engine {
     pub fn new(runtime: Arc<Runtime>) -> Self {
-        let exposure_op = ExposureOp::new(runtime.clone());
         Engine {
             runtime,
-            exposure_op,
+            op_impls: OpImplCollection::new(),
             value_store: HashMap::new(),
         }
     }
 
     pub fn execute_module(&mut self, module: &Module, input_img: Arc<Image>) -> Arc<Image> {
-        self.value_store.clear();
+        self.ensure_op_impls(module);
         let ops = module.ops();
         for op in ops {
             match op {
@@ -33,7 +33,11 @@ impl Engine {
                         .insert(input.result, Value::Image(input_img.clone()));
                 }
                 Op::ExposureAdjust(ref exposure) => {
-
+                    self.op_impls
+                        .exposure
+                        .as_mut()
+                        .unwrap()
+                        .apply(exposure, &mut self.value_store);
                 }
             }
         }
@@ -43,10 +47,17 @@ impl Engine {
             .value_store
             .get(&output_id)
             .expect("cannot find output");
-        match output_value {
-            Value::Image(ref img) => img.clone(),
-            _ => {
-                panic!("expecting an image")
+        output_value.as_image().clone()
+    }
+
+    fn ensure_op_impls(&mut self, module: &Module) {
+        let ops = module.ops();
+        for op in ops {
+            match op {
+                Op::Input(_) => {}
+                Op::ExposureAdjust(_) => {
+                    self.op_impls.exposure = Some(ExposureAdjustImpl::new(self.runtime.clone()))
+                }
             }
         }
     }

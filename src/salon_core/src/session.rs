@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::engine::Engine;
 use crate::image::Image;
-use crate::library::{self, Library, LocalLibrary};
+use crate::library::{Library, LocalLibrary};
 use crate::runtime::Runtime;
 
 pub struct Session {
@@ -10,7 +10,7 @@ pub struct Session {
     pub library: Box<dyn Library>,
 
     pub current_image_index: Option<usize>,
-    pub working_image_history: Vec<Arc<Image>>,
+    pub working_image: Option<Arc<Image>>,
     pub exposure_val: f32,
 }
 
@@ -22,7 +22,7 @@ impl Session {
             engine,
             library: Box::new(library),
             current_image_index: None,
-            working_image_history: Vec::new(),
+            working_image: None,
             exposure_val: 0.0,
         }
     }
@@ -38,7 +38,6 @@ impl Session {
         }
         self.current_image_index = Some(index);
         let img = self.library.as_mut().get_image(index);
-        self.working_image_history.clear();
-        self.working_image_history.push(img);
+        self.working_image = Some(img);
     }
 }
