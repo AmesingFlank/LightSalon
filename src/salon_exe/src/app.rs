@@ -2,7 +2,7 @@ use crate::ui;
 use eframe::egui::{self, accesskit::Vec2, Ui};
 use egui_extras::{Column, TableBuilder};
 use salon_core::{
-    engine::{Engine, Op},
+    engine::{Engine},
     library::AddImageResult,
     runtime::Runtime,
     session::Session,

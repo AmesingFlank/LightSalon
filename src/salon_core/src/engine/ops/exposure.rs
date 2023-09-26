@@ -1,6 +1,6 @@
 use std::{collections::HashMap, mem::size_of, sync::Arc};
 
-use crate::{engine::Op, image::Image, runtime::Runtime};
+use crate::{image::Image, runtime::Runtime};
 
 pub struct ExposureOp {
     runtime: Arc<Runtime>,
