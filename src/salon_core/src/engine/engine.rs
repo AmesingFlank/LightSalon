@@ -6,12 +6,15 @@ use crate::{
     runtime::Runtime,
 };
 
-use super::{op_impl_collection::OpImplCollection, ops::exposure::ExposureAdjustImpl};
+use super::{
+    op_impl_collection::OpImplCollection, ops::exposure::ExposureAdjustImpl,
+    value_store::ValueStore,
+};
 
 pub struct Engine {
     pub runtime: Arc<Runtime>,
     pub op_impls: OpImplCollection,
-    pub value_store: HashMap<Id, Value>,
+    pub value_store: ValueStore,
 }
 
 impl Engine {
@@ -19,7 +22,7 @@ impl Engine {
         Engine {
             runtime,
             op_impls: OpImplCollection::new(),
-            value_store: HashMap::new(),
+            value_store: ValueStore::new(),
         }
     }
 
@@ -30,6 +33,7 @@ impl Engine {
             match op {
                 Op::Input(ref input) => {
                     self.value_store
+                        .map
                         .insert(input.result, Value::Image(input_img.clone()));
                 }
                 Op::ExposureAdjust(ref exposure) => {
@@ -45,6 +49,7 @@ impl Engine {
         let output_id = module.output_id().expect("expecting an output id");
         let output_value = self
             .value_store
+            .map
             .get(&output_id)
             .expect("cannot find output");
         output_value.as_image().clone()

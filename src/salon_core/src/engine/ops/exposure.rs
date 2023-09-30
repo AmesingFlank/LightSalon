@@ -1,6 +1,7 @@
 use std::{collections::HashMap, mem::size_of, sync::Arc};
 
 use crate::{
+    engine::value_store::ValueStore,
     image::Image,
     ir::{ExposureAdjust, Id, Value},
     runtime::Runtime,
@@ -33,12 +34,12 @@ impl ExposureAdjustImpl {
     }
 }
 impl ExposureAdjustImpl {
-    pub fn apply(&mut self, op: &ExposureAdjust, value_store: &mut HashMap<Id, Value>) {
-        let input_img = value_store.get(&op.arg).unwrap().as_image().clone();
+    pub fn apply(&mut self, op: &ExposureAdjust, value_store: &mut ValueStore) {
+        let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
 
         let mut needs_create_output = true;
 
-        match value_store.get(&op.result) {
+        match value_store.map.get(&op.result) {
             None => {}
             Some(val) => match val {
                 Value::Image(ref img) => {
@@ -52,10 +53,12 @@ impl ExposureAdjustImpl {
 
         if needs_create_output {
             let output_img = self.runtime.create_image_of_size(input_img.dimensions);
-            value_store.insert(op.result, Value::Image(Arc::new(output_img)));
+            value_store
+                .map
+                .insert(op.result, Value::Image(Arc::new(output_img)));
         }
 
-        let output_img = value_store.get(&op.result).unwrap().as_image();
+        let output_img = value_store.map.get(&op.result).unwrap().as_image();
 
         self.runtime.queue.write_buffer(
             &self.uniform_buffer,
