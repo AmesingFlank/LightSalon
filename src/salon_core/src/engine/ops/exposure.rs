@@ -37,26 +37,11 @@ impl ExposureAdjustImpl {
     pub fn apply(&mut self, op: &ExposureAdjust, value_store: &mut ValueStore) {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
 
-        let mut needs_create_output = true;
-
-        match value_store.map.get(&op.result) {
-            None => {}
-            Some(val) => match val {
-                Value::Image(ref img) => {
-                    if img.dimensions == input_img.dimensions {
-                        needs_create_output = false;
-                    }
-                }
-                _ => {}
-            },
-        }
-
-        if needs_create_output {
-            let output_img = self.runtime.create_image_of_size(input_img.dimensions);
-            value_store
-                .map
-                .insert(op.result, Value::Image(Arc::new(output_img)));
-        }
+        value_store.ensure_value_at_id_is_image_of_dimensions(
+            self.runtime.as_ref(),
+            op.result,
+            input_img.dimensions,
+        );
 
         let output_img = value_store.map.get(&op.result).unwrap().as_image();
 
