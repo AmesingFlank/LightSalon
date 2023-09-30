@@ -5,3 +5,4 @@ pub mod session;
 pub mod library;
 pub mod utils;
 pub mod ir;
+pub mod editor;

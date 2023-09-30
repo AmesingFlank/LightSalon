@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::editor::Editor;
 use crate::engine::Engine;
 use crate::image::Image;
 use crate::library::{Library, LocalLibrary};
@@ -8,10 +9,10 @@ use crate::runtime::Runtime;
 pub struct Session {
     pub engine: Engine,
     pub library: Box<dyn Library>,
+    pub editor: Editor,
 
     pub current_image_index: Option<usize>,
     pub working_image: Option<Arc<Image>>,
-    pub exposure_val: f32,
 }
 
 impl Session {
@@ -21,9 +22,9 @@ impl Session {
         Session {
             engine,
             library: Box::new(library),
+            editor: Editor::new(),
             current_image_index: None,
-            working_image: None,
-            exposure_val: 0.0,
+            working_image: None, 
         }
     }
 

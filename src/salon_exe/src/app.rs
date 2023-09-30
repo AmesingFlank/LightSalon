@@ -156,27 +156,22 @@ impl App {
         });
     }
 
-    fn tools(&mut self, ui: &mut Ui) {
+    fn editor(&mut self, ui: &mut Ui) {
         {
-            let old_exposure = self.session.exposure_val.clone();
-            ui.add(egui::Slider::new(&mut self.session.exposure_val, -4.0..=4.0).text("Exposure"));
-            if old_exposure != self.session.exposure_val {
-                if self.session.current_image_index.is_some() {
-                    let input_image_index = self.session.current_image_index.unwrap();
-                    let input_image = self.session.library.get_image(input_image_index);
-                    let mut module = Module::new_trivial();
-                    let current_output_id = module.output_id().expect("expecting an output id");
-                    let exposure_adjusted_image_id = module.alloc_id();
-                    let op = Op::ExposureAdjust(ExposureAdjust {
-                        result: exposure_adjusted_image_id,
-                        arg: current_output_id,
-                        exposure: self.session.exposure_val,
-                    });
-                    module.push_op(op);
-                    module.set_output_id(exposure_adjusted_image_id);
-                    let output_image = self.session.engine.execute_module(&module, input_image);
-                    self.session.working_image = Some(output_image.clone());
-                }
+            ui.add(
+                egui::Slider::new(
+                    &mut self.session.editor.current_state.exposure_val,
+                    -4.0..=4.0,
+                )
+                .text("Exposure"),
+            );
+
+            if self.session.current_image_index.is_some() {
+                let module = self.session.editor.current_state.to_ir_module();
+                let input_image_index = self.session.current_image_index.unwrap();
+                let input_image = self.session.library.get_image(input_image_index);
+                let output_image = self.session.engine.execute_module(&module, input_image);
+                self.session.working_image = Some(output_image.clone());
             }
         }
     }
@@ -211,12 +206,12 @@ impl eframe::App for App {
                 // ui.set_width(ui.available_width());
                 self.image_library(ui);
             });
-        egui::SidePanel::right("tools_panel")
+        egui::SidePanel::right("editor_panel")
             .default_width(last_frame_size.x * 0.2)
             .resizable(true)
             .show(ctx, |ui| {
                 ui.set_width(ui.available_width());
-                self.tools(ui);
+                self.editor(ui);
             });
         egui::CentralPanel::default().show(ctx, |ui| {
             self.main_image(ctx, frame, ui);
