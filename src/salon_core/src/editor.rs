@@ -39,16 +39,16 @@ impl EditorState {
         module.push_op(exposure_op);
         module.set_output_id(exposure_adjusted_image_id);
 
-        // current_output_id = exposure_adjusted_image_id;
+        current_output_id = exposure_adjusted_image_id;
 
-        // let brightness_adjusted_image_id = module.alloc_id();
-        // let brightness_op = Op::BrightnessAdjust(BrightnessAdjust {
-        //     result: exposure_adjusted_image_id,
-        //     arg: current_output_id,
-        //     brightness: self.brightness_val,
-        // });
-        // module.push_op(brightness_op);
-        // module.set_output_id(brightness_adjusted_image_id);
+        let brightness_adjusted_image_id = module.alloc_id();
+        let brightness_op = Op::BrightnessAdjust(BrightnessAdjust {
+            result: brightness_adjusted_image_id,
+            arg: current_output_id,
+            brightness: self.brightness_val,
+        });
+        module.push_op(brightness_op);
+        module.set_output_id(brightness_adjusted_image_id);
 
         module
     }
