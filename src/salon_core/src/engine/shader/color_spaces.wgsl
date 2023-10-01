@@ -42,3 +42,45 @@ fn hsl_to_rgb(hsl: vec3<f32>) -> vec3<f32> {
   let chroma = (1.0 - abs(2.0 * hsl.z - 1.0)) * hsl.y;
   return chroma * (rgb - 0.5) + hsl.z;
 }
+
+// sRGB to CIE XYZ 1931
+fn srgb_to_xyz(rgb: vec3<f32>) -> vec3<f32> {
+  let column0 = vec3(
+    0.4124564,
+    0.2126729,
+    0.0193339
+  );
+  let column1 = vec3(
+    0.3575761,
+    0.7151522,
+    0.1191920
+  );
+  let column2 = vec3(
+    0.1804375,
+    0.0721750,
+    0.9503041
+  );
+  let m = mat3x3(column0, column1, column2);
+  return m * rgb;
+}
+
+// CIE XYZ 1931 to sRGB
+fn xyz_to_srgb(xyz: vec3<f32>) -> vec3<f32> {
+  let column0 = vec3(
+    3.2404542,
+    -0.9692660,
+    0.0556434
+  );
+  let column1 = vec3(
+    -1.5371385,
+    1.8760108,
+    -0.2040259
+  );
+  let column2 = vec3(
+    -0.4985314,
+    0.0415560,
+    1.0572252
+  );
+  let m = mat3x3(column0, column1, column2);
+  return m * xyz;
+}
