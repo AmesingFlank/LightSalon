@@ -1,7 +1,7 @@
 use std::{collections::HashMap, mem::size_of, sync::Arc};
 
 use crate::{
-    engine::value_store::ValueStore,
+    engine::{value_store::ValueStore, shader::{ShaderLibraryFunctions, ShaderLibrary}},
     image::Image,
     ir::{BrightnessAdjust, Id, Value},
     runtime::Runtime,
@@ -15,8 +15,12 @@ pub struct BrightnessAdjustImpl {
 }
 impl BrightnessAdjustImpl {
     pub fn new(runtime: Arc<Runtime>) -> Self {
-        let (pipeline, bind_group_layout) =
-            runtime.create_compute_pipeline(include_str!("./brightness.wgsl"));
+        let shader_code =
+            ShaderLibrary::get_library_functions_code(ShaderLibraryFunctions::ColorSpaces)
+                .to_owned()
+                + include_str!("./brightness.wgsl");
+
+        let (pipeline, bind_group_layout) = runtime.create_compute_pipeline(shader_code.as_str());
 
         let uniform_buffer = runtime.device.create_buffer(&wgpu::BufferDescriptor {
             label: None,

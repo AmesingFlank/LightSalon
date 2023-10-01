@@ -169,7 +169,7 @@ impl App {
             ui.add(
                 egui::Slider::new(
                     &mut self.session.editor.current_state.brightness_val,
-                    -4.0..=4.0,
+                    -50.0..=50.0,
                 )
                 .text("Brightness"),
             );
