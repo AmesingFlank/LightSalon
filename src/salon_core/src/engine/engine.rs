@@ -7,7 +7,11 @@ use crate::{
 };
 
 use super::{
-    op_impl_collection::OpImplCollection, ops::exposure::ExposureAdjustImpl,
+    op_impl_collection::OpImplCollection,
+    ops::{
+        brightness::{self, BrightnessAdjustImpl},
+        exposure::ExposureAdjustImpl,
+    },
     value_store::ValueStore,
 };
 
@@ -43,6 +47,13 @@ impl Engine {
                         .unwrap()
                         .apply(exposure, &mut self.value_store);
                 }
+                Op::BrightnessAdjust(ref brightness) => {
+                    self.op_impls
+                        .brightness
+                        .as_mut()
+                        .unwrap()
+                        .apply(brightness, &mut self.value_store);
+                }
             }
         }
 
@@ -62,6 +73,9 @@ impl Engine {
                 Op::Input(_) => {}
                 Op::ExposureAdjust(_) => {
                     self.op_impls.exposure = Some(ExposureAdjustImpl::new(self.runtime.clone()))
+                }
+                Op::BrightnessAdjust(_) => {
+                    self.op_impls.brightness = Some(BrightnessAdjustImpl::new(self.runtime.clone()))
                 }
             }
         }

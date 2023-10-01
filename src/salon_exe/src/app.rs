@@ -166,6 +166,14 @@ impl App {
                 .text("Exposure"),
             );
 
+            ui.add(
+                egui::Slider::new(
+                    &mut self.session.editor.current_state.brightness_val,
+                    -4.0..=4.0,
+                )
+                .text("Brightness"),
+            );
+
             if self.session.current_image_index.is_some() {
                 let module = self.session.editor.current_state.to_ir_module();
                 let input_image_index = self.session.current_image_index.unwrap();
