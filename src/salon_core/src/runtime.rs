@@ -157,25 +157,36 @@ impl Runtime {
     }
 
     pub fn create_image_from_path(&self, path: &PathBuf) -> Result<Image, String> {
-        let image_bytes = std::fs::read(&path);
-        if image_bytes.is_err() {
+        let Ok(image_bytes) = std::fs::read(&path) else {
             return Err("could not find file at path ".to_string() + path.to_str().unwrap_or(""));
-        }
-        let image_bytes = image_bytes.unwrap();
+        };
+        let Some(ext) = path.extension() else {
+            return Err("missing file extension".to_owned());
+        };
+        self.create_image_from_bytes_and_extension(image_bytes.as_slice(), ext.to_str().unwrap())
+    }
 
-        let img = image::load_from_memory(image_bytes.as_slice());
-        if img.is_err() {
-            return Err("could not open image at path ".to_string()
-                + path.to_str().unwrap_or("")
-                + ". Error: "
-                + img.err().unwrap().to_string().as_str());
+    pub fn create_image_from_bytes_and_extension(
+        &self,
+        image_bytes: &[u8],
+        extension: &str,
+    ) -> Result<Image, String> {
+        let extension = extension.to_lowercase();
+        if extension == "jpg" || extension == "jpeg" || extension == "png" {
+            return self.create_image_from_bytes_jpg_png(image_bytes);
         }
-        let mut img = img.unwrap();
+        Err("unsupported image format: ".to_owned() + extension.as_str())
+    }
+
+    pub fn create_image_from_bytes_jpg_png(&self, image_bytes: &[u8]) -> Result<Image, String> {
+        let Ok(mut img) = image::load_from_memory(image_bytes) else {
+            return Err("image::load_from_memory failed".to_owned());
+        };
 
         // use exif to fix image orientation
         // https://github.com/image-rs/image/issues/1958
         let exif_reader = exif::Reader::new();
-        let mut cursor = Cursor::new(image_bytes.as_slice());
+        let mut cursor = Cursor::new(image_bytes);
         let exif = exif_reader.read_from_container(&mut cursor);
 
         let orientation: u32 = match exif {
@@ -206,7 +217,7 @@ impl Runtime {
         } else if orientation == 8 {
             img = DynamicImage::ImageRgba8(imageops::rotate270(&img));
         }
-        Ok(self.create_image_from_dynamic_image(img))
+        return Ok(self.create_image_from_dynamic_image(img));
     }
 
     pub fn create_image_from_dynamic_image(&self, dynamic_image: image::DynamicImage) -> Image {
