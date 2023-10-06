@@ -1,8 +1,7 @@
-use std::path::PathBuf;
 use image::GenericImageView;
+use std::path::PathBuf;
 
 use crate::runtime;
-
 
 pub struct Image {
     pub properties: ImageProperties,
@@ -42,3 +41,12 @@ impl Image {
     }
 }
 
+impl ImageProperties {
+    pub fn to_wgpu_texture_format(&self) -> wgpu::TextureFormat {
+        // always store in linear space. If we need srgb to linear, we do it in shaders
+        match self.bit_depth {
+            BitDepth::Depth8 => wgpu::TextureFormat::Rgba8Unorm,
+            BitDepth::Depth16 => wgpu::TextureFormat::Rgba16Float,
+        }
+    }
+}

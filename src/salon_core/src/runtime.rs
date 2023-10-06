@@ -132,7 +132,7 @@ impl Runtime {
             mip_level_count: Image::mip_level_count(&properties.dimensions),
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Rgba8Unorm,
+            format: properties.to_wgpu_texture_format(),
             usage: wgpu::TextureUsages::TEXTURE_BINDING
                 | wgpu::TextureUsages::STORAGE_BINDING
                 | wgpu::TextureUsages::COPY_DST
