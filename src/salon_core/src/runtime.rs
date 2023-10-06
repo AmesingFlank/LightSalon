@@ -1,13 +1,18 @@
 use std::{
+    collections::HashSet,
     fs::File,
     io::{BufReader, Cursor, Read},
     path::PathBuf,
     sync::Arc,
 };
 
-use image::{imageops, DynamicImage, GenericImageView};
+use image::{imageops, DynamicImage, GenericImageView, ImageBuffer, Rgb};
+use imagepipe::{ImageSource, Pipeline};
 
-use crate::{image::{Image, ImageProperties, ColorSpace, BitDepth}, utils::mipmap::MipmapGenerator};
+use crate::{
+    image::{BitDepth, ColorSpace, Image, ImageProperties},
+    utils::mipmap::MipmapGenerator,
+};
 
 pub struct Runtime {
     pub adapter: Arc<wgpu::Adapter>,
@@ -175,7 +180,45 @@ impl Runtime {
         if extension == "jpg" || extension == "jpeg" || extension == "png" {
             return self.create_image_from_bytes_jpg_png(image_bytes);
         }
+        let raw_extensions = HashSet::from([
+            "raf", // fujifilm
+            "crw", "cr2", // canon
+            "nrw", "nef", // nikon
+            "arw", "srf", "sr2", // sony,
+            "rw2", // Panasonic, Leica,
+            "3fr", // Hasselblad
+        ]);
+        if raw_extensions.contains(extension.as_str()) {
+            return self.create_image_from_bytes_raw(image_bytes);
+        }
+
         Err("unsupported image format: ".to_owned() + extension.as_str())
+    }
+
+    pub fn create_image_from_bytes_raw(&self, image_bytes: &[u8]) -> Result<Image, String> {
+        let decode_result = rawloader::decode(&mut Cursor::new(image_bytes));
+        let Ok(raw) = decode_result else {
+            return Err(decode_result.err().unwrap().to_string());
+        };
+
+        let source = ImageSource::Raw(raw);
+        let Ok(mut pipeline) = Pipeline::new_from_source(source) else {
+            return Err("imagepipe cannot decode file".to_owned());
+        };
+
+        pipeline.run(None);
+        let Ok(image) = pipeline.output_16bit(None) else {
+            return Err("imagepipe cannot output file".to_owned());
+        };
+
+        let image = ImageBuffer::<Rgb<u16>, Vec<u16>>::from_raw(
+            image.width as u32,
+            image.height as u32,
+            image.data,
+        );
+
+        let image = image::DynamicImage::ImageRgb16(image.expect("cannot create DynamicImage"));
+        Ok(self.create_image_from_dynamic_image(image))
     }
 
     pub fn create_image_from_bytes_jpg_png(&self, image_bytes: &[u8]) -> Result<Image, String> {
@@ -217,7 +260,7 @@ impl Runtime {
         } else if orientation == 8 {
             img = DynamicImage::ImageRgba8(imageops::rotate270(&img));
         }
-        return Ok(self.create_image_from_dynamic_image(img));
+        Ok(self.create_image_from_dynamic_image(img))
     }
 
     pub fn create_image_from_dynamic_image(&self, dynamic_image: image::DynamicImage) -> Image {
