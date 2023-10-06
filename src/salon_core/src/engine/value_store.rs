@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use crate::{
     ir::{Id, Value},
-    runtime::Runtime,
+    runtime::Runtime, image::ImageProperties,
 };
 
 pub struct ValueStore {
@@ -16,11 +16,11 @@ impl ValueStore {
         }
     }
 
-    pub fn ensure_value_at_id_is_image_of_dimensions(
+    pub fn ensure_value_at_id_is_image_of_properties(
         &mut self,
         runtime: &Runtime,
         id: Id,
-        dimensions: (u32, u32),
+        properties: &ImageProperties,
     ) {
         let mut needs_create_img = true;
 
@@ -28,7 +28,7 @@ impl ValueStore {
             None => {}
             Some(val) => match val {
                 Value::Image(ref img) => {
-                    if img.dimensions == dimensions {
+                    if img.properties != *properties {
                         needs_create_img = false;
                     }
                 }
@@ -37,7 +37,7 @@ impl ValueStore {
         }
 
         if needs_create_img {
-            let new_img = runtime.create_image_of_size(dimensions);
+            let new_img = runtime.create_image_of_properties(properties.clone());
             self.map.insert(id, Value::Image(Arc::new(new_img)));
         }
     }

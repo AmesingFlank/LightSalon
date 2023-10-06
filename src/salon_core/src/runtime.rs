@@ -7,7 +7,7 @@ use std::{
 
 use image::{imageops, DynamicImage, GenericImageView};
 
-use crate::{image::Image, utils::mipmap::MipmapGenerator};
+use crate::{image::{Image, ImageProperties, ColorSpace, BitDepth}, utils::mipmap::MipmapGenerator};
 
 pub struct Runtime {
     pub adapter: Arc<wgpu::Adapter>,
@@ -121,15 +121,15 @@ impl Runtime {
         (pipeline, bind_group_layout)
     }
 
-    pub fn create_image_of_size(&self, dimensions: (u32, u32)) -> Image {
+    pub fn create_image_of_properties(&self, properties: ImageProperties) -> Image {
         let size = wgpu::Extent3d {
-            width: dimensions.0,
-            height: dimensions.1,
+            width: properties.dimensions.0,
+            height: properties.dimensions.1,
             depth_or_array_layers: 1,
         };
         let texture = self.device.create_texture(&wgpu::TextureDescriptor {
             size: size,
-            mip_level_count: Image::mip_level_count(&dimensions),
+            mip_level_count: Image::mip_level_count(&properties.dimensions),
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format: wgpu::TextureFormat::Rgba8Unorm,
@@ -148,7 +148,7 @@ impl Runtime {
             ..Default::default()
         });
         Image {
-            dimensions,
+            properties,
             texture,
             texture_view,
             texture_view_base_mip,
@@ -222,7 +222,12 @@ impl Runtime {
 
     pub fn create_image_from_dynamic_image(&self, dynamic_image: image::DynamicImage) -> Image {
         let dimensions = dynamic_image.dimensions();
-        let result = self.create_image_of_size(dimensions);
+        let properties = ImageProperties {
+            dimensions,
+            bit_depth: BitDepth::Depth8,
+            color_space: ColorSpace::sRGB,
+        };
+        let result = self.create_image_of_properties(properties);
         let rgba = dynamic_image.to_rgba8();
 
         let size = wgpu::Extent3d {

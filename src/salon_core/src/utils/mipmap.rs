@@ -33,7 +33,7 @@ impl MipmapGenerator {
         img: &'i Image,
         encoder: &'i mut wgpu::CommandEncoder,
     ) {
-        let mip_count = Image::mip_level_count(&img.dimensions);
+        let mip_count = Image::mip_level_count(&img.properties.dimensions);
         let views = (0..mip_count)
             .map(|mip| {
                 img.texture.create_view(&wgpu::TextureViewDescriptor {

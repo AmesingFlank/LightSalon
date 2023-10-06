@@ -1,7 +1,10 @@
 use std::{collections::HashMap, mem::size_of, sync::Arc};
 
 use crate::{
-    engine::{value_store::ValueStore, shader::{ShaderLibraryFunctions, ShaderLibrary}},
+    engine::{
+        shader::{ShaderLibrary, ShaderLibraryFunctions},
+        value_store::ValueStore,
+    },
     image::Image,
     ir::{BrightnessAdjust, Id, Value},
     runtime::Runtime,
@@ -41,10 +44,10 @@ impl BrightnessAdjustImpl {
     pub fn apply(&mut self, op: &BrightnessAdjust, value_store: &mut ValueStore) {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
 
-        value_store.ensure_value_at_id_is_image_of_dimensions(
+        value_store.ensure_value_at_id_is_image_of_properties(
             self.runtime.as_ref(),
             op.result,
-            input_img.dimensions,
+            &input_img.properties,
         );
 
         let output_img = value_store.map.get(&op.result).unwrap().as_image();
@@ -89,7 +92,11 @@ impl BrightnessAdjustImpl {
             cpass.set_pipeline(&self.pipeline);
 
             cpass.set_bind_group(0, &bind_group, &[]);
-            cpass.dispatch_workgroups(input_img.dimensions.0, input_img.dimensions.1, 1);
+            cpass.dispatch_workgroups(
+                input_img.properties.dimensions.0,
+                input_img.properties.dimensions.1,
+                1,
+            );
         }
         self.runtime
             .encode_mipmap_generation_command(output_img.as_ref(), &mut encoder);
