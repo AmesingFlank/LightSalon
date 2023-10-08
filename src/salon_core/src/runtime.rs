@@ -218,7 +218,7 @@ impl Runtime {
         );
 
         let image = image::DynamicImage::ImageRgb16(image.expect("cannot create DynamicImage"));
-        Ok(self.create_image_from_dynamic_image(image))
+        Ok(self.create_image_from_dynamic_image(image, true))
     }
 
     pub fn create_image_from_bytes_jpg_png(&self, image_bytes: &[u8]) -> Result<Image, String> {
@@ -260,23 +260,43 @@ impl Runtime {
         } else if orientation == 8 {
             img = DynamicImage::ImageRgba8(imageops::rotate270(&img));
         }
-        Ok(self.create_image_from_dynamic_image(img))
+        Ok(self.create_image_from_dynamic_image(img, false))
     }
 
-    pub fn create_image_from_dynamic_image(&self, dynamic_image: image::DynamicImage) -> Image {
+    pub fn create_image_from_dynamic_image(
+        &self,
+        dynamic_image: image::DynamicImage,
+        is_raw: bool,
+    ) -> Image {
+        let dynamic_image = if is_raw {
+            image::DynamicImage::ImageRgba16(dynamic_image.to_rgba16())
+        } else {
+            image::DynamicImage::ImageRgba8(dynamic_image.to_rgba8())
+        };
         let dimensions = dynamic_image.dimensions();
+        let (bit_depth, color_space) = if is_raw {
+            (BitDepth::Depth16, ColorSpace::sRGB)
+        } else {
+            (BitDepth::Depth8, ColorSpace::Linear)
+        };
         let properties = ImageProperties {
             dimensions,
-            bit_depth: BitDepth::Depth8,
-            color_space: ColorSpace::sRGB,
+            bit_depth,
+            color_space,
         };
         let result = self.create_image_of_properties(properties);
-        let rgba = dynamic_image.to_rgba8();
+        let image_bytes = dynamic_image.as_bytes();
 
         let size = wgpu::Extent3d {
             width: dimensions.0,
             height: dimensions.1,
             depth_or_array_layers: 1,
+        };
+
+        let bytes_per_row = if is_raw {
+            8 * dimensions.0
+        } else {
+            4 * dimensions.0
         };
 
         self.queue.write_texture(
@@ -287,10 +307,10 @@ impl Runtime {
                 origin: wgpu::Origin3d::ZERO,
                 aspect: wgpu::TextureAspect::All,
             },
-            &rgba,
+            &image_bytes,
             wgpu::ImageDataLayout {
                 offset: 0,
-                bytes_per_row: Some(4 * dimensions.0),
+                bytes_per_row: Some(bytes_per_row),
                 rows_per_image: Some(dimensions.1),
             },
             size,
