@@ -10,7 +10,7 @@ pub struct MipmapGenerator {
 impl MipmapGenerator {
     pub fn new(runtime: &Runtime) -> Self {
         let (pipeline, bind_group_layout) = runtime
-            .create_render_pipeline(include_str!("./blit.wgsl"), wgpu::TextureFormat::Rgba8Unorm);
+            .create_render_pipeline(include_str!("./blit.wgsl"), wgpu::TextureFormat::Rgba16Float);
         let sampler = runtime.device.create_sampler(&wgpu::SamplerDescriptor {
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,

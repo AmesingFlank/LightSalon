@@ -1,5 +1,6 @@
 use std::{
     collections::HashSet,
+    env,
     fs::File,
     io::{BufReader, Cursor, Read},
     path::PathBuf,
@@ -10,9 +11,11 @@ use image::{imageops, DynamicImage, GenericImageView, ImageBuffer, Rgb};
 use imagepipe::{ImageSource, Pipeline};
 
 use crate::{
-    image::{BitDepth, ColorSpace, Image, ImageProperties},
+    image::{ColorSpace, Image, ImageFormat, ImageProperties},
     utils::mipmap::MipmapGenerator,
 };
+
+use half::prelude::*;
 
 pub struct Runtime {
     pub adapter: Arc<wgpu::Adapter>,
@@ -137,7 +140,7 @@ impl Runtime {
             mip_level_count: Image::mip_level_count(&properties.dimensions),
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format: properties.to_wgpu_texture_format(),
+            format: properties.format.to_wgpu_texture_format(),
             usage: wgpu::TextureUsages::TEXTURE_BINDING
                 | wgpu::TextureUsages::STORAGE_BINDING
                 | wgpu::TextureUsages::COPY_DST
@@ -180,46 +183,48 @@ impl Runtime {
         if extension == "jpg" || extension == "jpeg" || extension == "png" {
             return self.create_image_from_bytes_jpg_png(image_bytes);
         }
-        let raw_extensions = HashSet::from([
-            "raf", // fujifilm
-            "crw", "cr2", // canon
-            "nrw", "nef", // nikon
-            "arw", "srf", "sr2", // sony,
-            "rw2", // Panasonic, Leica,
-            "3fr", // Hasselblad
-        ]);
-        if raw_extensions.contains(extension.as_str()) {
-            return self.create_image_from_bytes_raw(image_bytes);
-        }
+        // Raw loading: doens't work!
+        // let raw_extensions = HashSet::from([
+        //     "raf", // fujifilm
+        //     "crw", "cr2", // canon
+        //     "nrw", "nef", // nikon
+        //     "arw", "srf", "sr2", // sony,
+        //     "rw2", // Panasonic, Leica,
+        //     "3fr", // Hasselblad
+        // ]);
+        // if raw_extensions.contains(extension.as_str()) {
+        //     return self.create_image_from_bytes_raw(image_bytes);
+        // }
 
         Err("unsupported image format: ".to_owned() + extension.as_str())
     }
 
-    pub fn create_image_from_bytes_raw(&self, image_bytes: &[u8]) -> Result<Image, String> {
-        let decode_result = rawloader::decode(&mut Cursor::new(image_bytes));
-        let Ok(raw) = decode_result else {
-            return Err(decode_result.err().unwrap().to_string());
-        };
+    // Raw loading: doens't work!
+    // pub fn create_image_from_bytes_raw(&self, image_bytes: &[u8]) -> Result<Image, String> {
+    //     let decode_result = rawloader::decode(&mut Cursor::new(image_bytes));
+    //     let Ok(raw) = decode_result else {
+    //         return Err(decode_result.err().unwrap().to_string());
+    //     };
 
-        let source = ImageSource::Raw(raw);
-        let Ok(mut pipeline) = Pipeline::new_from_source(source) else {
-            return Err("imagepipe cannot decode file".to_owned());
-        };
+    //     let source = ImageSource::Raw(raw);
+    //     let Ok(mut pipeline) = Pipeline::new_from_source(source) else {
+    //         return Err("imagepipe cannot decode file".to_owned());
+    //     };
 
-        pipeline.run(None);
-        let Ok(image) = pipeline.output_16bit(None) else {
-            return Err("imagepipe cannot output file".to_owned());
-        };
+    //     pipeline.run(None);
+    //     let Ok(image) = pipeline.output_16bit(None) else {
+    //         return Err("imagepipe cannot output file".to_owned());
+    //     };
 
-        let image = ImageBuffer::<Rgb<u16>, Vec<u16>>::from_raw(
-            image.width as u32,
-            image.height as u32,
-            image.data,
-        );
+    //     let image = ImageBuffer::<Rgb<u16>, Vec<u16>>::from_raw(
+    //         image.width as u32,
+    //         image.height as u32,
+    //         image.data,
+    //     );
 
-        let image = image::DynamicImage::ImageRgb16(image.expect("cannot create DynamicImage"));
-        Ok(self.create_image_from_dynamic_image(image, true))
-    }
+    //     let image = image::DynamicImage::ImageRgb16(image.expect("cannot create DynamicImage"));
+    //     Ok(self.create_image_from_dynamic_image(image, true))
+    // }
 
     pub fn create_image_from_bytes_jpg_png(&self, image_bytes: &[u8]) -> Result<Image, String> {
         let Ok(mut img) = image::load_from_memory(image_bytes) else {
@@ -260,32 +265,28 @@ impl Runtime {
         } else if orientation == 8 {
             img = DynamicImage::ImageRgba8(imageops::rotate270(&img));
         }
-        Ok(self.create_image_from_dynamic_image(img, false))
+        Ok(self.create_image_from_dynamic_image(img))
     }
 
-    pub fn create_image_from_dynamic_image(
-        &self,
-        dynamic_image: image::DynamicImage,
-        is_raw: bool,
-    ) -> Image {
-        let dynamic_image = if is_raw {
-            image::DynamicImage::ImageRgba16(dynamic_image.to_rgba16())
-        } else {
-            image::DynamicImage::ImageRgba8(dynamic_image.to_rgba8())
-        };
+    pub fn create_image_from_dynamic_image(&self, dynamic_image: image::DynamicImage) -> Image {
         let dimensions = dynamic_image.dimensions();
-        let (bit_depth, color_space) = if is_raw {
-            (BitDepth::Depth16, ColorSpace::sRGB)
-        } else {
-            (BitDepth::Depth8, ColorSpace::Linear)
-        };
         let properties = ImageProperties {
             dimensions,
-            bit_depth,
-            color_space,
+            format: ImageFormat::Rgba16Float,
+            color_space: ColorSpace::sRGB,
         };
         let result = self.create_image_of_properties(properties);
-        let image_bytes = dynamic_image.as_bytes();
+
+        let dynamic_image_32f = dynamic_image.to_rgba32f();
+        let image_f32s = dynamic_image_32f.as_raw();
+        let mut image_f16s_bytes = Vec::with_capacity(image_f32s.len() * 2);
+        for i in 0..image_f32s.len() {
+            let f = image_f32s[i];
+            let h = f16::from_f32(f);
+            let h_bytes = h.to_be_bytes();
+            image_f16s_bytes.push(h_bytes[1]);
+            image_f16s_bytes.push(h_bytes[0]);
+        }
 
         let size = wgpu::Extent3d {
             width: dimensions.0,
@@ -293,11 +294,7 @@ impl Runtime {
             depth_or_array_layers: 1,
         };
 
-        let bytes_per_row = if is_raw {
-            8 * dimensions.0
-        } else {
-            4 * dimensions.0
-        };
+        let bytes_per_row = dimensions.0 * result.properties.format.bytes_per_pixel();
 
         self.queue.write_texture(
             // Tells wgpu where to copy the pixel data
@@ -307,7 +304,7 @@ impl Runtime {
                 origin: wgpu::Origin3d::ZERO,
                 aspect: wgpu::TextureAspect::All,
             },
-            &image_bytes,
+            image_f16s_bytes.as_slice(),
             wgpu::ImageDataLayout {
                 offset: 0,
                 bytes_per_row: Some(bytes_per_row),
@@ -315,7 +312,42 @@ impl Runtime {
             },
             size,
         );
+
         self.ensure_mipmap(&result);
         result
+    }
+
+    pub fn copy_image(&self, src: &Image, dest: &Image) {
+        assert!(
+            src.properties.dimensions == dest.properties.dimensions,
+            "expecting equal dimensions"
+        );
+        assert!(
+            src.properties.format == dest.properties.format,
+            "expecting equal dimensions"
+        );
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+        let zero_origin = wgpu::Origin3d { x: 0, y: 0, z: 0 };
+        let src_copy = wgpu::ImageCopyTexture {
+            texture: &src.texture,
+            mip_level: 0,
+            origin: zero_origin,
+            aspect: wgpu::TextureAspect::All,
+        };
+        let dest_copy = wgpu::ImageCopyTexture {
+            texture: &dest.texture,
+            mip_level: 0,
+            origin: zero_origin,
+            aspect: wgpu::TextureAspect::All,
+        };
+        let size = wgpu::Extent3d {
+            width: src.properties.dimensions.0,
+            height: src.properties.dimensions.1,
+            depth_or_array_layers: 1,
+        };
+        encoder.copy_texture_to_texture(src_copy, dest_copy, size);
+        self.queue.submit(Some(encoder.finish()));
     }
 }

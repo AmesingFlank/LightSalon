@@ -12,21 +12,39 @@ pub struct Image {
 }
 
 #[derive(Clone, PartialEq, Eq)]
-pub enum BitDepth {
-    Depth8,
-    Depth16,
-}
-
-#[derive(Clone, PartialEq, Eq)]
 pub enum ColorSpace {
     Linear,
     sRGB,
 }
 
+
+#[derive(Clone, PartialEq, Eq)]
+pub enum ImageFormat {
+    Rgba16Float,
+}
+
+impl ImageFormat {
+    pub fn to_wgpu_texture_format(&self) -> wgpu::TextureFormat {
+        match *self {
+            ImageFormat::Rgba16Float =>  wgpu::TextureFormat::Rgba16Float,
+        }       
+    }
+    pub fn bytes_per_channel(&self) -> u32 {
+        match *self {
+            ImageFormat::Rgba16Float => 2,
+        } 
+    }
+    pub fn bytes_per_pixel(&self) -> u32 {
+        match *self {
+            ImageFormat::Rgba16Float => 8,
+        } 
+    }
+}
+
 #[derive(Clone, PartialEq, Eq)]
 pub struct ImageProperties {
     pub dimensions: (u32, u32),
-    pub bit_depth: BitDepth,
+    pub format: ImageFormat,
     pub color_space: ColorSpace,
 }
 
@@ -38,15 +56,5 @@ impl Image {
         let max_dim = std::cmp::max(dimensions.0, dimensions.1);
         let levels = (max_dim as f32).log2() as u32;
         levels
-    }
-}
-
-impl ImageProperties {
-    pub fn to_wgpu_texture_format(&self) -> wgpu::TextureFormat {
-        // always store in linear space. If we need srgb to linear, we do it in shaders
-        match self.bit_depth {
-            BitDepth::Depth8 => wgpu::TextureFormat::Rgba8Unorm,
-            BitDepth::Depth16 => wgpu::TextureFormat::Rgba16Float,
-        }
     }
 }
