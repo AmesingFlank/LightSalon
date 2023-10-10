@@ -1,7 +1,10 @@
 use std::{collections::HashMap, mem::size_of, sync::Arc};
 
 use crate::{
-    engine::value_store::ValueStore,
+    engine::{
+        shader::{Shader, ShaderLibraryModule},
+        value_store::ValueStore,
+    },
     image::Image,
     ir::{ExposureAdjust, Id, Value},
     runtime::Runtime,
@@ -15,8 +18,11 @@ pub struct ExposureAdjustImpl {
 }
 impl ExposureAdjustImpl {
     pub fn new(runtime: Arc<Runtime>) -> Self {
-        let (pipeline, bind_group_layout) =
-            runtime.create_compute_pipeline(include_str!("./exposure.wgsl"));
+        let shader_code = Shader::from_code(include_str!("./exposure.wgsl"))
+            .with_library(ShaderLibraryModule::ColorSpaces)
+            .full_code();
+
+        let (pipeline, bind_group_layout) = runtime.create_compute_pipeline(shader_code.as_str());
 
         let uniform_buffer = runtime.device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
