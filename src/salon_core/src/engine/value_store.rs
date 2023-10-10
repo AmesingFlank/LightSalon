@@ -28,7 +28,7 @@ impl ValueStore {
             None => {}
             Some(val) => match val {
                 Value::Image(ref img) => {
-                    if img.properties != *properties {
+                    if img.properties == *properties {
                         needs_create_img = false;
                     }
                 }
