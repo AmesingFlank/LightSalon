@@ -12,7 +12,7 @@ use imagepipe::{ImageSource, Pipeline};
 
 use crate::{
     image::{ColorSpace, Image, ImageFormat, ImageProperties},
-    utils::mipmap_generator::MipmapGenerator,
+    utils::{color_space_converter::ColorSpaceConverter, mipmap_generator::MipmapGenerator},
 };
 
 use half::prelude::*;
@@ -27,6 +27,7 @@ pub struct Runtime {
 
 struct ToolBox {
     pub mipmap_generator: MipmapGenerator,
+    pub color_space_converter: ColorSpaceConverter,
 }
 
 impl Runtime {
@@ -43,6 +44,7 @@ impl Runtime {
         };
         let toolbox = ToolBox {
             mipmap_generator: MipmapGenerator::new(&runtime),
+            color_space_converter: ColorSpaceConverter::new(&runtime),
         };
         runtime.toolbox = Some(toolbox);
         runtime
@@ -349,5 +351,17 @@ impl Runtime {
         };
         encoder.copy_texture_to_texture(src_copy, dest_copy, size);
         self.queue.submit(Some(encoder.finish()));
+    }
+
+    pub fn convert_color_space(
+        &self,
+        input_img: Arc<Image>,
+        dest_color_space: ColorSpace,
+    ) -> Arc<Image> {
+        self.toolbox
+            .as_ref()
+            .unwrap()
+            .color_space_converter
+            .convert(self, input_img, dest_color_space)
     }
 }
