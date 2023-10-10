@@ -3,12 +3,12 @@ struct VertexOut {
     @builtin(position) position: vec4<f32>,
 };
 
-struct Uniforms {
-    arg: vec4<f32>,
+struct Params {
+    image_color_space: u32,
 };
 
 @group(0) @binding(0)
-var<uniform> uniforms: Uniforms;
+var<uniform> params: Params;
 
 @group(0) @binding(1)
 var tex: texture_2d<f32>;
@@ -37,7 +37,9 @@ fn vs_main(@builtin(vertex_index) v_idx: u32) -> VertexOut {
 
 @fragment
 fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
-    var color = textureSample(tex, tex_sampler, in.uv);
-    color = color * uniforms.arg;
-    return color;
+    var color = textureSample(tex, tex_sampler, in.uv).rgb;
+    if (params.image_color_space == COLOR_SPACE_LINEAR) {
+        color = linear_to_srgb(color);
+    } 
+    return vec4(color, 1.0);
 }

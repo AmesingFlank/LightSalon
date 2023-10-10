@@ -17,6 +17,6 @@ var<uniform> params: Params;
 @workgroup_size(1)
 fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     var c = textureLoad(input, global_id.xy, 0).rgb;
-    c = c * pow(2.0, params.value / 2.2);
+    c = c * pow(2.0, params.value);
     textureStore(output, global_id.xy, vec4<f32>(c, 1.0));
 }

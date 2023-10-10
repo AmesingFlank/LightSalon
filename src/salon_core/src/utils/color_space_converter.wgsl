@@ -19,13 +19,13 @@ var<uniform> params: Params;
 fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     var c = textureLoad(input, global_id.xy, 0).rgb;
     if (params.src_color_space == COLOR_SPACE_LINEAR) {
-        if (params.src_color_space == COLOR_SPACE_SRGB) {
-            c = linear_to_srgb(c);
+        if (params.dest_color_space == COLOR_SPACE_SRGB) {
+            c = linear_to_srgb(c); 
         }
     }
     else if (params.src_color_space == COLOR_SPACE_SRGB) {
-        if (params.src_color_space == COLOR_SPACE_LINEAR) {
-            c = srgb_to_linear(c);
+        if (params.dest_color_space == COLOR_SPACE_LINEAR) {
+            c = srgb_to_linear(c); 
         }
     }
     textureStore(output, global_id.xy, vec4<f32>(c, 1.0));

@@ -2,6 +2,7 @@ use std::{mem::size_of, sync::Arc};
 
 use crate::{
     engine::value_store::ValueStore,
+    image::ColorSpace,
     ir::ExposureAdjust,
     runtime::Runtime,
     shader::{Shader, ShaderLibraryModule},
@@ -39,6 +40,10 @@ impl ExposureAdjustImpl {
 impl ExposureAdjustImpl {
     pub fn apply(&mut self, op: &ExposureAdjust, value_store: &mut ValueStore) {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
+        assert!(
+            input_img.properties.color_space == ColorSpace::Linear,
+            "expecting linear color space"
+        );
 
         value_store.ensure_value_at_id_is_image_of_properties(
             self.runtime.as_ref(),

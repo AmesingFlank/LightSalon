@@ -1,8 +1,10 @@
+use std::mem::size_of;
 use std::sync::Arc;
 use std::{collections::HashMap, num::NonZeroU64};
 
 use eframe::{egui, egui_wgpu};
 use salon_core::runtime::Runtime;
+use salon_core::shader::{Shader, ShaderLibraryModule};
 use wgpu::util::DeviceExt;
 
 pub struct ThumbnailCallback {
@@ -43,14 +45,17 @@ pub struct ThumbnailRenderResources {
 
 impl ThumbnailRenderResources {
     pub fn new(runtime: &Runtime, target_format: wgpu::TextureFormat) -> Self {
-        let (pipeline, bind_group_layout) =
-            runtime.create_render_pipeline(include_str!("./thumbnail.wgsl"), target_format);
+        let shader_code = Shader::from_code(include_str!("./thumbnail.wgsl"))
+            .with_library(ShaderLibraryModule::ColorSpaces)
+            .full_code();
 
-        let uniform_buffer = runtime.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        let (pipeline, bind_group_layout) =
+            runtime.create_render_pipeline(shader_code.as_str(), target_format);
+
+        let uniform_buffer = runtime.device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
-            contents: bytemuck::cast_slice(&[0.0_f32; 4]), // 16 bytes aligned!
-            // Mapping at creation (as done by the create_buffer_init utility) doesn't require us to to add the MAP_WRITE usage
-            // (this *happens* to workaround this bug )
+            size: (size_of::<u32>()) as u64,
+            mapped_at_creation: false,
             usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM,
         });
 
@@ -82,7 +87,7 @@ impl ThumbnailRenderResources {
         queue.write_buffer(
             &self.uniform_buffer,
             0,
-            bytemuck::cast_slice(&[1.0 as f32, 1.0, 1.0, 1.0]),
+            bytemuck::cast_slice(&[image.properties.color_space as u32]),
         );
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {

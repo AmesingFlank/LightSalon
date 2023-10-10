@@ -4,7 +4,7 @@ use crate::{
     engine::value_store::ValueStore,
     ir::BrightnessAdjust,
     runtime::Runtime,
-    shader::{Shader, ShaderLibraryModule},
+    shader::{Shader, ShaderLibraryModule}, image::ColorSpace,
 };
 pub struct BrightnessAdjustImpl {
     runtime: Arc<Runtime>,
@@ -38,6 +38,10 @@ impl BrightnessAdjustImpl {
 impl BrightnessAdjustImpl {
     pub fn apply(&mut self, op: &BrightnessAdjust, value_store: &mut ValueStore) {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
+        assert!(
+            input_img.properties.color_space == ColorSpace::Linear,
+            "expecting linear color space"
+        );
 
         value_store.ensure_value_at_id_is_image_of_properties(
             self.runtime.as_ref(),

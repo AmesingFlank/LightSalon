@@ -1,6 +1,6 @@
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
-use crate::image::Image;
+use crate::image::{Image, ColorSpace};
 use crate::runtime::Runtime;
 
 pub trait Library {
@@ -57,7 +57,8 @@ impl Library for LocalLibrary {
             None => {
                 let path = &self.paths[index];
                 let img = self.runtime.create_image_from_path(path).unwrap();
-                let img = Arc::new(img);
+                let mut img = Arc::new(img);
+                img = self.runtime.convert_color_space(img, ColorSpace::Linear);
                 self.images.insert(index, img.clone());
                 img.clone()
             }
