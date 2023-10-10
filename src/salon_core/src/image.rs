@@ -11,14 +11,14 @@ pub struct Image {
     pub uuid: u32,
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum ColorSpace {
-    Linear,
-    sRGB,
+    Linear = 0,
+    sRGB = 1,
 }
 
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum ImageFormat {
     Rgba16Float,
 }

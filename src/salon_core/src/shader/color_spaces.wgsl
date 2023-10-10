@@ -43,6 +43,9 @@ fn hsl_to_rgb(hsl: vec3<f32>) -> vec3<f32> {
   return chroma * (rgb - 0.5) + hsl.z;
 }
 
+const COLOR_SPACE_LINEAR = 0;
+const COLOR_SPACE_SRGB = 1;
+
 fn linear_to_srgb(rgb: vec3<f32>) -> vec3<f32> {
   let srgb = pow(rgb, vec3(1.0 / 2.2));
   return srgb;
