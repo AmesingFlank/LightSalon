@@ -2,7 +2,7 @@ use std::{collections::HashMap, mem::size_of, sync::Arc};
 
 use crate::{
     engine::{
-        shader::{ShaderLibrary, ShaderLibraryFunctions},
+        shader::{ShaderLibrary, ShaderLibraryModule},
         value_store::ValueStore,
     },
     image::Image,
@@ -19,7 +19,7 @@ pub struct BrightnessAdjustImpl {
 impl BrightnessAdjustImpl {
     pub fn new(runtime: Arc<Runtime>) -> Self {
         let shader_code =
-            ShaderLibrary::get_library_functions_code(ShaderLibraryFunctions::ColorSpaces)
+            ShaderLibrary::get_library_module_code(ShaderLibraryModule::ColorSpaces)
                 .to_owned()
                 + include_str!("./brightness.wgsl");
 

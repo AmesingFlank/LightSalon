@@ -1,8 +1,8 @@
-use super::ShaderLibraryFunctions;
+use super::ShaderLibraryModule;
 
 pub struct Shader {
     body_code: String,
-    libraries: Vec<ShaderLibraryFunctions>
+    libraries: Vec<ShaderLibraryModule>
 }
 
 impl Shader {
