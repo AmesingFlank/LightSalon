@@ -12,7 +12,7 @@ impl Editor {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct EditorState {
     pub exposure_val: f32,
     pub brightness_val: f32,

@@ -157,30 +157,22 @@ impl App {
     }
 
     fn editor(&mut self, ui: &mut Ui) {
-        {
-            ui.add(
-                egui::Slider::new(
-                    &mut self.session.editor.current_state.exposure_val,
-                    -4.0..=4.0,
-                )
-                .text("Exposure"),
-            );
+        let mut editor_state = self.session.editor.current_state.clone();
+        ui.add(egui::Slider::new(&mut editor_state.exposure_val, -4.0..=4.0).text("Exposure"));
 
-            ui.add(
-                egui::Slider::new(
-                    &mut self.session.editor.current_state.brightness_val,
-                    -50.0..=50.0,
-                )
-                .text("Brightness"),
-            );
-
-            if self.session.current_image_index.is_some() {
-                let module = self.session.editor.current_state.to_ir_module();
-                let input_image_index = self.session.current_image_index.unwrap();
-                let input_image = self.session.library.get_image(input_image_index);
-                let output_image = self.session.engine.execute_module(&module, input_image);
-                self.session.working_image = Some(output_image.clone());
-            }
+        ui.add(
+            egui::Slider::new(&mut editor_state.brightness_val, -50.0..=50.0).text("Brightness"),
+        );
+        if self.session.current_image_index.is_none() {
+            return;
+        }
+        if self.session.editor.current_state != editor_state {
+            self.session.editor.current_state = editor_state;
+            let module = self.session.editor.current_state.to_ir_module();
+            let input_image_index = self.session.current_image_index.unwrap();
+            let input_image = self.session.library.get_image(input_image_index);
+            let output_image = self.session.engine.execute_module(&module, input_image);
+            self.session.working_image = Some(output_image.clone());
         }
     }
 }
