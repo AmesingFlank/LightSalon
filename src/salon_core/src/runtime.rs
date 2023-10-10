@@ -12,7 +12,7 @@ use imagepipe::{ImageSource, Pipeline};
 
 use crate::{
     image::{ColorSpace, Image, ImageFormat, ImageProperties},
-    utils::mipmap::MipmapGenerator,
+    utils::mipmap_generator::MipmapGenerator,
 };
 
 use half::prelude::*;

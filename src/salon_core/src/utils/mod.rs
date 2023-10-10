@@ -1,2 +1,2 @@
 pub mod uuid;
-pub mod mipmap;
+pub mod mipmap_generator;
