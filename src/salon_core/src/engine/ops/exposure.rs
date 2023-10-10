@@ -1,13 +1,10 @@
-use std::{collections::HashMap, mem::size_of, sync::Arc};
+use std::{mem::size_of, sync::Arc};
 
 use crate::{
-    engine::{
-        shader::{Shader, ShaderLibraryModule},
-        value_store::ValueStore,
-    },
-    image::Image,
-    ir::{ExposureAdjust, Id, Value},
+    engine::value_store::ValueStore,
+    ir::ExposureAdjust,
     runtime::Runtime,
+    shader::{Shader, ShaderLibraryModule},
 };
 
 pub struct ExposureAdjustImpl {

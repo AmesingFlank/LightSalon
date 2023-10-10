@@ -1,15 +1,11 @@
-use std::{collections::HashMap, mem::size_of, sync::Arc};
+use std::{mem::size_of, sync::Arc};
 
 use crate::{
-    engine::{
-        shader::{Shader, ShaderLibrary, ShaderLibraryModule},
-        value_store::ValueStore,
-    },
-    image::Image,
-    ir::{BrightnessAdjust, Id, Value},
+    engine::value_store::ValueStore,
+    ir::BrightnessAdjust,
     runtime::Runtime,
+    shader::{Shader, ShaderLibraryModule},
 };
-
 pub struct BrightnessAdjustImpl {
     runtime: Arc<Runtime>,
     pipeline: wgpu::ComputePipeline,
