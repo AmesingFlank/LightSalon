@@ -45,6 +45,12 @@ impl ComputeHistogramImpl {
             &buffer_props,
         );
 
+        self.runtime.queue.write_buffer(
+            &output_buffer.buffer,
+            0,
+            bytemuck::cast_slice(&[0.0; 4 * 256]),
+        );
+
         let bind_group = self
             .runtime
             .device
