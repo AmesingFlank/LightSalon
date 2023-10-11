@@ -97,27 +97,28 @@ impl App {
             let max_y = ui.available_height();
             let ui_aspect_ratio = max_y / max_x;
 
-            let image = result.final_image.clone();
-            let image_aspect_ratio = image.aspect_ratio();
+            if let Some(ref image) = result.final_image.clone() {
+                let image_aspect_ratio = image.aspect_ratio();
 
-            let size = if image_aspect_ratio >= ui_aspect_ratio {
-                egui::Vec2 {
-                    x: max_y / image_aspect_ratio,
-                    y: max_y,
-                }
-            } else {
-                egui::Vec2 {
-                    x: max_x,
-                    y: max_x * image_aspect_ratio,
-                }
-            };
-            ui.centered_and_justified(|ui| {
-                let (rect, response) = ui.allocate_exact_size(size, egui::Sense::drag());
-                ui.painter().add(egui_wgpu::Callback::new_paint_callback(
-                    rect,
-                    ui::main_image::MainImageCallback { image: image },
-                ));
-            });
+                let size = if image_aspect_ratio >= ui_aspect_ratio {
+                    egui::Vec2 {
+                        x: max_y / image_aspect_ratio,
+                        y: max_y,
+                    }
+                } else {
+                    egui::Vec2 {
+                        x: max_x,
+                        y: max_x * image_aspect_ratio,
+                    }
+                };
+                ui.centered_and_justified(|ui| {
+                    let (rect, response) = ui.allocate_exact_size(size, egui::Sense::drag());
+                    ui.painter().add(egui_wgpu::Callback::new_paint_callback(
+                        rect,
+                        ui::main_image::MainImageCallback { image: image.clone() },
+                    ));
+                });
+            }
         }
     }
 

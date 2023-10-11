@@ -32,9 +32,7 @@ impl Engine {
     }
 
     pub fn execute_module(&mut self, module: &Module, input_img: Arc<Image>) -> ProcessResult {
-        let mut result = ProcessResult {
-            final_image: input_img.clone()
-        };
+        let mut result = ProcessResult::new_empty();
         self.ensure_op_impls(module);
         let ops = module.ops();
         for op in ops {
@@ -77,7 +75,7 @@ impl Engine {
         let output_image = output_value.as_image().clone();
         self.runtime.ensure_mipmap(&output_image.as_ref());
 
-        result.final_image = output_image;
+        result.final_image = Some(output_image);
         result
     }
 
