@@ -3,58 +3,46 @@ use std::{mem::size_of, sync::Arc};
 use crate::{
     engine::value_store::ValueStore,
     image::ColorSpace,
-    ir::AdjustExposureOp,
+    ir::{AdjustExposureOp, ComputeHistogramOp},
     runtime::Runtime,
-    shader::{Shader, ShaderLibraryModule},
+    shader::{Shader, ShaderLibraryModule}, buffer::BufferProperties,
 };
 
-pub struct AdjustExposureImpl {
+pub struct ComputeHistogramImpl {
     runtime: Arc<Runtime>,
     pipeline: wgpu::ComputePipeline,
-    bind_group_layout: wgpu::BindGroupLayout,
-    uniform_buffer: wgpu::Buffer,
+    bind_group_layout: wgpu::BindGroupLayout, 
 }
-impl AdjustExposureImpl {
+impl ComputeHistogramImpl {
     pub fn new(runtime: Arc<Runtime>) -> Self {
-        let shader_code = Shader::from_code(include_str!("./exposure.wgsl"))
+        let shader_code = Shader::from_code(include_str!("./histogram.wgsl"))
             .with_library(ShaderLibraryModule::ColorSpaces)
             .full_code();
 
-        let (pipeline, bind_group_layout) = runtime.create_compute_pipeline(shader_code.as_str());
-
-        let uniform_buffer = runtime.device.create_buffer(&wgpu::BufferDescriptor {
-            label: None,
-            size: size_of::<f32>() as u64,
-            mapped_at_creation: false,
-            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM,
-        });
-
-        AdjustExposureImpl {
+        let (pipeline, bind_group_layout) = runtime.create_compute_pipeline(shader_code.as_str()); 
+        ComputeHistogramImpl {
             runtime,
             pipeline,
             bind_group_layout,
-            uniform_buffer,
         }
     }
 }
-impl AdjustExposureImpl {
-    pub fn apply(&mut self, op: &AdjustExposureOp, value_store: &mut ValueStore) {
+impl ComputeHistogramImpl {
+    pub fn apply(&mut self, op: &ComputeHistogramOp, value_store: &mut ValueStore) {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
         assert!(
             input_img.properties.color_space == ColorSpace::Linear,
             "expecting linear color space"
         );
 
-        let output_img = value_store.ensure_value_at_id_is_image_of_properties(
+        let buffer_props = BufferProperties {
+            size: 4 * 256 * size_of::<f32>()
+        };
+
+        let output_buffer = value_store.ensure_value_at_id_is_buffer_of_properties(
             self.runtime.as_ref(),
             op.result,
-            &input_img.properties,
-        ); 
-
-        self.runtime.queue.write_buffer(
-            &self.uniform_buffer,
-            0,
-            bytemuck::cast_slice(&[op.exposure]),
+            &buffer_props,
         );
 
         let bind_group = self
@@ -70,13 +58,7 @@ impl AdjustExposureImpl {
                     },
                     wgpu::BindGroupEntry {
                         binding: 1,
-                        resource: wgpu::BindingResource::TextureView(
-                            &output_img.texture_view_base_mip,
-                        ),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 2,
-                        resource: self.uniform_buffer.as_entire_binding(),
+                        resource: output_buffer.buffer.as_entire_binding(),
                     },
                 ],
             });

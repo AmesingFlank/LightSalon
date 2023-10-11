@@ -368,7 +368,7 @@ impl Runtime {
 
     // Buffer Stuff
 
-    pub fn create_buffer_with_properties(&self, properties: BufferProperties) -> Buffer {
+    pub fn create_buffer_of_properties(&self, properties: BufferProperties) -> Buffer {
         let wgpu_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
             size: properties.size as u64,

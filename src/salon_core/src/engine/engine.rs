@@ -2,15 +2,16 @@ use std::{collections::HashMap, sync::Arc};
 
 use crate::{
     image::Image,
-    ir::{Id, Input, Module, Op, Value},
+    ir::{Id, InputOp, Module, Op, Value},
     runtime::Runtime,
 };
 
 use super::{
     op_impl_collection::OpImplCollection,
     ops::{
-        saturation::{self, AdjustSaturationImpl},
         exposure::AdjustExposureImpl,
+        histogram::{self, ComputeHistogramImpl},
+        saturation::{self, AdjustSaturationImpl},
     },
     value_store::ValueStore,
 };
@@ -54,6 +55,13 @@ impl Engine {
                         .unwrap()
                         .apply(saturation, &mut self.value_store);
                 }
+                Op::ComputeHistogram(ref histogram) => {
+                    self.op_impls
+                        .histogram
+                        .as_mut()
+                        .unwrap()
+                        .apply(histogram, &mut self.value_store);
+                }
             }
         }
 
@@ -63,7 +71,7 @@ impl Engine {
             .map
             .get(&output_id)
             .expect("cannot find output");
-        let output_image =  output_value.as_image().clone();
+        let output_image = output_value.as_image().clone();
         self.runtime.ensure_mipmap(&output_image.as_ref());
         output_image
     }
@@ -78,6 +86,9 @@ impl Engine {
                 }
                 Op::AdjustSaturation(_) => {
                     self.op_impls.saturation = Some(AdjustSaturationImpl::new(self.runtime.clone()))
+                }
+                Op::ComputeHistogram(_) => {
+                    self.op_impls.histogram = Some(ComputeHistogramImpl::new(self.runtime.clone()))
                 }
             }
         }

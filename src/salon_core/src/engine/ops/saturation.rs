@@ -2,9 +2,10 @@ use std::{mem::size_of, sync::Arc};
 
 use crate::{
     engine::value_store::ValueStore,
+    image::ColorSpace,
     ir::AdjustSaturationOp,
     runtime::Runtime,
-    shader::{Shader, ShaderLibraryModule}, image::ColorSpace,
+    shader::{Shader, ShaderLibraryModule},
 };
 pub struct AdjustSaturationImpl {
     runtime: Arc<Runtime>,
@@ -43,13 +44,11 @@ impl AdjustSaturationImpl {
             "expecting linear color space"
         );
 
-        value_store.ensure_value_at_id_is_image_of_properties(
+        let output_img = value_store.ensure_value_at_id_is_image_of_properties(
             self.runtime.as_ref(),
             op.result,
             &input_img.properties,
         );
-
-        let output_img = value_store.map.get(&op.result).unwrap().as_image();
 
         self.runtime.queue.write_buffer(
             &self.uniform_buffer,

@@ -2,13 +2,14 @@ use super::Id;
 
 #[derive(Clone)]
 pub enum Op {
-    Input(Input),
+    Input(InputOp),
     AdjustExposure(AdjustExposureOp),
     AdjustSaturation(AdjustSaturationOp),
+    ComputeHistogram(ComputeHistogramOp),
 }
 
 #[derive(Clone)]
-pub struct Input {
+pub struct InputOp {
     pub result: Id
 }
 
@@ -24,4 +25,10 @@ pub struct AdjustSaturationOp {
     pub result: Id,
     pub arg: Id,
     pub saturation: f32,
+}
+
+#[derive(Clone)]
+pub struct ComputeHistogramOp {
+    pub result: Id,
+    pub arg: Id, 
 }

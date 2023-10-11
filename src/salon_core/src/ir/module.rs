@@ -1,4 +1,4 @@
-use super::{Id, Input, Op};
+use super::{Id, InputOp, Op};
 
 pub struct Module {
     ops: Vec<Op>,
@@ -34,7 +34,7 @@ impl Module {
     pub fn new_trivial() -> Self {
         let mut module = Module::new_empty();
         let input_id = module.alloc_id();
-        module.push_op(Op::Input(Input { result: input_id }));
+        module.push_op(Op::Input(InputOp { result: input_id }));
         module.set_output_id(input_id);
         module
     }

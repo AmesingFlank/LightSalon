@@ -1,8 +1,10 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
+    buffer::{Buffer, BufferProperties},
+    image::{Image, ImageProperties},
     ir::{Id, Value},
-    runtime::Runtime, image::ImageProperties,
+    runtime::Runtime,
 };
 
 pub struct ValueStore {
@@ -21,7 +23,7 @@ impl ValueStore {
         runtime: &Runtime,
         id: Id,
         properties: &ImageProperties,
-    ) {
+    ) -> Arc<Image> {
         let mut needs_create_img = true;
 
         match self.map.get(&id) {
@@ -37,8 +39,40 @@ impl ValueStore {
         }
 
         if needs_create_img {
-            let new_img = runtime.create_image_of_properties(properties.clone());
-            self.map.insert(id, Value::Image(Arc::new(new_img)));
+            let new_img = Arc::new(runtime.create_image_of_properties(properties.clone()));
+            self.map.insert(id, Value::Image(new_img.clone()));
+            new_img
+        } else {
+            self.map.get(&id).unwrap().as_image().clone()
+        }
+    }
+
+    pub fn ensure_value_at_id_is_buffer_of_properties(
+        &mut self,
+        runtime: &Runtime,
+        id: Id,
+        properties: &BufferProperties,
+    ) -> Arc<Buffer> {
+        let mut needs_create_buffer = true;
+
+        match self.map.get(&id) {
+            None => {}
+            Some(val) => match val {
+                Value::Buffer(ref buf) => {
+                    if buf.properties == *properties {
+                        needs_create_buffer = false;
+                    }
+                }
+                _ => {}
+            },
+        }
+
+        if needs_create_buffer {
+            let new_buf = Arc::new(runtime.create_buffer_of_properties(properties.clone()));
+            self.map.insert(id, Value::Buffer(new_buf.clone()));
+            new_buf
+        } else {
+            self.map.get(&id).unwrap().as_buffer().clone()
         }
     }
 }
