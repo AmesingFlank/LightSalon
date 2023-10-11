@@ -179,7 +179,7 @@ impl App {
     }
 
     fn color_adjust(&mut self, ui: &mut Ui, editor_state: &mut EditorState) {
-        CollapsingHeader::new("Color Adjustment")
+        CollapsingHeader::new("Light & Color")
             .default_open(true)
             .show(ui, |ui| {
                 ui.add(
