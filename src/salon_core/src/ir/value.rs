@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
-use crate::image::Image;
+use crate::{buffer::Buffer, image::Image};
 
 pub enum Value {
     Image(Arc<Image>),
+    Buffer(Arc<Buffer>),
 }
 
 impl Value {
@@ -17,7 +18,21 @@ impl Value {
     }
     pub fn is_image(&self) -> bool {
         match self {
-            Value::Image(ref i) => true,
+            Value::Image(_) => true,
+            _ => false,
+        }
+    }
+    pub fn as_buffer(&self) -> &Arc<Buffer> {
+        match self {
+            Value::Buffer(ref b) => b,
+            _ => {
+                panic!("expecting buffer")
+            }
+        }
+    }
+    pub fn is_buffer(&self) -> bool {
+        match self {
+            Value::Buffer(_) => true,
             _ => false,
         }
     }

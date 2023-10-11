@@ -11,6 +11,7 @@ use image::{imageops, DynamicImage, GenericImageView, ImageBuffer, Rgb};
 use imagepipe::{ImageSource, Pipeline};
 
 use crate::{
+    buffer::{Buffer, BufferProperties},
     image::{ColorSpace, Image, ImageFormat, ImageProperties},
     utils::{color_space_converter::ColorSpaceConverter, mipmap_generator::MipmapGenerator},
 };
@@ -363,5 +364,25 @@ impl Runtime {
             .unwrap()
             .color_space_converter
             .convert(self, input_img, dest_color_space)
+    }
+
+    // Buffer Stuff
+
+    pub fn create_buffer_with_properties(&self, properties: BufferProperties) -> Buffer {
+        let wgpu_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: None,
+            size: properties.size as u64,
+            mapped_at_creation: false,
+            usage: wgpu::BufferUsages::COPY_SRC
+                | wgpu::BufferUsages::COPY_DST
+                | wgpu::BufferUsages::UNIFORM
+                | wgpu::BufferUsages::STORAGE,
+        });
+        let uuid = crate::utils::uuid::get_next_uuid();
+        Buffer {
+            properties,
+            uuid,
+            buffer:wgpu_buffer
+        }
     }
 }
