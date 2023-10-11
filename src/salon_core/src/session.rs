@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
 use crate::editor::Editor;
-use crate::engine::Engine;
+use crate::engine::{Engine, ProcessResult};
 use crate::image::Image;
+use crate::ir::Module;
 use crate::library::{Library, LocalLibrary};
 use crate::runtime::Runtime;
 
@@ -12,7 +13,7 @@ pub struct Session {
     pub editor: Editor,
 
     pub current_image_index: Option<usize>,
-    pub working_image: Option<Arc<Image>>,
+    pub current_process_result: Option<ProcessResult>,
 }
 
 impl Session {
@@ -24,7 +25,7 @@ impl Session {
             library: Box::new(library),
             editor: Editor::new(),
             current_image_index: None,
-            working_image: None, 
+            current_process_result: None,
         }
     }
 
@@ -39,6 +40,10 @@ impl Session {
         }
         self.current_image_index = Some(index);
         let img = self.library.as_mut().get_image(index);
-        self.working_image = Some(img);
+
+        let basic_module = Module::new_basic();
+        let result = self.engine.execute_module(&basic_module, img);
+
+        self.current_process_result = Some(result);
     }
 }

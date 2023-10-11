@@ -13,7 +13,7 @@ use super::{
         histogram::{self, ComputeHistogramImpl},
         saturation::{self, AdjustSaturationImpl},
     },
-    value_store::ValueStore,
+    value_store::ValueStore, result::ProcessResult,
 };
 
 pub struct Engine {
@@ -31,7 +31,10 @@ impl Engine {
         }
     }
 
-    pub fn execute_module(&mut self, module: &Module, input_img: Arc<Image>) -> Arc<Image> {
+    pub fn execute_module(&mut self, module: &Module, input_img: Arc<Image>) -> ProcessResult {
+        let mut result = ProcessResult {
+            final_image: input_img.clone()
+        };
         self.ensure_op_impls(module);
         let ops = module.ops();
         for op in ops {
@@ -73,7 +76,9 @@ impl Engine {
             .expect("cannot find output");
         let output_image = output_value.as_image().clone();
         self.runtime.ensure_mipmap(&output_image.as_ref());
-        output_image
+
+        result.final_image = output_image;
+        result
     }
 
     fn ensure_op_impls(&mut self, module: &Module) {

@@ -92,12 +92,12 @@ impl App {
     }
 
     fn main_image(&mut self, _ctx: &egui::Context, _frame: &mut eframe::Frame, ui: &mut Ui) {
-        if self.session.working_image.is_some() {
+        if let Some(ref result) = self.session.current_process_result {
             let max_x = ui.available_width();
             let max_y = ui.available_height();
             let ui_aspect_ratio = max_y / max_x;
 
-            let image = self.session.working_image.as_ref().unwrap().clone();
+            let image = result.final_image.clone();
             let image_aspect_ratio = image.aspect_ratio();
 
             let size = if image_aspect_ratio >= ui_aspect_ratio {
@@ -171,8 +171,8 @@ impl App {
             let module = self.session.editor.current_state.to_ir_module();
             let input_image_index = self.session.current_image_index.unwrap();
             let input_image = self.session.library.get_image(input_image_index);
-            let output_image = self.session.engine.execute_module(&module, input_image);
-            self.session.working_image = Some(output_image.clone());
+            let result = self.session.engine.execute_module(&module, input_image);
+            self.session.current_process_result = Some(result)
         }
     }
 }
