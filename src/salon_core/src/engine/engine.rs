@@ -63,7 +63,9 @@ impl Engine {
             .map
             .get(&output_id)
             .expect("cannot find output");
-        output_value.as_image().clone()
+        let output_image =  output_value.as_image().clone();
+        self.runtime.ensure_mipmap(&output_image.as_ref());
+        output_image
     }
 
     fn ensure_op_impls(&mut self, module: &Module) {

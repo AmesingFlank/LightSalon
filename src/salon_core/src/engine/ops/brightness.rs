@@ -97,8 +97,6 @@ impl BrightnessAdjustImpl {
                 1,
             );
         }
-        self.runtime
-            .encode_mipmap_generation_command(output_img.as_ref(), &mut encoder);
         self.runtime.queue.submit(Some(encoder.finish()));
     }
 }
