@@ -2,17 +2,17 @@ use std::{mem::size_of, sync::Arc};
 
 use crate::{
     engine::value_store::ValueStore,
-    ir::SaturationAdjust,
+    ir::AdjustSaturationOp,
     runtime::Runtime,
     shader::{Shader, ShaderLibraryModule}, image::ColorSpace,
 };
-pub struct SaturationAdjustImpl {
+pub struct AdjustSaturationImpl {
     runtime: Arc<Runtime>,
     pipeline: wgpu::ComputePipeline,
     bind_group_layout: wgpu::BindGroupLayout,
     uniform_buffer: wgpu::Buffer,
 }
-impl SaturationAdjustImpl {
+impl AdjustSaturationImpl {
     pub fn new(runtime: Arc<Runtime>) -> Self {
         let shader_code = Shader::from_code(include_str!("./saturation.wgsl"))
             .with_library(ShaderLibraryModule::ColorSpaces)
@@ -27,7 +27,7 @@ impl SaturationAdjustImpl {
             usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM,
         });
 
-        SaturationAdjustImpl {
+        AdjustSaturationImpl {
             runtime,
             pipeline,
             bind_group_layout,
@@ -35,8 +35,8 @@ impl SaturationAdjustImpl {
         }
     }
 }
-impl SaturationAdjustImpl {
-    pub fn apply(&mut self, op: &SaturationAdjust, value_store: &mut ValueStore) {
+impl AdjustSaturationImpl {
+    pub fn apply(&mut self, op: &AdjustSaturationOp, value_store: &mut ValueStore) {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
         assert!(
             input_img.properties.color_space == ColorSpace::Linear,

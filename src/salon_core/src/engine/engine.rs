@@ -9,8 +9,8 @@ use crate::{
 use super::{
     op_impl_collection::OpImplCollection,
     ops::{
-        saturation::{self, SaturationAdjustImpl},
-        exposure::ExposureAdjustImpl,
+        saturation::{self, AdjustSaturationImpl},
+        exposure::AdjustExposureImpl,
     },
     value_store::ValueStore,
 };
@@ -40,14 +40,14 @@ impl Engine {
                         .map
                         .insert(input.result, Value::Image(input_img.clone()));
                 }
-                Op::ExposureAdjust(ref exposure) => {
+                Op::AdjustExposure(ref exposure) => {
                     self.op_impls
                         .exposure
                         .as_mut()
                         .unwrap()
                         .apply(exposure, &mut self.value_store);
                 }
-                Op::SaturationAdjust(ref saturation) => {
+                Op::AdjustSaturation(ref saturation) => {
                     self.op_impls
                         .saturation
                         .as_mut()
@@ -73,11 +73,11 @@ impl Engine {
         for op in ops {
             match op {
                 Op::Input(_) => {}
-                Op::ExposureAdjust(_) => {
-                    self.op_impls.exposure = Some(ExposureAdjustImpl::new(self.runtime.clone()))
+                Op::AdjustExposure(_) => {
+                    self.op_impls.exposure = Some(AdjustExposureImpl::new(self.runtime.clone()))
                 }
-                Op::SaturationAdjust(_) => {
-                    self.op_impls.saturation = Some(SaturationAdjustImpl::new(self.runtime.clone()))
+                Op::AdjustSaturation(_) => {
+                    self.op_impls.saturation = Some(AdjustSaturationImpl::new(self.runtime.clone()))
                 }
             }
         }

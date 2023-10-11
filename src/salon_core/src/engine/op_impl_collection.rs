@@ -1,9 +1,9 @@
-use super::ops::{exposure::ExposureAdjustImpl, saturation::SaturationAdjustImpl};
+use super::ops::{exposure::AdjustExposureImpl, saturation::AdjustSaturationImpl};
 
 #[derive(Default)]
 pub struct OpImplCollection {
-    pub exposure: Option<ExposureAdjustImpl>,
-    pub saturation: Option<SaturationAdjustImpl>,
+    pub exposure: Option<AdjustExposureImpl>,
+    pub saturation: Option<AdjustSaturationImpl>,
 }
 
 impl OpImplCollection {

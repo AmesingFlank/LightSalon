@@ -3,8 +3,8 @@ use super::Id;
 #[derive(Clone)]
 pub enum Op {
     Input(Input),
-    ExposureAdjust(ExposureAdjust),
-    SaturationAdjust(SaturationAdjust),
+    AdjustExposure(AdjustExposureOp),
+    AdjustSaturation(AdjustSaturationOp),
 }
 
 #[derive(Clone)]
@@ -13,14 +13,14 @@ pub struct Input {
 }
 
 #[derive(Clone)]
-pub struct ExposureAdjust {
+pub struct AdjustExposureOp {
     pub result: Id,
     pub arg: Id,
     pub exposure: f32,
 }
 
 #[derive(Clone)]
-pub struct SaturationAdjust {
+pub struct AdjustSaturationOp {
     pub result: Id,
     pub arg: Id,
     pub saturation: f32,

@@ -1,4 +1,4 @@
-use crate::ir::{Module, Op, ExposureAdjust, SaturationAdjust};
+use crate::ir::{Module, Op, AdjustExposureOp, AdjustSaturationOp};
 
 pub struct Editor {
     pub current_state: EditorState,
@@ -31,7 +31,7 @@ impl EditorState {
         let mut current_output_id = module.output_id().expect("expecting an output id");
 
         let exposure_adjusted_image_id = module.alloc_id();
-        let exposure_op = Op::ExposureAdjust(ExposureAdjust {
+        let exposure_op = Op::AdjustExposure(AdjustExposureOp {
             result: exposure_adjusted_image_id,
             arg: current_output_id,
             exposure: self.exposure_val,
@@ -42,7 +42,7 @@ impl EditorState {
         current_output_id = exposure_adjusted_image_id;
 
         let saturation_adjusted_image_id = module.alloc_id();
-        let saturation_op = Op::SaturationAdjust(SaturationAdjust {
+        let saturation_op = Op::AdjustSaturation(AdjustSaturationOp {
             result: saturation_adjusted_image_id,
             arg: current_output_id,
             saturation: self.saturation_val,
