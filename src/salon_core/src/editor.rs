@@ -26,7 +26,7 @@ impl EditorState {
         }
     }
     pub fn to_ir_module(&self) -> Module {
-        let mut module = Module::new_trivial();
+        let mut module = Module::new_basic();
 
         let mut current_output_id = module.output_id().expect("expecting an output id");
 

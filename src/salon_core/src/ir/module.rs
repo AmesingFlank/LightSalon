@@ -1,4 +1,4 @@
-use super::{Id, InputOp, Op};
+use super::{Id, InputOp, Op, ComputeHistogramOp};
 
 pub struct Module {
     ops: Vec<Op>,
@@ -31,11 +31,16 @@ impl Module {
         self.next_id += 1;
         id
     }
-    pub fn new_trivial() -> Self {
+    pub fn new_basic() -> Self {
         let mut module = Module::new_empty();
         let input_id = module.alloc_id();
         module.push_op(Op::Input(InputOp { result: input_id }));
         module.set_output_id(input_id);
+
+        let curr_output_id = module.output_id().unwrap();
+
+        let histogram_id = module.alloc_id();
+        module.push_op(Op::ComputeHistogram(ComputeHistogramOp {result: histogram_id, arg:curr_output_id}));
         module
     }
     pub fn clone(&self) -> Self {
