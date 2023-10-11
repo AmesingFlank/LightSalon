@@ -1,5 +1,5 @@
 use crate::ui;
-use eframe::egui::{self, accesskit::Vec2, Ui, CollapsingHeader};
+use eframe::egui::{self, accesskit::Vec2, CollapsingHeader, Ui};
 use egui_extras::{Column, TableBuilder};
 use salon_core::{
     editor::EditorState,
@@ -14,6 +14,12 @@ use std::{num::NonZeroU64, sync::Arc};
 use eframe::{
     egui_wgpu::wgpu::util::DeviceExt,
     egui_wgpu::{self, wgpu},
+};
+
+use egui_plot::{
+    Arrows, AxisBools, AxisHints, Bar, BarChart, BoxElem, BoxPlot, BoxSpread, CoordinatesFormatter,
+    Corner, GridInput, GridMark, HLine, Legend, Line, LineStyle, MarkerShape, Plot, PlotImage,
+    PlotPoint, PlotPoints, PlotResponse, Points, Polygon, Text, VLine,
 };
 
 pub struct App {
@@ -163,7 +169,9 @@ impl App {
     fn histogram(&mut self, ui: &mut Ui) {
         CollapsingHeader::new("Histogram")
             .default_open(true)
-            .show(ui, |ui| {});
+            .show(ui, |ui| {
+                
+            });
     }
 
     fn color_adjust(&mut self, ui: &mut Ui, editor_state: &mut EditorState) {

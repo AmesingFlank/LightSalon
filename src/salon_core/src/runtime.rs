@@ -1,14 +1,6 @@
-use std::{
-    collections::HashSet,
-    env,
-    fs::File,
-    io::{BufReader, Cursor, Read},
-    path::PathBuf,
-    sync::Arc,
-};
+use std::{io::Cursor, path::PathBuf, sync::Arc};
 
 use image::{imageops, DynamicImage, GenericImageView, ImageBuffer, Rgb};
-use imagepipe::{ImageSource, Pipeline};
 
 use crate::{
     buffer::{Buffer, BufferProperties},
@@ -382,7 +374,7 @@ impl Runtime {
         Buffer {
             properties,
             uuid,
-            buffer:wgpu_buffer
+            buffer: wgpu_buffer,
         }
     }
 }
