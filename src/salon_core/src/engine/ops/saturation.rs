@@ -2,19 +2,19 @@ use std::{mem::size_of, sync::Arc};
 
 use crate::{
     engine::value_store::ValueStore,
-    ir::BrightnessAdjust,
+    ir::SaturationAdjust,
     runtime::Runtime,
     shader::{Shader, ShaderLibraryModule}, image::ColorSpace,
 };
-pub struct BrightnessAdjustImpl {
+pub struct SaturationAdjustImpl {
     runtime: Arc<Runtime>,
     pipeline: wgpu::ComputePipeline,
     bind_group_layout: wgpu::BindGroupLayout,
     uniform_buffer: wgpu::Buffer,
 }
-impl BrightnessAdjustImpl {
+impl SaturationAdjustImpl {
     pub fn new(runtime: Arc<Runtime>) -> Self {
-        let shader_code = Shader::from_code(include_str!("./brightness.wgsl"))
+        let shader_code = Shader::from_code(include_str!("./saturation.wgsl"))
             .with_library(ShaderLibraryModule::ColorSpaces)
             .full_code();
 
@@ -27,7 +27,7 @@ impl BrightnessAdjustImpl {
             usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM,
         });
 
-        BrightnessAdjustImpl {
+        SaturationAdjustImpl {
             runtime,
             pipeline,
             bind_group_layout,
@@ -35,8 +35,8 @@ impl BrightnessAdjustImpl {
         }
     }
 }
-impl BrightnessAdjustImpl {
-    pub fn apply(&mut self, op: &BrightnessAdjust, value_store: &mut ValueStore) {
+impl SaturationAdjustImpl {
+    pub fn apply(&mut self, op: &SaturationAdjust, value_store: &mut ValueStore) {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
         assert!(
             input_img.properties.color_space == ColorSpace::Linear,
@@ -54,7 +54,7 @@ impl BrightnessAdjustImpl {
         self.runtime.queue.write_buffer(
             &self.uniform_buffer,
             0,
-            bytemuck::cast_slice(&[op.brightness]),
+            bytemuck::cast_slice(&[op.saturation]),
         );
 
         let bind_group = self

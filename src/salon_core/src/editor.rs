@@ -1,4 +1,4 @@
-use crate::ir::{Module, Op, ExposureAdjust, BrightnessAdjust};
+use crate::ir::{Module, Op, ExposureAdjust, SaturationAdjust};
 
 pub struct Editor {
     pub current_state: EditorState,
@@ -15,14 +15,14 @@ impl Editor {
 #[derive(Clone, PartialEq)]
 pub struct EditorState {
     pub exposure_val: f32,
-    pub brightness_val: f32,
+    pub saturation_val: f32,
 }
 
 impl EditorState {
     pub fn new() -> Self {
         EditorState { 
             exposure_val: 0.0,
-            brightness_val: 0.0,
+            saturation_val: 0.0,
         }
     }
     pub fn to_ir_module(&self) -> Module {
@@ -41,14 +41,14 @@ impl EditorState {
 
         current_output_id = exposure_adjusted_image_id;
 
-        let brightness_adjusted_image_id = module.alloc_id();
-        let brightness_op = Op::BrightnessAdjust(BrightnessAdjust {
-            result: brightness_adjusted_image_id,
+        let saturation_adjusted_image_id = module.alloc_id();
+        let saturation_op = Op::SaturationAdjust(SaturationAdjust {
+            result: saturation_adjusted_image_id,
             arg: current_output_id,
-            brightness: self.brightness_val,
+            saturation: self.saturation_val,
         });
-        module.push_op(brightness_op);
-        module.set_output_id(brightness_adjusted_image_id);
+        module.push_op(saturation_op);
+        module.set_output_id(saturation_adjusted_image_id);
 
         module
     }

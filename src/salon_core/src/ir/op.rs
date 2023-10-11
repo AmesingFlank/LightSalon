@@ -4,7 +4,7 @@ use super::Id;
 pub enum Op {
     Input(Input),
     ExposureAdjust(ExposureAdjust),
-    BrightnessAdjust(BrightnessAdjust),
+    SaturationAdjust(SaturationAdjust),
 }
 
 #[derive(Clone)]
@@ -20,8 +20,8 @@ pub struct ExposureAdjust {
 }
 
 #[derive(Clone)]
-pub struct BrightnessAdjust {
+pub struct SaturationAdjust {
     pub result: Id,
     pub arg: Id,
-    pub brightness: f32,
+    pub saturation: f32,
 }

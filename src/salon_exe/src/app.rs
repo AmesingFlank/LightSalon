@@ -161,7 +161,7 @@ impl App {
         ui.add(egui::Slider::new(&mut editor_state.exposure_val, -4.0..=4.0).text("Exposure"));
 
         ui.add(
-            egui::Slider::new(&mut editor_state.brightness_val, -50.0..=50.0).text("Brightness"),
+            egui::Slider::new(&mut editor_state.saturation_val, -100.0..=100.0).text("Saturation"),
         );
         if self.session.current_image_index.is_none() {
             return;

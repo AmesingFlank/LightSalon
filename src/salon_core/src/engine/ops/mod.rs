@@ -1,2 +1,2 @@
 pub mod exposure;
-pub mod brightness;
+pub mod saturation;
