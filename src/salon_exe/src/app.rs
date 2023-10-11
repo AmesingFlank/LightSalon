@@ -1,7 +1,8 @@
 use crate::ui;
-use eframe::egui::{self, accesskit::Vec2, Ui};
+use eframe::egui::{self, accesskit::Vec2, Ui, CollapsingHeader};
 use egui_extras::{Column, TableBuilder};
 use salon_core::{
+    editor::EditorState,
     engine::Engine,
     ir::{AdjustExposureOp, Module, Op},
     library::AddImageResult,
@@ -115,7 +116,9 @@ impl App {
                     let (rect, response) = ui.allocate_exact_size(size, egui::Sense::drag());
                     ui.painter().add(egui_wgpu::Callback::new_paint_callback(
                         rect,
-                        ui::main_image::MainImageCallback { image: image.clone() },
+                        ui::main_image::MainImageCallback {
+                            image: image.clone(),
+                        },
                     ));
                 });
             }
@@ -157,13 +160,32 @@ impl App {
         });
     }
 
+    fn histogram(&mut self, ui: &mut Ui) {
+        CollapsingHeader::new("Histogram")
+            .default_open(true)
+            .show(ui, |ui| {});
+    }
+
+    fn color_adjust(&mut self, ui: &mut Ui, editor_state: &mut EditorState) {
+        CollapsingHeader::new("Color Adjustment")
+            .default_open(true)
+            .show(ui, |ui| {
+                ui.add(
+                    egui::Slider::new(&mut editor_state.exposure_val, -4.0..=4.0).text("Exposure"),
+                );
+
+                ui.add(
+                    egui::Slider::new(&mut editor_state.saturation_val, -100.0..=100.0)
+                        .text("Saturation"),
+                );
+            });
+    }
+
     fn editor(&mut self, ui: &mut Ui) {
         let mut editor_state = self.session.editor.current_state.clone();
-        ui.add(egui::Slider::new(&mut editor_state.exposure_val, -4.0..=4.0).text("Exposure"));
+        self.histogram(ui);
+        self.color_adjust(ui, &mut editor_state);
 
-        ui.add(
-            egui::Slider::new(&mut editor_state.saturation_val, -100.0..=100.0).text("Saturation"),
-        );
         if self.session.current_image_index.is_none() {
             return;
         }
