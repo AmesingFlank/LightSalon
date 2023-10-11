@@ -18,7 +18,7 @@ var<uniform> params: Params;
 fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     var rgb = textureLoad(input, global_id.xy, 0).rgb;
     var hsl = rgb_to_hsl(rgb);
-    hsl.y += params.value * 0.01;
+    hsl.y += params.value * 0.005;
     hsl.y = clamp(hsl.y, 0.0, 1.0);
     rgb = hsl_to_rgb(hsl);
     textureStore(output, global_id.xy, vec4(rgb, 1.0));
