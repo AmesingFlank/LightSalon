@@ -8,3 +8,4 @@ pub mod utils;
 pub mod ir;
 pub mod shader;
 pub mod editor;
+pub mod sampler;

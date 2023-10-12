@@ -1,6 +1,6 @@
 use std::{collections::HashMap, hash::Hash, sync::Arc};
 
-use crate::{buffer::Buffer, image::Image};
+use crate::{buffer::Buffer, image::Image, sampler::Sampler};
 
 use super::{runtime, Runtime};
 
@@ -85,6 +85,7 @@ pub enum BindingResource<'a> {
     Buffer(&'a Buffer),
     Texture(&'a Image),
     TextureStorage(&'a Image, u32),
+    Sampler(&'a Sampler),
 }
 
 impl<'a> BindingResource<'a> {
@@ -95,16 +96,18 @@ impl<'a> BindingResource<'a> {
             BindingResource::TextureStorage(img, ref mip) => {
                 wgpu::BindingResource::TextureView(&img.texture_view_single_mip[*mip as usize])
             }
+            BindingResource::Sampler(s) => wgpu::BindingResource::Sampler(&s.sampler),
         }
     }
 
     fn to_key(&self) -> BindingResourceKey {
         match *self {
             BindingResource::Buffer(buffer) => BindingResourceKey::Buffer(buffer.uuid),
-            BindingResource::Texture(img) => BindingResourceKey::Image(img.uuid),
+            BindingResource::Texture(img) => BindingResourceKey::Texture(img.uuid),
             BindingResource::TextureStorage(img, ref mip) => {
-                BindingResourceKey::ImageSingleMip(img.uuid, *mip)
+                BindingResourceKey::TextureStorage(img.uuid, *mip)
             }
+            BindingResource::Sampler(s) => BindingResourceKey::Sampler(s.uuid),
         }
     }
 }
@@ -123,6 +126,7 @@ struct BindGroupEntryKey {
 #[derive(PartialEq, Eq, Hash, Clone)]
 enum BindingResourceKey {
     Buffer(u32),
-    Image(u32),
-    ImageSingleMip(u32, u32),
+    Texture(u32),
+    TextureStorage(u32, u32),
+    Sampler(u32),
 }

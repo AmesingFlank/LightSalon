@@ -5,6 +5,7 @@ use image::{imageops, DynamicImage, GenericImageView, ImageBuffer, Rgb};
 use crate::{
     buffer::{Buffer, BufferProperties},
     image::{ColorSpace, Image, ImageFormat, ImageProperties},
+    sampler::Sampler,
     utils::{color_space_converter::ColorSpaceConverter, mipmap_generator::MipmapGenerator},
 };
 
@@ -362,6 +363,14 @@ impl Runtime {
             .unwrap()
             .color_space_converter
             .convert(self, input_img, dest_color_space)
+    }
+
+    pub fn create_sampler(&self, desc: &wgpu::SamplerDescriptor) -> Sampler {
+        let sampler = self.device.create_sampler(desc);
+        Sampler {
+            sampler,
+            uuid: crate::utils::uuid::get_next_uuid(),
+        }
     }
 
     // Buffer Stuff
