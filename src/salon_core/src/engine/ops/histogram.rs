@@ -1,17 +1,18 @@
 use std::{mem::size_of, sync::Arc};
 
 use crate::{
+    buffer::BufferProperties,
     engine::value_store::ValueStore,
     image::ColorSpace,
-    ir::{AdjustExposureOp, ComputeHistogramOp},
-    runtime::Runtime,
-    shader::{Shader, ShaderLibraryModule}, buffer::BufferProperties,
+    ir::ComputeHistogramOp,
+    runtime::{BindGroupDescriptor, BindGroupEntry, BindGroupManager, BindingResource, Runtime},
+    shader::{Shader, ShaderLibraryModule},
 };
 
 pub struct ComputeHistogramImpl {
     runtime: Arc<Runtime>,
     pipeline: wgpu::ComputePipeline,
-    bind_group_layout: wgpu::BindGroupLayout, 
+    bind_group_manager: BindGroupManager,
 }
 impl ComputeHistogramImpl {
     pub fn new(runtime: Arc<Runtime>) -> Self {
@@ -19,11 +20,13 @@ impl ComputeHistogramImpl {
             .with_library(ShaderLibraryModule::ColorSpaces)
             .full_code();
 
-        let (pipeline, bind_group_layout) = runtime.create_compute_pipeline(shader_code.as_str()); 
+        let (pipeline, bind_group_layout) = runtime.create_compute_pipeline(shader_code.as_str());
+        let bind_group_manager = BindGroupManager::new(runtime.clone(), bind_group_layout);
+
         ComputeHistogramImpl {
             runtime,
             pipeline,
-            bind_group_layout,
+            bind_group_manager,
         }
     }
 }
@@ -36,7 +39,7 @@ impl ComputeHistogramImpl {
         );
 
         let buffer_props = BufferProperties {
-            size: 4 * 256 * size_of::<u32>()
+            size: 4 * 256 * size_of::<u32>(),
         };
 
         let output_buffer = value_store.ensure_value_at_id_is_buffer_of_properties(
@@ -51,23 +54,18 @@ impl ComputeHistogramImpl {
             bytemuck::cast_slice(&[0u32; 4 * 256]),
         );
 
-        let bind_group = self
-            .runtime
-            .device
-            .create_bind_group(&wgpu::BindGroupDescriptor {
-                label: None,
-                layout: &self.bind_group_layout,
-                entries: &[
-                    wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: wgpu::BindingResource::TextureView(&input_img.texture_view),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: output_buffer.buffer.as_entire_binding(),
-                    },
-                ],
-            });
+        let bind_group = self.bind_group_manager.get(BindGroupDescriptor {
+            entries: vec![
+                BindGroupEntry {
+                    binding: 0,
+                    resource: BindingResource::Image(&input_img),
+                },
+                BindGroupEntry {
+                    binding: 1,
+                    resource: BindingResource::Buffer(&output_buffer),
+                },
+            ],
+        });
 
         let mut encoder = self
             .runtime
