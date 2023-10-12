@@ -29,10 +29,18 @@ impl BindGroupManager {
 }
 
 pub struct BindGroupDescriptor<'a> {
-    pub entries: Vec<BindGroupEntry<'a>>,
+    pub entries: &'a [BindGroupEntry<'a>],
 }
 
-impl<'a> BindGroupDescriptor<'a> {}
+impl<'a> BindGroupDescriptor<'a> {
+    fn to_key(&self) -> BindGroupDescriptorKey {
+        let mut entries = Vec::new();
+        for e in self.entries.iter() {
+            entries.push(e.to_key())
+        }
+        BindGroupDescriptorKey { entries }
+    }
+}
 
 pub struct BindGroupEntry<'a> {
     pub binding: u32,
@@ -44,6 +52,12 @@ impl<'a> BindGroupEntry<'a> {
         wgpu::BindGroupEntry {
             binding: self.binding,
             resource: self.resource.to_wgpu(),
+        }
+    }
+    fn to_key(&self) -> BindGroupEntryKey {
+        BindGroupEntryKey {
+            binding: self.binding,
+            resource: self.resource.to_key(),
         }
     }
 }
@@ -61,6 +75,16 @@ impl<'a> BindingResource<'a> {
             BindingResource::Image(img) => wgpu::BindingResource::TextureView(&img.texture_view),
             BindingResource::ImageSingleMip(img, ref mip) => {
                 wgpu::BindingResource::TextureView(&img.texture_view_single_mip[*mip as usize])
+            }
+        }
+    }
+
+    fn to_key(&self) -> BindingResourceKey {
+        match *self {
+            BindingResource::Buffer(buffer) => BindingResourceKey::Buffer(buffer.uuid),
+            BindingResource::Image(img) => BindingResourceKey::Image(img.uuid),
+            BindingResource::ImageSingleMip(img, ref mip) => {
+                BindingResourceKey::ImageSingleMip(img.uuid, *mip)
             }
         }
     }
