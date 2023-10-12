@@ -3,6 +3,7 @@ use std::sync::Arc;
 use std::{collections::HashMap, num::NonZeroU64};
 
 use eframe::{egui, egui_wgpu};
+use salon_core::buffer::{Buffer, BufferProperties};
 use salon_core::runtime::Runtime;
 use salon_core::shader::{Shader, ShaderLibraryModule};
 use wgpu::util::DeviceExt;
@@ -39,12 +40,12 @@ pub struct MainImageRenderResources {
     pipeline: wgpu::RenderPipeline,
     bind_group_layout: wgpu::BindGroupLayout,
     bind_groups: HashMap<u32, wgpu::BindGroup>,
-    uniform_buffer: wgpu::Buffer,
+    uniform_buffer: Buffer,
     texture_sampler: wgpu::Sampler,
 }
 
 impl MainImageRenderResources {
-    pub fn new(runtime: &Runtime, target_format: wgpu::TextureFormat) -> Self {
+    pub fn new(runtime: Arc<Runtime>, target_format: wgpu::TextureFormat) -> Self {
         let shader_code = Shader::from_code(include_str!("./main_image.wgsl"))
             .with_library(ShaderLibraryModule::ColorSpaces)
             .full_code();
@@ -52,11 +53,8 @@ impl MainImageRenderResources {
         let (pipeline, bind_group_layout) =
             runtime.create_render_pipeline(shader_code.as_str(), target_format);
 
-        let uniform_buffer = runtime.device.create_buffer(&wgpu::BufferDescriptor {
-            label: None,
-            size: (size_of::<u32>()) as u64,
-            mapped_at_creation: false,
-            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM,
+        let uniform_buffer = runtime.create_buffer_of_properties(BufferProperties {
+            size: size_of::<u32>()
         });
 
         let texture_sampler = runtime.device.create_sampler(&wgpu::SamplerDescriptor {
@@ -85,7 +83,7 @@ impl MainImageRenderResources {
         image: &salon_core::image::Image,
     ) {
         queue.write_buffer(
-            &self.uniform_buffer,
+            &self.uniform_buffer.buffer,
             0,
             bytemuck::cast_slice(&[image.properties.color_space as u32]),
         );
@@ -96,7 +94,7 @@ impl MainImageRenderResources {
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: self.uniform_buffer.as_entire_binding(),
+                    resource: self.uniform_buffer.buffer.as_entire_binding(),
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,

@@ -56,7 +56,7 @@ impl App {
         let session = Session::new(runtime.clone());
 
         let main_image_render_resources = ui::main_image::MainImageRenderResources::new(
-            runtime.as_ref(),
+            runtime.clone(),
             wgpu_render_state.target_format,
         );
         wgpu_render_state
@@ -66,7 +66,7 @@ impl App {
             .insert(main_image_render_resources);
 
         let thumbnail_render_resources = ui::thumbnail::ThumbnailRenderResources::new(
-            runtime.as_ref(),
+            runtime.clone(),
             wgpu_render_state.target_format,
         );
         wgpu_render_state
