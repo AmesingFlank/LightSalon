@@ -1,17 +1,19 @@
 use std::{mem::size_of, sync::Arc};
 
 use crate::{
+    buffer::{Buffer, BufferProperties},
     engine::value_store::ValueStore,
     image::ColorSpace,
     ir::AdjustSaturationOp,
-    runtime::Runtime,
+    runtime::{BindGroupDescriptor, BindGroupEntry, BindGroupManager, BindingResource, Runtime},
     shader::{Shader, ShaderLibraryModule},
 };
+
 pub struct AdjustSaturationImpl {
     runtime: Arc<Runtime>,
     pipeline: wgpu::ComputePipeline,
-    bind_group_layout: wgpu::BindGroupLayout,
-    uniform_buffer: wgpu::Buffer,
+    bind_group_manager: BindGroupManager,
+    uniform_buffer: Buffer,
 }
 impl AdjustSaturationImpl {
     pub fn new(runtime: Arc<Runtime>) -> Self {
@@ -21,17 +23,16 @@ impl AdjustSaturationImpl {
 
         let (pipeline, bind_group_layout) = runtime.create_compute_pipeline(shader_code.as_str());
 
-        let uniform_buffer = runtime.device.create_buffer(&wgpu::BufferDescriptor {
-            label: None,
-            size: size_of::<f32>() as u64,
-            mapped_at_creation: false,
-            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM,
+        let bind_group_manager = BindGroupManager::new(runtime.clone(), bind_group_layout);
+
+        let uniform_buffer = runtime.create_buffer_of_properties(BufferProperties {
+            size: size_of::<f32>(),
         });
 
         AdjustSaturationImpl {
             runtime,
             pipeline,
-            bind_group_layout,
+            bind_group_manager,
             uniform_buffer,
         }
     }
@@ -51,34 +52,27 @@ impl AdjustSaturationImpl {
         );
 
         self.runtime.queue.write_buffer(
-            &self.uniform_buffer,
+            &self.uniform_buffer.buffer,
             0,
             bytemuck::cast_slice(&[op.saturation]),
         );
 
-        let bind_group = self
-            .runtime
-            .device
-            .create_bind_group(&wgpu::BindGroupDescriptor {
-                label: None,
-                layout: &self.bind_group_layout,
-                entries: &[
-                    wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: wgpu::BindingResource::TextureView(&input_img.texture_view),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: wgpu::BindingResource::TextureView(
-                            &output_img.texture_view_single_mip[0],
-                        ),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 2,
-                        resource: self.uniform_buffer.as_entire_binding(),
-                    },
-                ],
-            });
+        let bind_group = self.bind_group_manager.get(BindGroupDescriptor {
+            entries: vec![
+                BindGroupEntry {
+                    binding: 0,
+                    resource: BindingResource::Image(&input_img),
+                },
+                BindGroupEntry {
+                    binding: 1,
+                    resource: BindingResource::ImageSingleMip(&output_img, 0),
+                },
+                BindGroupEntry {
+                    binding: 2,
+                    resource: BindingResource::Buffer(&self.uniform_buffer),
+                },
+            ],
+        });
 
         let mut encoder = self
             .runtime

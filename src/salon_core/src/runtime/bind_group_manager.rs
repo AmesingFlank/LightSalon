@@ -11,14 +11,14 @@ pub struct BindGroupManager {
 }
 
 impl BindGroupManager {
-    pub fn new(layout: wgpu::BindGroupLayout, runtime: Arc<Runtime>) -> Self {
+    pub fn new(runtime: Arc<Runtime>, layout: wgpu::BindGroupLayout) -> Self {
         Self {
             layout,
             runtime,
             cache: HashMap::new(),
         }
     }
-    fn get<'a>(&'a mut self, descriptor: BindGroupDescriptor<'a>) -> &'a wgpu::BindGroup {
+    pub fn get<'a>(&'a mut self, descriptor: BindGroupDescriptor<'a>) -> &'a wgpu::BindGroup {
         let layout = &self.layout;
         let runtime = self.runtime.as_ref();
         let key = descriptor.to_key();
@@ -30,7 +30,7 @@ impl BindGroupManager {
 }
 
 pub struct BindGroupDescriptor<'a> {
-    pub entries: &'a [BindGroupEntry<'a>],
+    pub entries: Vec<BindGroupEntry<'a>>,
 }
 
 impl<'a> BindGroupDescriptor<'a> {
