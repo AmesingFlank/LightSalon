@@ -58,7 +58,7 @@ impl ComputeHistogramImpl {
             entries: vec![
                 BindGroupEntry {
                     binding: 0,
-                    resource: BindingResource::Image(&input_img),
+                    resource: BindingResource::Texture(&input_img),
                 },
                 BindGroupEntry {
                     binding: 1,

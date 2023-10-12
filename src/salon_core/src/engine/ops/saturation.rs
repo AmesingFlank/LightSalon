@@ -61,11 +61,11 @@ impl AdjustSaturationImpl {
             entries: vec![
                 BindGroupEntry {
                     binding: 0,
-                    resource: BindingResource::Image(&input_img),
+                    resource: BindingResource::Texture(&input_img),
                 },
                 BindGroupEntry {
                     binding: 1,
-                    resource: BindingResource::ImageSingleMip(&output_img, 0),
+                    resource: BindingResource::TextureStorage(&output_img, 0),
                 },
                 BindGroupEntry {
                     binding: 2,
