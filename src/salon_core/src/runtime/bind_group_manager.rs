@@ -18,7 +18,7 @@ impl BindGroupManager {
             cache: HashMap::new(),
         }
     }
-    pub fn get<'a>(&'a mut self, descriptor: BindGroupDescriptor<'a>) -> &'a wgpu::BindGroup {
+    pub fn get_or_create<'a>(&'a mut self, descriptor: BindGroupDescriptor<'a>) -> &'a wgpu::BindGroup {
         let layout = &self.layout;
         let runtime = self.runtime.as_ref();
         let key = descriptor.to_key();
@@ -26,6 +26,13 @@ impl BindGroupManager {
         self.cache
             .entry(key)
             .or_insert_with(|| descriptor.make_bind_group(runtime, layout))
+    }
+    pub fn ensure<'a>(&'a mut self, descriptor: BindGroupDescriptor<'a>) {
+        self.get_or_create(descriptor); // discards the result
+    }
+    pub fn get_or_panic<'a>(&'a self, descriptor: BindGroupDescriptor<'a>) -> &'a wgpu::BindGroup {
+        let key = descriptor.to_key();
+        self.cache.get(&key).expect("A bind group corresponding to this descriptor does not exist")
     }
 }
 

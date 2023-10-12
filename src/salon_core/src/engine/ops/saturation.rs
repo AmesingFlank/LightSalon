@@ -57,7 +57,7 @@ impl AdjustSaturationImpl {
             bytemuck::cast_slice(&[op.saturation]),
         );
 
-        let bind_group = self.bind_group_manager.get(BindGroupDescriptor {
+        let bind_group = self.bind_group_manager.get_or_create(BindGroupDescriptor {
             entries: vec![
                 BindGroupEntry {
                     binding: 0,

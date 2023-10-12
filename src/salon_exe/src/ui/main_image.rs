@@ -4,13 +4,16 @@ use std::{collections::HashMap, num::NonZeroU64};
 
 use eframe::{egui, egui_wgpu};
 use salon_core::buffer::{Buffer, BufferProperties};
-use salon_core::runtime::Runtime;
+use salon_core::image::Image;
+use salon_core::runtime::{
+    BindGroupDescriptor, BindGroupEntry, BindGroupManager, BindingResource, Runtime,
+};
 use salon_core::sampler::Sampler;
 use salon_core::shader::{Shader, ShaderLibraryModule};
 use wgpu::util::DeviceExt;
 
 pub struct MainImageCallback {
-    pub image: Arc<salon_core::image::Image>,
+    pub image: Arc<Image>,
 }
 
 impl egui_wgpu::CallbackTrait for MainImageCallback {
@@ -27,20 +30,19 @@ impl egui_wgpu::CallbackTrait for MainImageCallback {
     }
 
     fn paint<'a>(
-        &self,
+        &'a self,
         _info: egui::PaintCallbackInfo,
         render_pass: &mut wgpu::RenderPass<'a>,
         resources: &'a egui_wgpu::CallbackResources,
     ) {
         let resources: &MainImageRenderResources = resources.get().unwrap();
-        resources.paint(render_pass, self.image.uuid);
+        resources.paint(render_pass, self.image.as_ref());
     }
 }
 
 pub struct MainImageRenderResources {
     pipeline: wgpu::RenderPipeline,
-    bind_group_layout: wgpu::BindGroupLayout,
-    bind_groups: HashMap<u32, wgpu::BindGroup>,
+    bind_group_manager: BindGroupManager,
     uniform_buffer: Buffer,
     texture_sampler: Sampler,
 }
@@ -54,8 +56,10 @@ impl MainImageRenderResources {
         let (pipeline, bind_group_layout) =
             runtime.create_render_pipeline(shader_code.as_str(), target_format);
 
+        let bind_group_manager = BindGroupManager::new(runtime.clone(), bind_group_layout);
+
         let uniform_buffer = runtime.create_buffer_of_properties(BufferProperties {
-            size: size_of::<u32>()
+            size: size_of::<u32>(),
         });
 
         let texture_sampler = runtime.create_sampler(&wgpu::SamplerDescriptor {
@@ -70,10 +74,32 @@ impl MainImageRenderResources {
 
         MainImageRenderResources {
             pipeline,
-            bind_group_layout,
-            bind_groups: HashMap::new(),
+            bind_group_manager,
             uniform_buffer,
             texture_sampler,
+        }
+    }
+
+    fn get_bind_group_descriptor<'a>(
+        image: &'a Image,
+        uniform_buffer: &'a Buffer,
+        sampler: &'a Sampler,
+    ) -> BindGroupDescriptor<'a> {
+        BindGroupDescriptor {
+            entries: vec![
+                BindGroupEntry {
+                    binding: 0,
+                    resource: BindingResource::Buffer(uniform_buffer),
+                },
+                BindGroupEntry {
+                    binding: 1,
+                    resource: BindingResource::Texture(image),
+                },
+                BindGroupEntry {
+                    binding: 2,
+                    resource: BindingResource::Sampler(sampler),
+                },
+            ],
         }
     }
 
@@ -88,32 +114,18 @@ impl MainImageRenderResources {
             0,
             bytemuck::cast_slice(&[image.properties.color_space as u32]),
         );
-
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: None,
-            layout: &self.bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: self.uniform_buffer.buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::TextureView(&image.texture_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: wgpu::BindingResource::Sampler(&self.texture_sampler.sampler),
-                },
-            ],
-        });
-        let uuid = image.uuid;
-        self.bind_groups.insert(uuid, bind_group);
+        let desc =
+            Self::get_bind_group_descriptor(image, &self.uniform_buffer, &self.texture_sampler);
+        self.bind_group_manager.ensure(desc);
     }
 
-    fn paint<'rp>(&'rp self, render_pass: &mut wgpu::RenderPass<'rp>, image_uuid: u32) {
+    fn paint<'rp>(&'rp self, render_pass: &mut wgpu::RenderPass<'rp>, image: &'rp Image) {
+        let desc =
+            Self::get_bind_group_descriptor(image, &self.uniform_buffer, &self.texture_sampler);
+        let bind_group = self.bind_group_manager.get_or_panic(desc);
+
         render_pass.set_pipeline(&self.pipeline);
-        render_pass.set_bind_group(0, &self.bind_groups.get(&image_uuid).unwrap(), &[]);
+        render_pass.set_bind_group(0, bind_group, &[]);
         render_pass.draw(0..6, 0..1);
     }
 }

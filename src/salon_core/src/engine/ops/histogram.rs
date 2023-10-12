@@ -54,7 +54,7 @@ impl ComputeHistogramImpl {
             bytemuck::cast_slice(&[0u32; 4 * 256]),
         );
 
-        let bind_group = self.bind_group_manager.get(BindGroupDescriptor {
+        let bind_group = self.bind_group_manager.get_or_create(BindGroupDescriptor {
             entries: vec![
                 BindGroupEntry {
                     binding: 0,
