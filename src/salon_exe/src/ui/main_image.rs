@@ -5,6 +5,7 @@ use std::{collections::HashMap, num::NonZeroU64};
 use eframe::{egui, egui_wgpu};
 use salon_core::buffer::{Buffer, BufferProperties};
 use salon_core::runtime::Runtime;
+use salon_core::sampler::Sampler;
 use salon_core::shader::{Shader, ShaderLibraryModule};
 use wgpu::util::DeviceExt;
 
@@ -41,7 +42,7 @@ pub struct MainImageRenderResources {
     bind_group_layout: wgpu::BindGroupLayout,
     bind_groups: HashMap<u32, wgpu::BindGroup>,
     uniform_buffer: Buffer,
-    texture_sampler: wgpu::Sampler,
+    texture_sampler: Sampler,
 }
 
 impl MainImageRenderResources {
@@ -57,7 +58,7 @@ impl MainImageRenderResources {
             size: size_of::<u32>()
         });
 
-        let texture_sampler = runtime.device.create_sampler(&wgpu::SamplerDescriptor {
+        let texture_sampler = runtime.create_sampler(&wgpu::SamplerDescriptor {
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
             address_mode_w: wgpu::AddressMode::ClampToEdge,
@@ -102,7 +103,7 @@ impl MainImageRenderResources {
                 },
                 wgpu::BindGroupEntry {
                     binding: 2,
-                    resource: wgpu::BindingResource::Sampler(&self.texture_sampler),
+                    resource: wgpu::BindingResource::Sampler(&self.texture_sampler.sampler),
                 },
             ],
         });
