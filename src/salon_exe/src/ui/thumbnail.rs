@@ -3,10 +3,11 @@ use std::sync::Arc;
 use std::{collections::HashMap, num::NonZeroU64};
 
 use eframe::{egui, egui_wgpu};
-use salon_core::buffer::{Buffer, BufferProperties};
+use salon_core::buffer::{Buffer, BufferProperties, RingBuffer};
 use salon_core::image::Image;
 use salon_core::runtime::{
-    BindGroupDescriptor, BindGroupEntry, BindGroupManager, BindingResource, Runtime,
+    BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager, BindingResource,
+    Runtime,
 };
 use salon_core::sampler::Sampler;
 use salon_core::shader::{Shader, ShaderLibraryModule};
@@ -43,13 +44,14 @@ impl egui_wgpu::CallbackTrait for ThumbnailCallback {
 pub struct ThumbnailRenderResources {
     pipeline: wgpu::RenderPipeline,
     bind_group_manager: BindGroupManager,
-    uniform_buffer: Buffer,
+    bind_group_key_cache: HashMap<u32, BindGroupDescriptorKey>, // image uuid -> key
+    ring_buffer: RingBuffer,
     texture_sampler: Sampler,
 }
 
 impl ThumbnailRenderResources {
     pub fn new(runtime: Arc<Runtime>, target_format: wgpu::TextureFormat) -> Self {
-        let shader_code = Shader::from_code(include_str!("./main_image.wgsl"))
+        let shader_code = Shader::from_code(include_str!("./thumbnail.wgsl"))
             .with_library(ShaderLibraryModule::ColorSpaces)
             .full_code();
 
@@ -58,9 +60,12 @@ impl ThumbnailRenderResources {
 
         let bind_group_manager = BindGroupManager::new(runtime.clone(), bind_group_layout);
 
-        let uniform_buffer = runtime.create_buffer_of_properties(BufferProperties {
-            size: size_of::<u32>(),
-        });
+        let ring_buffer = RingBuffer::new(
+            runtime.clone(),
+            BufferProperties {
+                size: size_of::<u32>(),
+            },
+        );
 
         let texture_sampler = runtime.create_sampler(&wgpu::SamplerDescriptor {
             address_mode_u: wgpu::AddressMode::ClampToEdge,
@@ -75,32 +80,14 @@ impl ThumbnailRenderResources {
         ThumbnailRenderResources {
             pipeline,
             bind_group_manager,
-            uniform_buffer,
+            bind_group_key_cache: HashMap::new(),
+            ring_buffer,
             texture_sampler,
         }
     }
 
-    fn get_bind_group_descriptor<'a>(
-        image: &'a Image,
-        uniform_buffer: &'a Buffer,
-        sampler: &'a Sampler,
-    ) -> BindGroupDescriptor<'a> {
-        BindGroupDescriptor {
-            entries: vec![
-                BindGroupEntry {
-                    binding: 0,
-                    resource: BindingResource::Buffer(uniform_buffer),
-                },
-                BindGroupEntry {
-                    binding: 1,
-                    resource: BindingResource::Texture(image),
-                },
-                BindGroupEntry {
-                    binding: 2,
-                    resource: BindingResource::Sampler(sampler),
-                },
-            ],
-        }
+    pub fn begin_frame(&mut self) {
+        self.ring_buffer.mark_all_available();
     }
 
     fn prepare(
@@ -109,20 +96,39 @@ impl ThumbnailRenderResources {
         queue: &wgpu::Queue,
         image: &salon_core::image::Image,
     ) {
+        let buffer = self.ring_buffer.get();
         queue.write_buffer(
-            &self.uniform_buffer.buffer,
+            &buffer.buffer,
             0,
             bytemuck::cast_slice(&[image.properties.color_space as u32]),
         );
-        let desc =
-            Self::get_bind_group_descriptor(image, &self.uniform_buffer, &self.texture_sampler);
-        self.bind_group_manager.ensure(desc);
+
+        let bind_group_desc = BindGroupDescriptor {
+            entries: vec![
+                BindGroupEntry {
+                    binding: 0,
+                    resource: BindingResource::Buffer(buffer),
+                },
+                BindGroupEntry {
+                    binding: 1,
+                    resource: BindingResource::Texture(image),
+                },
+                BindGroupEntry {
+                    binding: 2,
+                    resource: BindingResource::Sampler(&self.texture_sampler),
+                },
+            ],
+        };
+        let bind_group_key = bind_group_desc.to_key();
+        self.bind_group_manager.get_or_create(bind_group_desc);
+        self.bind_group_key_cache.insert(image.uuid, bind_group_key);
     }
 
     fn paint<'rp>(&'rp self, render_pass: &mut wgpu::RenderPass<'rp>, image: &'rp Image) {
-        let desc =
-            Self::get_bind_group_descriptor(image, &self.uniform_buffer, &self.texture_sampler);
-        let bind_group = self.bind_group_manager.get_or_panic(desc);
+        let bind_group_key = self.bind_group_key_cache.get(&image.uuid).unwrap();
+        let bind_group = self
+            .bind_group_manager
+            .get_from_key_or_panic(bind_group_key);
 
         render_pass.set_pipeline(&self.pipeline);
         render_pass.set_bind_group(0, bind_group, &[]);

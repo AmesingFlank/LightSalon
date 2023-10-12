@@ -1,4 +1,4 @@
-use crate::ui::{self, main_image::MainImageRenderResources};
+use crate::ui::{self, main_image::MainImageRenderResources, thumbnail::ThumbnailRenderResources};
 use eframe::egui::{self, accesskit::Vec2, CollapsingHeader, Ui};
 use egui_extras::{Column, TableBuilder};
 use salon_core::{
@@ -55,23 +55,17 @@ impl App {
 
         let session = Session::new(runtime.clone());
 
-        let main_image_render_resources = ui::main_image::MainImageRenderResources::new(
-            runtime.clone(),
-            wgpu_render_state.target_format,
-        );
-        wgpu_render_state
-            .renderer
-            .write()
+        let mut renderer = wgpu_render_state.renderer.write();
+
+        let main_image_render_resources =
+            MainImageRenderResources::new(runtime.clone(), wgpu_render_state.target_format);
+        renderer
             .callback_resources
             .insert(main_image_render_resources);
 
-        let thumbnail_render_resources = ui::thumbnail::ThumbnailRenderResources::new(
-            runtime.clone(),
-            wgpu_render_state.target_format,
-        );
-        wgpu_render_state
-            .renderer
-            .write()
+        let thumbnail_render_resources =
+            ThumbnailRenderResources::new(runtime.clone(), wgpu_render_state.target_format);
+        renderer
             .callback_resources
             .insert(thumbnail_render_resources);
 
@@ -224,8 +218,14 @@ impl eframe::App for App {
 
         {
             let mut renderer = frame.wgpu_render_state().unwrap().renderer.write();
-            let main_image_resources: &mut MainImageRenderResources = renderer.callback_resources.get_mut().unwrap();
+
+            let main_image_resources: &mut MainImageRenderResources =
+                renderer.callback_resources.get_mut().unwrap();
             main_image_resources.begin_frame();
+
+            let thumbnail_resources: &mut ThumbnailRenderResources =
+                renderer.callback_resources.get_mut().unwrap();
+            thumbnail_resources.begin_frame();
         }
 
         egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
