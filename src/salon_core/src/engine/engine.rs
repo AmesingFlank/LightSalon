@@ -13,7 +13,8 @@ use super::{
         histogram::{self, ComputeHistogramImpl},
         saturation::{self, AdjustSaturationImpl},
     },
-    value_store::ValueStore, result::ProcessResult,
+    result::ProcessResult,
+    value_store::ValueStore,
 };
 
 pub struct Engine {
@@ -85,13 +86,21 @@ impl Engine {
             match op {
                 Op::Input(_) => {}
                 Op::AdjustExposure(_) => {
-                    self.op_impls.exposure = Some(AdjustExposureImpl::new(self.runtime.clone()))
+                    if self.op_impls.exposure.is_none() {
+                        self.op_impls.exposure = Some(AdjustExposureImpl::new(self.runtime.clone()))
+                    }
                 }
                 Op::AdjustSaturation(_) => {
-                    self.op_impls.saturation = Some(AdjustSaturationImpl::new(self.runtime.clone()))
+                    if self.op_impls.saturation.is_none() {
+                        self.op_impls.saturation =
+                            Some(AdjustSaturationImpl::new(self.runtime.clone()))
+                    }
                 }
                 Op::ComputeHistogram(_) => {
-                    self.op_impls.histogram = Some(ComputeHistogramImpl::new(self.runtime.clone()))
+                    if self.op_impls.histogram.is_none() {
+                        self.op_impls.histogram =
+                            Some(ComputeHistogramImpl::new(self.runtime.clone()))
+                    }
                 }
             }
         }
