@@ -25,7 +25,7 @@ impl AdjustExposureImpl {
 
         let bind_group_manager = BindGroupManager::new(runtime.clone(), bind_group_layout);
 
-        let ring_buffer = RingBuffer::new(BufferProperties {
+        let ring_buffer = RingBuffer::new(runtime.clone(), BufferProperties {
             size: size_of::<f32>(),
         });
 
@@ -55,7 +55,7 @@ impl AdjustExposureImpl {
             &input_img.properties,
         );
 
-        let buffer = self.ring_buffer.get(&self.runtime);
+        let buffer = self.ring_buffer.get();
 
         self.runtime.queue.write_buffer(
             &buffer.buffer,

@@ -25,9 +25,12 @@ impl AdjustSaturationImpl {
 
         let bind_group_manager = BindGroupManager::new(runtime.clone(), bind_group_layout);
 
-        let ring_buffer = RingBuffer::new(BufferProperties {
-            size: size_of::<f32>(),
-        });
+        let ring_buffer = RingBuffer::new(
+            runtime.clone(),
+            BufferProperties {
+                size: size_of::<f32>(),
+            },
+        );
 
         AdjustSaturationImpl {
             runtime,
@@ -54,13 +57,11 @@ impl AdjustSaturationImpl {
             &input_img.properties,
         );
 
-        let buffer = self.ring_buffer.get(&self.runtime);
+        let buffer = self.ring_buffer.get();
 
-        self.runtime.queue.write_buffer(
-            &buffer.buffer,
-            0,
-            bytemuck::cast_slice(&[op.saturation]),
-        );
+        self.runtime
+            .queue
+            .write_buffer(&buffer.buffer, 0, bytemuck::cast_slice(&[op.saturation]));
 
         let bind_group = self.bind_group_manager.get_or_create(BindGroupDescriptor {
             entries: vec![
