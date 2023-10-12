@@ -130,9 +130,10 @@ impl Runtime {
             height: properties.dimensions.1,
             depth_or_array_layers: 1,
         };
+        let mip_level_count = Image::mip_level_count(&properties.dimensions);
         let texture = self.device.create_texture(&wgpu::TextureDescriptor {
             size: size,
-            mip_level_count: Image::mip_level_count(&properties.dimensions),
+            mip_level_count,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format: properties.format.to_wgpu_texture_format(),
@@ -145,16 +146,21 @@ impl Runtime {
             view_formats: &[],
         });
         let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-        let texture_view_base_mip = texture.create_view(&wgpu::TextureViewDescriptor {
-            base_mip_level: 0,
-            mip_level_count: Some(1),
-            ..Default::default()
-        });
+        let mut texture_view_single_mip = Vec::new();
+        for i in 0..mip_level_count {
+            let view = texture.create_view(&wgpu::TextureViewDescriptor {
+                base_mip_level: i,
+                mip_level_count: Some(1),
+                ..Default::default()
+            });
+            texture_view_single_mip.push(view);
+        }
+
         Image {
             properties,
             texture,
             texture_view,
-            texture_view_base_mip,
+            texture_view_single_mip,
             uuid: crate::utils::uuid::get_next_uuid(),
         }
     }

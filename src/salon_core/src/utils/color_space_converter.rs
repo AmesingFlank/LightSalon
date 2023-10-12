@@ -71,7 +71,7 @@ impl ColorSpaceConverter {
                     wgpu::BindGroupEntry {
                         binding: 1,
                         resource: wgpu::BindingResource::TextureView(
-                            &output_img.texture_view_base_mip,
+                            &output_img.texture_view_single_mip[0],
                         ),
                     },
                     wgpu::BindGroupEntry {

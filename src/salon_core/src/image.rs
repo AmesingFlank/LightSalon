@@ -7,7 +7,7 @@ pub struct Image {
     pub properties: ImageProperties,
     pub texture: wgpu::Texture,
     pub texture_view: wgpu::TextureView,
-    pub texture_view_base_mip: wgpu::TextureView,
+    pub texture_view_single_mip: Vec<wgpu::TextureView>,
     pub uuid: u32,
 }
 
