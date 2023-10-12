@@ -34,7 +34,7 @@ impl Engine {
 
     pub fn execute_module(&mut self, module: &Module, input_img: Arc<Image>) -> ProcessResult {
         let mut result = ProcessResult::new_empty();
-        self.ensure_op_impls(module);
+        self.prepare_op_impls(module);
         let ops = module.ops();
         for op in ops {
             match op {
@@ -80,7 +80,7 @@ impl Engine {
         result
     }
 
-    fn ensure_op_impls(&mut self, module: &Module) {
+    fn prepare_op_impls(&mut self, module: &Module) {
         let ops = module.ops();
         for op in ops {
             match op {
@@ -89,18 +89,21 @@ impl Engine {
                     if self.op_impls.exposure.is_none() {
                         self.op_impls.exposure = Some(AdjustExposureImpl::new(self.runtime.clone()))
                     }
+                    self.op_impls.exposure.as_mut().unwrap().prepare();
                 }
                 Op::AdjustSaturation(_) => {
                     if self.op_impls.saturation.is_none() {
                         self.op_impls.saturation =
                             Some(AdjustSaturationImpl::new(self.runtime.clone()))
                     }
+                    self.op_impls.saturation.as_mut().unwrap().prepare();
                 }
                 Op::ComputeHistogram(_) => {
                     if self.op_impls.histogram.is_none() {
                         self.op_impls.histogram =
                             Some(ComputeHistogramImpl::new(self.runtime.clone()))
                     }
+                    self.op_impls.histogram.as_mut().unwrap().prepare();
                 }
             }
         }

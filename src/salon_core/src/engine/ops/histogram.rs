@@ -31,6 +31,9 @@ impl ComputeHistogramImpl {
     }
 }
 impl ComputeHistogramImpl {
+    pub fn prepare(&mut self) {
+        
+    }
     pub fn apply(&mut self, op: &ComputeHistogramOp, value_store: &mut ValueStore) {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
         assert!(

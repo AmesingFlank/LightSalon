@@ -1,7 +1,7 @@
 use std::{mem::size_of, sync::Arc};
 
 use crate::{
-    buffer::{Buffer, BufferProperties},
+    buffer::{Buffer, BufferProperties, RingBuffer},
     engine::value_store::ValueStore,
     image::ColorSpace,
     ir::AdjustExposureOp,
@@ -13,7 +13,7 @@ pub struct AdjustExposureImpl {
     runtime: Arc<Runtime>,
     pipeline: wgpu::ComputePipeline,
     bind_group_manager: BindGroupManager,
-    uniform_buffer: Buffer,
+    ring_buffer: RingBuffer,
 }
 impl AdjustExposureImpl {
     pub fn new(runtime: Arc<Runtime>) -> Self {
@@ -25,7 +25,7 @@ impl AdjustExposureImpl {
 
         let bind_group_manager = BindGroupManager::new(runtime.clone(), bind_group_layout);
 
-        let uniform_buffer = runtime.create_buffer_of_properties(BufferProperties {
+        let ring_buffer = RingBuffer::new(BufferProperties {
             size: size_of::<f32>(),
         });
 
@@ -33,11 +33,15 @@ impl AdjustExposureImpl {
             runtime,
             pipeline,
             bind_group_manager,
-            uniform_buffer,
+            ring_buffer,
         }
     }
 }
 impl AdjustExposureImpl {
+    pub fn prepare(&mut self){
+        self.ring_buffer.mark_all_available();
+    }
+
     pub fn apply(&mut self, op: &AdjustExposureOp, value_store: &mut ValueStore) {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
         assert!(
@@ -51,8 +55,10 @@ impl AdjustExposureImpl {
             &input_img.properties,
         );
 
+        let buffer = self.ring_buffer.get(&self.runtime);
+
         self.runtime.queue.write_buffer(
-            &self.uniform_buffer.buffer,
+            &buffer.buffer,
             0,
             bytemuck::cast_slice(&[op.exposure]),
         );
@@ -69,7 +75,7 @@ impl AdjustExposureImpl {
                 },
                 BindGroupEntry {
                     binding: 2,
-                    resource: BindingResource::Buffer(&self.uniform_buffer),
+                    resource: BindingResource::Buffer(buffer),
                 },
             ],
         });
