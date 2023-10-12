@@ -1,4 +1,4 @@
-use crate::ui;
+use crate::ui::{self, main_image::MainImageRenderResources};
 use eframe::egui::{self, accesskit::Vec2, CollapsingHeader, Ui};
 use egui_extras::{Column, TableBuilder};
 use salon_core::{
@@ -171,9 +171,7 @@ impl App {
             .default_open(true)
             .show(ui, |ui| {
                 if let Some(ref result) = self.session.current_process_result {
-                    if let Some(ref buf) = result.histogram.clone() {
-                        
-                    }
+                    if let Some(ref buf) = result.histogram.clone() {}
                 }
             });
     }
@@ -222,6 +220,12 @@ impl eframe::App for App {
             // if the screen is smaller than then window size we requested, then, on the first frame,
             // the frame size won't accurately reflection the actual frame size, so the sizing of side panels will be off
             return;
+        }
+
+        {
+            let mut renderer = frame.wgpu_render_state().unwrap().renderer.write();
+            let main_image_resources: &mut MainImageRenderResources = renderer.callback_resources.get_mut().unwrap();
+            main_image_resources.begin_frame();
         }
 
         egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {

@@ -39,6 +39,14 @@ impl BindGroupManager {
             .get(&key)
             .expect("A bind group corresponding to this descriptor does not exist")
     }
+    pub fn get_from_key_or_panic<'a>(
+        &'a self,
+        key: &BindGroupDescriptorKey,
+    ) -> &'a wgpu::BindGroup {
+        self.cache
+            .get(key)
+            .expect("A bind group corresponding to this descriptor does not exist")
+    }
 }
 
 pub struct BindGroupDescriptor<'a> {
@@ -64,7 +72,7 @@ impl<'a> BindGroupDescriptor<'a> {
             })
     }
 
-    fn to_key(&self) -> BindGroupDescriptorKey {
+    pub fn to_key(&self) -> BindGroupDescriptorKey {
         let mut entries = Vec::new();
         for e in self.entries.iter() {
             entries.push(e.to_key())
@@ -125,18 +133,18 @@ impl<'a> BindingResource<'a> {
 }
 
 #[derive(PartialEq, Eq, Hash, Clone)]
-struct BindGroupDescriptorKey {
+pub struct BindGroupDescriptorKey {
     pub entries: Vec<BindGroupEntryKey>,
 }
 
 #[derive(PartialEq, Eq, Hash, Clone)]
-struct BindGroupEntryKey {
+pub struct BindGroupEntryKey {
     pub binding: u32,
     pub resource: BindingResourceKey,
 }
 
 #[derive(PartialEq, Eq, Hash, Clone)]
-enum BindingResourceKey {
+pub enum BindingResourceKey {
     Buffer(u32),
     Texture(u32),
     TextureStorage(u32, u32),
