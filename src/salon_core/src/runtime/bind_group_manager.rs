@@ -1,30 +1,31 @@
-use std::sync::Arc;
+use std::{collections::HashMap, hash::Hash, sync::Arc};
 
 use crate::{buffer::Buffer, image::Image};
 
-use super::Runtime;
+use super::{runtime, Runtime};
 
 pub struct BindGroupManager {
     layout: wgpu::BindGroupLayout,
     runtime: Arc<Runtime>,
+    cache: HashMap<BindGroupDescriptorKey, wgpu::BindGroup>,
 }
 
 impl BindGroupManager {
     pub fn new(layout: wgpu::BindGroupLayout, runtime: Arc<Runtime>) -> Self {
-        Self { layout, runtime }
-    }
-    fn make_bind_group<'a>(&'a self, descriptor: &'a BindGroupDescriptor<'a>) -> wgpu::BindGroup {
-        let mut entries_wgpu = Vec::new();
-        for e in descriptor.entries.iter() {
-            entries_wgpu.push(e.to_wgpu())
+        Self {
+            layout,
+            runtime,
+            cache: HashMap::new(),
         }
-        self.runtime
-            .device
-            .create_bind_group(&wgpu::BindGroupDescriptor {
-                label: None,
-                layout: &self.layout,
-                entries: entries_wgpu.as_slice(),
-            })
+    }
+    fn get<'a>(&'a mut self, descriptor: BindGroupDescriptor<'a>) -> &'a wgpu::BindGroup {
+        let layout = &self.layout;
+        let runtime = self.runtime.as_ref();
+        let key = descriptor.to_key();
+
+        self.cache
+            .entry(key)
+            .or_insert_with(|| descriptor.make_bind_group(runtime, layout))
     }
 }
 
@@ -33,6 +34,24 @@ pub struct BindGroupDescriptor<'a> {
 }
 
 impl<'a> BindGroupDescriptor<'a> {
+    fn make_bind_group(
+        &'a self,
+        runtime: &'a Runtime,
+        layout: &'a wgpu::BindGroupLayout,
+    ) -> wgpu::BindGroup {
+        let mut entries_wgpu = Vec::new();
+        for e in self.entries.iter() {
+            entries_wgpu.push(e.to_wgpu())
+        }
+        runtime
+            .device
+            .create_bind_group(&wgpu::BindGroupDescriptor {
+                label: None,
+                layout: layout,
+                entries: entries_wgpu.as_slice(),
+            })
+    }
+
     fn to_key(&self) -> BindGroupDescriptorKey {
         let mut entries = Vec::new();
         for e in self.entries.iter() {
@@ -90,15 +109,18 @@ impl<'a> BindingResource<'a> {
     }
 }
 
+#[derive(PartialEq, Eq, Hash, Clone)]
 struct BindGroupDescriptorKey {
     pub entries: Vec<BindGroupEntryKey>,
 }
 
+#[derive(PartialEq, Eq, Hash, Clone)]
 struct BindGroupEntryKey {
     pub binding: u32,
     pub resource: BindingResourceKey,
 }
 
+#[derive(PartialEq, Eq, Hash, Clone)]
 enum BindingResourceKey {
     Buffer(u32),
     Image(u32),
