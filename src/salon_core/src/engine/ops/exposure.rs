@@ -1,11 +1,14 @@
-use std::{mem::size_of, sync::Arc};
+use std::{collections::HashMap, mem::size_of, sync::Arc};
 
 use crate::{
     buffer::{Buffer, BufferProperties, RingBuffer},
     engine::value_store::ValueStore,
     image::ColorSpace,
-    ir::AdjustExposureOp,
-    runtime::{BindGroupDescriptor, BindGroupEntry, BindGroupManager, BindingResource, Runtime},
+    ir::{AdjustExposureOp, Id},
+    runtime::{
+        BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager,
+        BindingResource, Runtime,
+    },
     shader::{Shader, ShaderLibraryModule},
 };
 
@@ -13,6 +16,7 @@ pub struct AdjustExposureImpl {
     runtime: Arc<Runtime>,
     pipeline: wgpu::ComputePipeline,
     bind_group_manager: BindGroupManager,
+    bind_group_key_cache: HashMap<Id, BindGroupDescriptorKey>,
     ring_buffer: RingBuffer,
 }
 impl AdjustExposureImpl {
@@ -25,28 +29,28 @@ impl AdjustExposureImpl {
 
         let bind_group_manager = BindGroupManager::new(runtime.clone(), bind_group_layout);
 
-        let ring_buffer = RingBuffer::new(runtime.clone(), BufferProperties {
-            size: size_of::<f32>(),
-        });
+        let ring_buffer = RingBuffer::new(
+            runtime.clone(),
+            BufferProperties {
+                size: size_of::<f32>(),
+            },
+        );
 
         AdjustExposureImpl {
             runtime,
             pipeline,
             bind_group_manager,
+            bind_group_key_cache: HashMap::new(),
             ring_buffer,
         }
     }
 }
 impl AdjustExposureImpl {
-    pub fn reset(&mut self){
+    pub fn reset(&mut self) {
         self.ring_buffer.mark_all_available();
     }
 
     pub fn prepare(&mut self, op: &AdjustExposureOp, value_store: &mut ValueStore) {
-
-    }
-
-    pub fn apply(&mut self, op: &AdjustExposureOp, value_store: &mut ValueStore) {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
         assert!(
             input_img.properties.color_space == ColorSpace::Linear,
@@ -61,13 +65,11 @@ impl AdjustExposureImpl {
 
         let buffer = self.ring_buffer.get();
 
-        self.runtime.queue.write_buffer(
-            &buffer.buffer,
-            0,
-            bytemuck::cast_slice(&[op.exposure]),
-        );
+        self.runtime
+            .queue
+            .write_buffer(&buffer.buffer, 0, bytemuck::cast_slice(&[op.exposure]));
 
-        let bind_group = self.bind_group_manager.get_or_create(BindGroupDescriptor {
+        let bind_group_descriptor = BindGroupDescriptor {
             entries: vec![
                 BindGroupEntry {
                     binding: 0,
@@ -82,8 +84,16 @@ impl AdjustExposureImpl {
                     resource: BindingResource::Buffer(buffer),
                 },
             ],
-        });
+        };
+        let bind_group_key = bind_group_descriptor.to_key();
+        self.bind_group_manager.ensure(bind_group_descriptor);
+        self.bind_group_key_cache.insert(op.result, bind_group_key);
+    }
 
+    pub fn apply(&mut self, op: &AdjustExposureOp, value_store: &mut ValueStore) {
+        let input_img = value_store.map.get(&op.arg).unwrap().as_image();
+        let bind_group_key = self.bind_group_key_cache.get(&op.result).unwrap();
+        let bind_group = self.bind_group_manager.get_from_key_or_panic(bind_group_key);
         let mut encoder = self
             .runtime
             .device

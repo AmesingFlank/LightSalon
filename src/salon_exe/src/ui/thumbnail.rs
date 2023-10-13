@@ -120,7 +120,7 @@ impl ThumbnailRenderResources {
             ],
         };
         let bind_group_key = bind_group_desc.to_key();
-        self.bind_group_manager.get_or_create(bind_group_desc);
+        self.bind_group_manager.ensure(bind_group_desc);
         self.bind_group_key_cache.insert(image.uuid, bind_group_key);
     }
 
