@@ -35,14 +35,27 @@ impl Engine {
     pub fn execute_module(&mut self, module: &Module, input_img: Arc<Image>) -> ProcessResult {
         let mut result = ProcessResult::new_empty();
         self.reset_op_impls(module);
+        self.prepare_ops(module, &input_img);
+        self.apply_ops(module);
+
+        let output_id = module.output_id().expect("expecting an output id");
+        let output_value = self
+            .value_store
+            .map
+            .get(&output_id)
+            .expect("cannot find output");
+        let output_image = output_value.as_image().clone();
+        self.runtime.ensure_mipmap(&output_image.as_ref());
+
+        result.final_image = Some(output_image);
+        result
+    }
+
+    fn apply_ops(&mut self, module: &Module) {
         let ops = module.ops();
         for op in ops {
             match op {
-                Op::Input(ref input) => {
-                    self.value_store
-                        .map
-                        .insert(input.result, Value::Image(input_img.clone()));
-                }
+                Op::Input(_) => {}
                 Op::AdjustExposure(ref exposure) => {
                     self.op_impls
                         .exposure
@@ -66,18 +79,40 @@ impl Engine {
                 }
             }
         }
+    }
 
-        let output_id = module.output_id().expect("expecting an output id");
-        let output_value = self
-            .value_store
-            .map
-            .get(&output_id)
-            .expect("cannot find output");
-        let output_image = output_value.as_image().clone();
-        self.runtime.ensure_mipmap(&output_image.as_ref());
-
-        result.final_image = Some(output_image);
-        result
+    fn prepare_ops(&mut self, module: &Module, input_img: &Arc<Image>) {
+        let ops = module.ops();
+        for op in ops {
+            match op {
+                Op::Input(ref input) => {
+                    self.value_store
+                        .map
+                        .insert(input.result, Value::Image(input_img.clone()));
+                }
+                Op::AdjustExposure(ref exposure) => {
+                    self.op_impls
+                        .exposure
+                        .as_mut()
+                        .unwrap()
+                        .prepare(exposure, &mut self.value_store);
+                }
+                Op::AdjustSaturation(ref saturation) => {
+                    self.op_impls
+                        .saturation
+                        .as_mut()
+                        .unwrap()
+                        .prepare(saturation, &mut self.value_store);
+                }
+                Op::ComputeHistogram(ref histogram) => {
+                    self.op_impls
+                        .histogram
+                        .as_mut()
+                        .unwrap()
+                        .prepare(histogram, &mut self.value_store);
+                }
+            }
+        }
     }
 
     fn reset_op_impls(&mut self, module: &Module) {

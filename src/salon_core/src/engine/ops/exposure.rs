@@ -42,6 +42,10 @@ impl AdjustExposureImpl {
         self.ring_buffer.mark_all_available();
     }
 
+    pub fn prepare(&mut self, op: &AdjustExposureOp, value_store: &mut ValueStore) {
+
+    }
+
     pub fn apply(&mut self, op: &AdjustExposureOp, value_store: &mut ValueStore) {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
         assert!(

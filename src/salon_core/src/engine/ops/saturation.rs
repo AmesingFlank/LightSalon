@@ -44,6 +44,11 @@ impl AdjustSaturationImpl {
     pub fn reset(&mut self) {
         self.ring_buffer.mark_all_available();
     }
+
+    pub fn prepare(&mut self, op: &AdjustSaturationOp, value_store: &mut ValueStore) {
+
+    }
+
     pub fn apply(&mut self, op: &AdjustSaturationOp, value_store: &mut ValueStore) {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
         assert!(
