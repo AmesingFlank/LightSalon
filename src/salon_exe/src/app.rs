@@ -221,11 +221,11 @@ impl eframe::App for App {
 
             let main_image_resources: &mut MainImageRenderResources =
                 renderer.callback_resources.get_mut().unwrap();
-            main_image_resources.begin_frame();
+            main_image_resources.reset();
 
             let thumbnail_resources: &mut ThumbnailRenderResources =
                 renderer.callback_resources.get_mut().unwrap();
-            thumbnail_resources.begin_frame();
+            thumbnail_resources.reset();
         }
 
         egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {

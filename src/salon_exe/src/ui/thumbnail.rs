@@ -86,7 +86,7 @@ impl ThumbnailRenderResources {
         }
     }
 
-    pub fn begin_frame(&mut self) {
+    pub fn reset(&mut self) {
         self.ring_buffer.mark_all_available();
     }
 
