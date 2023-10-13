@@ -3,7 +3,7 @@ use super::{Id, InputOp, Op, ComputeHistogramOp};
 pub struct Module {
     ops: Vec<Op>,
     output_id: Option<Id>,
-    next_id: Id,
+    next_available_id: Id,
 }
 
 impl Module {
@@ -23,12 +23,12 @@ impl Module {
         Module {
             ops: Vec::new(),
             output_id: None,
-            next_id: 0,
+            next_available_id: 0,
         }
     }
     pub fn alloc_id(&mut self) -> Id {
-        let id = self.next_id;
-        self.next_id += 1;
+        let id = self.next_available_id;
+        self.next_available_id += 1;
         id
     }
     pub fn new_basic() -> Self {
@@ -51,7 +51,7 @@ impl Module {
         Module {
             ops,
             output_id: self.output_id.clone(),
-            next_id: self.next_id.clone(),
+            next_available_id: self.next_available_id.clone(),
         }
     }
 }
