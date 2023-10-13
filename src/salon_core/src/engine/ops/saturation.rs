@@ -41,7 +41,7 @@ impl AdjustSaturationImpl {
     }
 }
 impl AdjustSaturationImpl {
-    pub fn prepare(&mut self) {
+    pub fn reset(&mut self) {
         self.ring_buffer.mark_all_available();
     }
     pub fn apply(&mut self, op: &AdjustSaturationOp, value_store: &mut ValueStore) {

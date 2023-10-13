@@ -38,7 +38,7 @@ impl AdjustExposureImpl {
     }
 }
 impl AdjustExposureImpl {
-    pub fn prepare(&mut self){
+    pub fn reset(&mut self){
         self.ring_buffer.mark_all_available();
     }
 

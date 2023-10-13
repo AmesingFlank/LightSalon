@@ -31,7 +31,7 @@ impl ComputeHistogramImpl {
     }
 }
 impl ComputeHistogramImpl {
-    pub fn prepare(&mut self) {
+    pub fn reset(&mut self) {
         
     }
     pub fn apply(&mut self, op: &ComputeHistogramOp, value_store: &mut ValueStore) {
