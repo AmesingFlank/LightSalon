@@ -10,6 +10,10 @@ impl Editor {
             current_state: EditorState::new(),
         }
     }
+
+    pub fn reset_state(&mut self) {
+        self.current_state = EditorState::new();
+    }
 }
 
 #[derive(Clone, PartialEq)]

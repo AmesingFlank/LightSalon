@@ -41,6 +41,8 @@ impl Session {
         self.current_image_index = Some(index);
         let img = self.library.as_mut().get_image(index);
 
+        self.editor.reset_state();
+
         let basic_module = Module::new_basic();
         let result = self.engine.execute_module(&basic_module, img);
 
