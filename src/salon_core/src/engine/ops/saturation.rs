@@ -1,11 +1,14 @@
-use std::{mem::size_of, sync::Arc};
+use std::{collections::HashMap, mem::size_of, sync::Arc};
 
 use crate::{
     buffer::{Buffer, BufferProperties, RingBuffer},
     engine::value_store::ValueStore,
     image::ColorSpace,
-    ir::AdjustSaturationOp,
-    runtime::{BindGroupDescriptor, BindGroupEntry, BindGroupManager, BindingResource, Runtime},
+    ir::{AdjustSaturationOp, Id},
+    runtime::{
+        BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager,
+        BindingResource, Runtime,
+    },
     shader::{Shader, ShaderLibraryModule},
 };
 
@@ -13,6 +16,7 @@ pub struct AdjustSaturationImpl {
     runtime: Arc<Runtime>,
     pipeline: wgpu::ComputePipeline,
     bind_group_manager: BindGroupManager,
+    bind_group_key_cache: HashMap<Id, BindGroupDescriptorKey>,
     ring_buffer: RingBuffer,
 }
 impl AdjustSaturationImpl {
@@ -36,6 +40,7 @@ impl AdjustSaturationImpl {
             runtime,
             pipeline,
             bind_group_manager,
+            bind_group_key_cache: HashMap::new(),
             ring_buffer,
         }
     }
@@ -46,12 +51,7 @@ impl AdjustSaturationImpl {
     }
 
     pub fn prepare(&mut self, op: &AdjustSaturationOp, value_store: &mut ValueStore) {
-
-    }
-
-    pub fn apply(&mut self, op: &AdjustSaturationOp, value_store: &mut ValueStore) {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
-        
         let output_img = value_store.ensure_value_at_id_is_image_of_properties(
             self.runtime.as_ref(),
             op.result,
@@ -64,7 +64,7 @@ impl AdjustSaturationImpl {
             .queue
             .write_buffer(&buffer.buffer, 0, bytemuck::cast_slice(&[op.saturation]));
 
-        let bind_group = self.bind_group_manager.get_or_create(BindGroupDescriptor {
+        let bind_group_descriptor = BindGroupDescriptor {
             entries: vec![
                 BindGroupEntry {
                     binding: 0,
@@ -76,11 +76,19 @@ impl AdjustSaturationImpl {
                 },
                 BindGroupEntry {
                     binding: 2,
-                    resource: BindingResource::Buffer(&buffer),
+                    resource: BindingResource::Buffer(buffer),
                 },
             ],
-        });
+        };
+        let bind_group_key = bind_group_descriptor.to_key();
+        self.bind_group_manager.ensure(bind_group_descriptor);
+        self.bind_group_key_cache.insert(op.result, bind_group_key);
+    }
 
+    pub fn apply(&mut self, op: &AdjustSaturationOp, value_store: &mut ValueStore) {
+        let input_img = value_store.map.get(&op.arg).unwrap().as_image();
+        let bind_group_key = self.bind_group_key_cache.get(&op.result).unwrap();
+        let bind_group = self.bind_group_manager.get_from_key_or_panic(bind_group_key);
         let mut encoder = self
             .runtime
             .device
