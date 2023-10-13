@@ -53,32 +53,43 @@ impl Engine {
 
     fn apply_ops(&mut self, module: &Module) {
         let ops = module.ops();
-        for op in ops {
-            match op {
-                Op::Input(_) => {}
-                Op::AdjustExposure(ref exposure) => {
-                    self.op_impls
-                        .exposure
-                        .as_mut()
-                        .unwrap()
-                        .apply(exposure, &mut self.value_store);
-                }
-                Op::AdjustSaturation(ref saturation) => {
-                    self.op_impls
-                        .saturation
-                        .as_mut()
-                        .unwrap()
-                        .apply(saturation, &mut self.value_store);
-                }
-                Op::ComputeHistogram(ref histogram) => {
-                    self.op_impls
-                        .histogram
-                        .as_mut()
-                        .unwrap()
-                        .apply(histogram, &mut self.value_store);
+        let mut encoder = self
+            .runtime
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+        {
+            let mut compute_pass =
+                encoder.begin_compute_pass(&wgpu::ComputePassDescriptor { label: None });
+
+            for op in ops {
+                match op {
+                    Op::Input(_) => {}
+                    Op::AdjustExposure(ref exposure) => {
+                        self.op_impls.exposure.as_ref().unwrap().encode_commands(
+                            &mut compute_pass,
+                            exposure,
+                            &self.value_store,
+                        );
+                    }
+                    Op::AdjustSaturation(ref saturation) => {
+                        self.op_impls.saturation.as_ref().unwrap().encode_commands(
+                            &mut compute_pass,
+                            saturation,
+                            &mut self.value_store,
+                        );
+                    }
+                    Op::ComputeHistogram(ref histogram) => {
+                        self.op_impls.histogram.as_ref().unwrap().encode_commands(
+                            &mut compute_pass,
+                            histogram,
+                            &mut self.value_store,
+                        );
+                    }
                 }
             }
         }
+
+        self.runtime.queue.submit(Some(encoder.finish()));
     }
 
     fn prepare_ops(&mut self, module: &Module, input_img: &Arc<Image>) {

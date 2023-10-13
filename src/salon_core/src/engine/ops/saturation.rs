@@ -85,26 +85,25 @@ impl AdjustSaturationImpl {
         self.bind_group_key_cache.insert(op.result, bind_group_key);
     }
 
-    pub fn apply(&mut self, op: &AdjustSaturationOp, value_store: &mut ValueStore) {
+    pub fn encode_commands<'a>(
+        &'a self,
+        compute_pass: &mut wgpu::ComputePass<'a>,
+        op: &AdjustSaturationOp,
+        value_store: &ValueStore,
+    ) {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image();
         let bind_group_key = self.bind_group_key_cache.get(&op.result).unwrap();
-        let bind_group = self.bind_group_manager.get_from_key_or_panic(bind_group_key);
-        let mut encoder = self
-            .runtime
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-        {
-            let mut cpass =
-                encoder.begin_compute_pass(&wgpu::ComputePassDescriptor { label: None });
-            cpass.set_pipeline(&self.pipeline);
+        let bind_group = self
+            .bind_group_manager
+            .get_from_key_or_panic(bind_group_key);
 
-            cpass.set_bind_group(0, &bind_group, &[]);
-            cpass.dispatch_workgroups(
-                input_img.properties.dimensions.0,
-                input_img.properties.dimensions.1,
-                1,
-            );
-        }
-        self.runtime.queue.submit(Some(encoder.finish()));
+        compute_pass.set_pipeline(&self.pipeline);
+
+        compute_pass.set_bind_group(0, &bind_group, &[]);
+        compute_pass.dispatch_workgroups(
+            input_img.properties.dimensions.0,
+            input_img.properties.dimensions.1,
+            1,
+        );
     }
 }
