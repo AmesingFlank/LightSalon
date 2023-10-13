@@ -1,5 +1,6 @@
 use std::{io::Cursor, path::PathBuf, sync::Arc};
 
+use bytemuck::Pod;
 use image::{imageops, DynamicImage, GenericImageView, ImageBuffer, Rgb};
 
 use crate::{
@@ -403,7 +404,7 @@ impl Runtime {
         }
     }
 
-    pub fn read_buffer<T>(&self, buffer: &Buffer) -> Vec<T> {
+    pub fn read_buffer<T: Pod>(&self, buffer: &Buffer) -> Vec<T> {
         assert!(
             buffer.properties.host_readable,
             "read_buffer can only be used for host readable buffers"
@@ -412,16 +413,27 @@ impl Runtime {
             buffer.buffer_host_readable.is_some(),
             "missing host readable buffer"
         );
+        let buffer_host_readable = buffer.buffer_host_readable.as_ref().unwrap();
         let mut encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
         encoder.copy_buffer_to_buffer(
             &buffer.buffer,
             0,
-            &buffer.buffer_host_readable.as_ref().unwrap(),
+            &buffer_host_readable,
             0,
             buffer.properties.size as u64,
         );
-        Vec::new()
+        self.queue.submit(Some(encoder.finish()));
+        let buffer_slice = buffer_host_readable.slice(..);
+        buffer_slice.map_async(wgpu::MapMode::Read, move |_| {});
+        // hacky
+        while !self.device.poll(wgpu::Maintain::Wait) {}
+        let mapped_range= buffer_slice.get_mapped_range();
+        // Since contents are got in bytes, this converts these bytes back to u32
+        let result = bytemuck::cast_slice(&mapped_range).to_vec();
+        drop(mapped_range);
+        buffer_host_readable.unmap();
+        result
     }
 }
