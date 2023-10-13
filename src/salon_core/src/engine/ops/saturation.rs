@@ -51,11 +51,7 @@ impl AdjustSaturationImpl {
 
     pub fn apply(&mut self, op: &AdjustSaturationOp, value_store: &mut ValueStore) {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
-        assert!(
-            input_img.properties.color_space == ColorSpace::Linear,
-            "expecting linear color space"
-        );
-
+        
         let output_img = value_store.ensure_value_at_id_is_image_of_properties(
             self.runtime.as_ref(),
             op.result,

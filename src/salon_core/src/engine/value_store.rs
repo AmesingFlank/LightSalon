@@ -23,7 +23,7 @@ impl ValueStore {
         runtime: &Runtime,
         id: Id,
         properties: &ImageProperties,
-    ) -> Arc<Image> {
+    ) -> &Arc<Image> {
         let mut needs_create_img = true;
 
         match self.map.get(&id) {
@@ -40,11 +40,9 @@ impl ValueStore {
 
         if needs_create_img {
             let new_img = Arc::new(runtime.create_image_of_properties(properties.clone()));
-            self.map.insert(id, Value::Image(new_img.clone()));
-            new_img
-        } else {
-            self.map.get(&id).unwrap().as_image().clone()
+            self.map.insert(id, Value::Image(new_img));
         }
+        self.map.get(&id).unwrap().as_image()
     }
 
     pub fn ensure_value_at_id_is_buffer_of_properties(
@@ -52,7 +50,7 @@ impl ValueStore {
         runtime: &Runtime,
         id: Id,
         properties: &BufferProperties,
-    ) -> Arc<Buffer> {
+    ) -> &Arc<Buffer> {
         let mut needs_create_buffer = true;
 
         match self.map.get(&id) {
@@ -69,10 +67,8 @@ impl ValueStore {
 
         if needs_create_buffer {
             let new_buf = Arc::new(runtime.create_buffer_of_properties(properties.clone()));
-            self.map.insert(id, Value::Buffer(new_buf.clone()));
-            new_buf
-        } else {
-            self.map.get(&id).unwrap().as_buffer().clone()
+            self.map.insert(id, Value::Buffer(new_buf));
         }
+        self.map.get(&id).unwrap().as_buffer()
     }
 }

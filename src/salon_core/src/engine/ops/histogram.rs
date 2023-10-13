@@ -41,11 +41,7 @@ impl ComputeHistogramImpl {
 
     pub fn apply(&mut self, op: &ComputeHistogramOp, value_store: &mut ValueStore) {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
-        assert!(
-            input_img.properties.color_space == ColorSpace::Linear,
-            "expecting linear color space"
-        );
-
+        
         let buffer_props = BufferProperties {
             size: 4 * 256 * size_of::<u32>(),
         };
