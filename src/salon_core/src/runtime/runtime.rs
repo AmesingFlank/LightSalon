@@ -376,7 +376,7 @@ impl Runtime {
     // Buffer Stuff
 
     pub fn create_buffer_of_properties(&self, properties: BufferProperties) -> Buffer {
-        let wgpu_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
+        let buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
             size: properties.size as u64,
             mapped_at_creation: false,
@@ -386,10 +386,42 @@ impl Runtime {
                 | wgpu::BufferUsages::STORAGE,
         });
         let uuid = crate::utils::uuid::get_next_uuid();
+        let mut buffer_host_readable = None;
+        if properties.host_readable {
+            buffer_host_readable = Some(self.device.create_buffer(&wgpu::BufferDescriptor {
+                label: None,
+                size: properties.size as u64,
+                mapped_at_creation: false,
+                usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+            }));
+        }
         Buffer {
             properties,
             uuid,
-            buffer: wgpu_buffer,
+            buffer,
+            buffer_host_readable,
         }
+    }
+
+    pub fn read_buffer<T>(&self, buffer: &Buffer) -> Vec<T> {
+        assert!(
+            buffer.properties.host_readable,
+            "read_buffer can only be used for host readable buffers"
+        );
+        assert!(
+            buffer.buffer_host_readable.is_some(),
+            "missing host readable buffer"
+        );
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+        encoder.copy_buffer_to_buffer(
+            &buffer.buffer,
+            0,
+            &buffer.buffer_host_readable.as_ref().unwrap(),
+            0,
+            buffer.properties.size as u64,
+        );
+        Vec::new()
     }
 }

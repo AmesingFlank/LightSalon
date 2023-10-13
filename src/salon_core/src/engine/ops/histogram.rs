@@ -43,6 +43,7 @@ impl ComputeHistogramImpl {
 
         let buffer_props = BufferProperties {
             size: 4 * 256 * size_of::<u32>(),
+            host_readable: true,
         };
 
         let output_buffer = value_store.ensure_value_at_id_is_buffer_of_properties(

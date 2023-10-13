@@ -1,16 +1,18 @@
 use std::sync::Arc;
 
-use crate::runtime::Runtime;
+use crate::{runtime::Runtime, ir::Op};
 
 pub struct Buffer {
     pub properties: BufferProperties,
     pub buffer: wgpu::Buffer,
+    pub buffer_host_readable: Option<wgpu::Buffer>, 
     pub uuid: u32,
 }
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct BufferProperties {
     pub size: usize,
+    pub host_readable: bool,
 }
 
 pub struct RingBuffer {

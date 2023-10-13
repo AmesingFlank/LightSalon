@@ -64,6 +64,7 @@ impl ThumbnailRenderResources {
             runtime.clone(),
             BufferProperties {
                 size: size_of::<u32>(),
+                host_readable: false,
             },
         );
 

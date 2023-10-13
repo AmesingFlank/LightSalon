@@ -33,6 +33,7 @@ impl AdjustSaturationImpl {
             runtime.clone(),
             BufferProperties {
                 size: size_of::<f32>(),
+                host_readable: false,
             },
         );
 
