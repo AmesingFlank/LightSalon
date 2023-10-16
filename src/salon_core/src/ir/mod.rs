@@ -4,6 +4,6 @@ mod op;
 mod module;
 
 pub use value::Value;
-pub use id::Id;
+pub use id::*;
 pub use op::*;
 pub use module::Module;

@@ -1,9 +1,12 @@
-use super::{Id, InputOp, Op, ComputeHistogramOp};
+use std::collections::HashMap;
 
+use super::{Id, InputOp, Op, ComputeHistogramOp, id::IdTag};
+
+#[derive(Clone)]
 pub struct Module {
     ops: Vec<Op>,
-    output_id: Option<Id>,
     next_available_id: Id,
+    tagged_ids: HashMap<IdTag, Id>,
 }
 
 impl Module {
@@ -13,17 +16,17 @@ impl Module {
     pub fn push_op(&mut self, op: Op) {
         self.ops.push(op);
     }
-    pub fn output_id(&self) -> Option<Id> {
-        self.output_id.clone()
+    pub fn get_output_id(&self) -> Option<Id> {
+        self.tagged_ids.get(&IdTag::Output).copied()
     }
     pub fn set_output_id(&mut self, id: Id) {
-        self.output_id = Some(id)
+        self.tagged_ids.insert(IdTag::Output, id);
     }
     pub fn new_empty() -> Self {
         Module {
             ops: Vec::new(),
-            output_id: None,
             next_available_id: 0,
+            tagged_ids: HashMap::new(),
         }
     }
     pub fn alloc_id(&mut self) -> Id {
@@ -37,21 +40,10 @@ impl Module {
         module.push_op(Op::Input(InputOp { result: input_id }));
         module.set_output_id(input_id);
 
-        let curr_output_id = module.output_id().unwrap();
+        let curr_output_id = module.get_output_id().unwrap();
 
         let histogram_id = module.alloc_id();
         module.push_op(Op::ComputeHistogram(ComputeHistogramOp {result: histogram_id, arg:curr_output_id}));
         module
-    }
-    pub fn clone(&self) -> Self {
-        let mut ops: Vec<Op> = Vec::new();
-        for o in self.ops() {
-            ops.push(o.clone());
-        }
-        Module {
-            ops,
-            output_id: self.output_id.clone(),
-            next_available_id: self.next_available_id.clone(),
-        }
     }
 }

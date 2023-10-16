@@ -38,7 +38,7 @@ impl Engine {
         self.prepare_ops(module, &input_img);
         self.apply_ops(module);
 
-        let output_id = module.output_id().expect("expecting an output id");
+        let output_id = module.get_output_id().expect("expecting an output id");
         let output_value = self
             .value_store
             .map
