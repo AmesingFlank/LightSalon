@@ -17,6 +17,7 @@ var<storage, read_write> buffer: Buffer;
 @workgroup_size(1)
 fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     var c = textureLoad(input, global_id.xy, 0).rgb;
+    c = clamp(c, vec3(0.0), vec3(1.0));
     let r = u32(c.r * 255.0);
     let g = u32(c.g * 255.0);
     let b = u32(c.b * 255.0);
