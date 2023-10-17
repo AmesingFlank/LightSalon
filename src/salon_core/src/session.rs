@@ -43,8 +43,10 @@ impl Session {
 
         self.editor.reset_state();
 
-        let basic_module = Module::new_basic();
-        let result = self.engine.execute_module(&basic_module, img);
+        let mut module = Module::new_trivial();
+        module.add_statistics_ops();
+
+        let result = self.engine.execute_module(&module, img);
 
         self.current_process_result = Some(result);
     }

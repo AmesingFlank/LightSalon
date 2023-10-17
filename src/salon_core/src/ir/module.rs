@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::{id::IdTag, ComputeHistogramOp, Id, InputOp, Op};
+use super::{id::IdTag, CollectStatisticsOp, ComputeHistogramOp, Id, InputOp, Op};
 
 #[derive(Clone)]
 pub struct Module {
@@ -40,19 +40,30 @@ impl Module {
         self.next_available_id += 1;
         id
     }
-    pub fn new_basic() -> Self {
+    pub fn new_trivial() -> Self {
         let mut module = Module::new_empty();
         let input_id = module.alloc_id();
         module.push_op(Op::Input(InputOp { result: input_id }));
         module.set_output_id(input_id);
 
-        let curr_output_id = module.get_output_id().unwrap();
+        module
+    }
 
-        let histogram_id = module.alloc_id();
-        module.push_op(Op::ComputeHistogram(ComputeHistogramOp {
+    pub fn add_statistics_ops(&mut self) {
+        let curr_output_id = self.get_output_id().unwrap();
+
+        let histogram_id = self.alloc_id();
+        self.push_op(Op::ComputeHistogram(ComputeHistogramOp {
             result: histogram_id,
             arg: curr_output_id,
         }));
-        module
+
+        let statistics_id = self.alloc_id();
+        self.push_op(Op::CollectStatistics(CollectStatisticsOp {
+            result: statistics_id,
+            histogram: histogram_id,
+        }));
+
+        self.set_tagged_id(IdTag::Statistics, statistics_id)
     }
 }

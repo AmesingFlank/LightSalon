@@ -30,7 +30,7 @@ impl EditorState {
         }
     }
     pub fn to_ir_module(&self) -> Module {
-        let mut module = Module::new_basic();
+        let mut module = Module::new_trivial();
 
         let mut current_output_id = module.get_output_id().expect("expecting an output id");
 
@@ -53,6 +53,8 @@ impl EditorState {
         });
         module.push_op(saturation_op);
         module.set_output_id(saturation_adjusted_image_id);
+
+        module.add_statistics_ops();
 
         module
     }
