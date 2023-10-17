@@ -38,7 +38,7 @@ impl CollectStatisticsImpl {
 
     pub fn encode_commands<'a>(
         &'a self,
-        compute_pass: &mut wgpu::ComputePass<'a>,
+        encoder: &mut wgpu::CommandEncoder,
         op: &CollectStatisticsOp,
         value_store: &ValueStore,
     ) {

@@ -9,9 +9,10 @@ use crate::{
 use super::{
     op_impl_collection::OpImplCollection,
     ops::{
+        collect_statistics::CollectStatisticsImpl,
         exposure::AdjustExposureImpl,
         histogram::{self, ComputeHistogramImpl},
-        saturation::{self, AdjustSaturationImpl}, collect_statistics::CollectStatisticsImpl,
+        saturation::{self, AdjustSaturationImpl},
     },
     result::ProcessResult,
     value_store::ValueStore,
@@ -57,41 +58,37 @@ impl Engine {
             .runtime
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-        {
-            let mut compute_pass =
-                encoder.begin_compute_pass(&wgpu::ComputePassDescriptor { label: None });
 
-            for op in ops {
-                match op {
-                    Op::Input(_) => {}
-                    Op::AdjustExposure(ref op) => {
-                        self.op_impls.exposure.as_ref().unwrap().encode_commands(
-                            &mut compute_pass,
-                            op,
-                            &self.value_store,
-                        );
-                    }
-                    Op::AdjustSaturation(ref op) => {
-                        self.op_impls.saturation.as_ref().unwrap().encode_commands(
-                            &mut compute_pass,
-                            op,
-                            &mut self.value_store,
-                        );
-                    }
-                    Op::ComputeHistogram(ref op) => {
-                        self.op_impls.histogram.as_ref().unwrap().encode_commands(
-                            &mut compute_pass,
-                            op,
-                            &mut self.value_store,
-                        );
-                    }
-                    Op::CollectStatistics(ref op) => {
-                        self.op_impls.collect_statistics.as_ref().unwrap().encode_commands(
-                            &mut compute_pass,
-                            op,
-                            &mut self.value_store,
-                        );
-                    }
+        for op in ops {
+            match op {
+                Op::Input(_) => {}
+                Op::AdjustExposure(ref op) => {
+                    self.op_impls.exposure.as_ref().unwrap().encode_commands(
+                        &mut encoder,
+                        op,
+                        &self.value_store,
+                    );
+                }
+                Op::AdjustSaturation(ref op) => {
+                    self.op_impls.saturation.as_ref().unwrap().encode_commands(
+                        &mut encoder,
+                        op,
+                        &mut self.value_store,
+                    );
+                }
+                Op::ComputeHistogram(ref op) => {
+                    self.op_impls.histogram.as_ref().unwrap().encode_commands(
+                        &mut encoder,
+                        op,
+                        &mut self.value_store,
+                    );
+                }
+                Op::CollectStatistics(ref op) => {
+                    self.op_impls
+                        .collect_statistics
+                        .as_ref()
+                        .unwrap()
+                        .encode_commands(&mut encoder, op, &mut self.value_store);
                 }
             }
         }

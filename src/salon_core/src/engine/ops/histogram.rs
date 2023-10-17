@@ -77,7 +77,7 @@ impl ComputeHistogramImpl {
 
     pub fn encode_commands<'a>(
         &'a self,
-        compute_pass: &mut wgpu::ComputePass<'a>,
+        encoder: &mut wgpu::CommandEncoder,
         op: &ComputeHistogramOp,
         value_store: &mut ValueStore,
     ) {
@@ -87,13 +87,17 @@ impl ComputeHistogramImpl {
             .bind_group_manager
             .get_from_key_or_panic(bind_group_key);
 
-        compute_pass.set_pipeline(&self.pipeline);
+        {
+            let mut compute_pass =
+                encoder.begin_compute_pass(&wgpu::ComputePassDescriptor { label: None });
+            compute_pass.set_pipeline(&self.pipeline);
 
-        compute_pass.set_bind_group(0, &bind_group, &[]);
-        compute_pass.dispatch_workgroups(
-            input_img.properties.dimensions.0,
-            input_img.properties.dimensions.1,
-            1,
-        );
+            compute_pass.set_bind_group(0, &bind_group, &[]);
+            compute_pass.dispatch_workgroups(
+                input_img.properties.dimensions.0,
+                input_img.properties.dimensions.1,
+                1,
+            );
+        }
     }
 }
