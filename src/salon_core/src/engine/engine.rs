@@ -55,6 +55,10 @@ impl Engine {
                 .expect("cannot find stats")
                 .as_buffer();
             let stats = ImageStatistics::from_buffer(&statistics_buffer, &self.runtime);
+            for i in 0..256 {
+                print!("{x} ", x=stats.histogram_final.r[i])
+            }
+            println!("");
             result.statistics = Some(stats)
         }
 

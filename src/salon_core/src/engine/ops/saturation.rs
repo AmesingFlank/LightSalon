@@ -20,7 +20,7 @@ pub struct AdjustSaturationImpl {
 }
 impl AdjustSaturationImpl {
     pub fn new(runtime: Arc<Runtime>) -> Self {
-        let shader_code = Shader::from_code(include_str!("./saturation.wgsl"))
+        let shader_code = Shader::from_code(include_str!("shaders/saturation.wgsl"))
             .with_library(ShaderLibraryModule::ColorSpaces)
             .full_code();
 

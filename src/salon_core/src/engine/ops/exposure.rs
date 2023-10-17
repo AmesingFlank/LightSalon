@@ -20,7 +20,7 @@ pub struct AdjustExposureImpl {
 }
 impl AdjustExposureImpl {
     pub fn new(runtime: Arc<Runtime>) -> Self {
-        let shader_code = Shader::from_code(include_str!("./exposure.wgsl"))
+        let shader_code = Shader::from_code(include_str!("shaders/exposure.wgsl"))
             .with_library(ShaderLibraryModule::ColorSpaces)
             .full_code();
 

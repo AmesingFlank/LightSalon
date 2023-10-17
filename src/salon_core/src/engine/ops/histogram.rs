@@ -19,7 +19,7 @@ pub struct ComputeHistogramImpl {
 }
 impl ComputeHistogramImpl {
     pub fn new(runtime: Arc<Runtime>) -> Self {
-        let shader_code = Shader::from_code(include_str!("./histogram.wgsl"))
+        let shader_code = Shader::from_code(include_str!("shaders//histogram.wgsl"))
             .with_library(ShaderLibraryModule::ColorSpaces)
             .full_code();
 
