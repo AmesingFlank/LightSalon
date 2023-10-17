@@ -5,4 +5,4 @@ mod value_store;
 mod result;
 
 pub use engine::Engine;
-pub use result::ProcessResult;
+pub use result::*;

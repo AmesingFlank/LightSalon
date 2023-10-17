@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use crate::{
     image::Image,
-    ir::{Id, InputOp, Module, Op, Value},
+    ir::{Id, IdTag, InputOp, Module, Op, Value},
     runtime::Runtime,
 };
 
@@ -15,7 +15,7 @@ use super::{
         saturation::{self, AdjustSaturationImpl},
     },
     result::ProcessResult,
-    value_store::ValueStore,
+    value_store::ValueStore, ImageStatistics,
 };
 
 pub struct Engine {
@@ -46,6 +46,17 @@ impl Engine {
             .expect("cannot find output");
         let output_image = output_value.as_image().clone();
         self.runtime.ensure_mipmap(&output_image.as_ref());
+
+        if let Some(statistics_id) = module.get_tagged_id(IdTag::Statistics) {
+            let statistics_buffer = self
+                .value_store
+                .map
+                .get(&statistics_id)
+                .expect("cannot find stats")
+                .as_buffer();
+            let stats = ImageStatistics::from_buffer(&statistics_buffer, &self.runtime);
+            result.statistics = Some(stats)
+        }
 
         result.final_image = Some(output_image);
         result

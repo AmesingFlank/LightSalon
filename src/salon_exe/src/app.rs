@@ -165,7 +165,7 @@ impl App {
             .default_open(true)
             .show(ui, |ui| {
                 if let Some(ref result) = self.session.current_process_result {
-                    if let Some(ref buf) = result.histogram.clone() {}
+                    
                 }
             });
     }
