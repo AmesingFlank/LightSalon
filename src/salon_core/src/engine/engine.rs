@@ -11,7 +11,7 @@ use super::{
     ops::{
         exposure::AdjustExposureImpl,
         histogram::{self, ComputeHistogramImpl},
-        saturation::{self, AdjustSaturationImpl},
+        saturation::{self, AdjustSaturationImpl}, collect_statistics::CollectStatisticsImpl,
     },
     result::ProcessResult,
     value_store::ValueStore,
@@ -64,24 +64,31 @@ impl Engine {
             for op in ops {
                 match op {
                     Op::Input(_) => {}
-                    Op::AdjustExposure(ref exposure) => {
+                    Op::AdjustExposure(ref op) => {
                         self.op_impls.exposure.as_ref().unwrap().encode_commands(
                             &mut compute_pass,
-                            exposure,
+                            op,
                             &self.value_store,
                         );
                     }
-                    Op::AdjustSaturation(ref saturation) => {
+                    Op::AdjustSaturation(ref op) => {
                         self.op_impls.saturation.as_ref().unwrap().encode_commands(
                             &mut compute_pass,
-                            saturation,
+                            op,
                             &mut self.value_store,
                         );
                     }
-                    Op::ComputeHistogram(ref histogram) => {
+                    Op::ComputeHistogram(ref op) => {
                         self.op_impls.histogram.as_ref().unwrap().encode_commands(
                             &mut compute_pass,
-                            histogram,
+                            op,
+                            &mut self.value_store,
+                        );
+                    }
+                    Op::CollectStatistics(ref op) => {
+                        self.op_impls.collect_statistics.as_ref().unwrap().encode_commands(
+                            &mut compute_pass,
+                            op,
                             &mut self.value_store,
                         );
                     }
@@ -101,26 +108,33 @@ impl Engine {
                         .map
                         .insert(input.result, Value::Image(input_img.clone()));
                 }
-                Op::AdjustExposure(ref exposure) => {
+                Op::AdjustExposure(ref op) => {
                     self.op_impls
                         .exposure
                         .as_mut()
                         .unwrap()
-                        .prepare(exposure, &mut self.value_store);
+                        .prepare(op, &mut self.value_store);
                 }
-                Op::AdjustSaturation(ref saturation) => {
+                Op::AdjustSaturation(ref op) => {
                     self.op_impls
                         .saturation
                         .as_mut()
                         .unwrap()
-                        .prepare(saturation, &mut self.value_store);
+                        .prepare(op, &mut self.value_store);
                 }
-                Op::ComputeHistogram(ref histogram) => {
+                Op::ComputeHistogram(ref op) => {
                     self.op_impls
                         .histogram
                         .as_mut()
                         .unwrap()
-                        .prepare(histogram, &mut self.value_store);
+                        .prepare(op, &mut self.value_store);
+                }
+                Op::CollectStatistics(ref op) => {
+                    self.op_impls
+                        .collect_statistics
+                        .as_mut()
+                        .unwrap()
+                        .prepare(op, &mut self.value_store);
                 }
             }
         }
@@ -150,6 +164,13 @@ impl Engine {
                             Some(ComputeHistogramImpl::new(self.runtime.clone()))
                     }
                     self.op_impls.histogram.as_mut().unwrap().reset();
+                }
+                Op::CollectStatistics(_) => {
+                    if self.op_impls.collect_statistics.is_none() {
+                        self.op_impls.collect_statistics =
+                            Some(CollectStatisticsImpl::new(self.runtime.clone()))
+                    }
+                    self.op_impls.collect_statistics.as_mut().unwrap().reset();
                 }
             }
         }

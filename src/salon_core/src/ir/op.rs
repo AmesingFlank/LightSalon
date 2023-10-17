@@ -6,6 +6,7 @@ pub enum Op {
     AdjustExposure(AdjustExposureOp),
     AdjustSaturation(AdjustSaturationOp),
     ComputeHistogram(ComputeHistogramOp),
+    CollectStatistics(CollectStatisticsOp),
 }
 
 #[derive(Clone)]
@@ -31,4 +32,11 @@ pub struct AdjustSaturationOp {
 pub struct ComputeHistogramOp {
     pub result: Id,
     pub arg: Id, 
+}
+
+
+#[derive(Clone)]
+pub struct CollectStatisticsOp {
+    pub result: Id,
+    pub histogram: Id, 
 }
