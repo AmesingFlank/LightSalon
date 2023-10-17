@@ -36,8 +36,7 @@ impl Engine {
     pub fn execute_module(&mut self, module: &Module, input_img: Arc<Image>) -> ProcessResult {
         let mut result = ProcessResult::new_empty();
         self.reset_op_impls(module);
-        self.prepare_ops(module, &input_img);
-        self.apply_ops(module);
+        self.apply_ops(module, input_img);
 
         let output_id = module.get_output_id().expect("expecting an output id");
         let output_value = self
@@ -52,7 +51,7 @@ impl Engine {
         result
     }
 
-    fn apply_ops(&mut self, module: &Module) {
+    fn apply_ops(&mut self, module: &Module, input_img: Arc<Image>) {
         let ops = module.ops();
         let mut encoder = self
             .runtime
@@ -61,80 +60,42 @@ impl Engine {
 
         for op in ops {
             match op {
-                Op::Input(_) => {}
-                Op::AdjustExposure(ref op) => {
-                    self.op_impls.exposure.as_ref().unwrap().encode_commands(
-                        &mut encoder,
-                        op,
-                        &self.value_store,
-                    );
-                }
-                Op::AdjustSaturation(ref op) => {
-                    self.op_impls.saturation.as_ref().unwrap().encode_commands(
-                        &mut encoder,
-                        op,
-                        &mut self.value_store,
-                    );
-                }
-                Op::ComputeHistogram(ref op) => {
-                    self.op_impls.histogram.as_ref().unwrap().encode_commands(
-                        &mut encoder,
-                        op,
-                        &mut self.value_store,
-                    );
-                }
-                Op::CollectStatistics(ref op) => {
-                    self.op_impls
-                        .collect_statistics
-                        .as_ref()
-                        .unwrap()
-                        .encode_commands(&mut encoder, op, &mut self.value_store);
-                }
-            }
-        }
-
-        self.runtime.queue.submit(Some(encoder.finish()));
-    }
-
-    fn prepare_ops(&mut self, module: &Module, input_img: &Arc<Image>) {
-        let ops = module.ops();
-        for op in ops {
-            match op {
                 Op::Input(ref input) => {
                     self.value_store
                         .map
                         .insert(input.result, Value::Image(input_img.clone()));
                 }
                 Op::AdjustExposure(ref op) => {
-                    self.op_impls
-                        .exposure
-                        .as_mut()
-                        .unwrap()
-                        .prepare(op, &mut self.value_store);
+                    self.op_impls.exposure.as_mut().unwrap().encode_commands(
+                        &mut encoder,
+                        op,
+                        &mut self.value_store,
+                    );
                 }
                 Op::AdjustSaturation(ref op) => {
-                    self.op_impls
-                        .saturation
-                        .as_mut()
-                        .unwrap()
-                        .prepare(op, &mut self.value_store);
+                    self.op_impls.saturation.as_mut().unwrap().encode_commands(
+                        &mut encoder,
+                        op,
+                        &mut self.value_store,
+                    );
                 }
                 Op::ComputeHistogram(ref op) => {
-                    self.op_impls
-                        .histogram
-                        .as_mut()
-                        .unwrap()
-                        .prepare(op, &mut self.value_store);
+                    self.op_impls.histogram.as_mut().unwrap().encode_commands(
+                        &mut encoder,
+                        op,
+                        &mut self.value_store,
+                    );
                 }
                 Op::CollectStatistics(ref op) => {
                     self.op_impls
                         .collect_statistics
                         .as_mut()
                         .unwrap()
-                        .prepare(op, &mut self.value_store);
+                        .encode_commands(&mut encoder, op, &mut self.value_store);
                 }
             }
         }
+        self.runtime.queue.submit(Some(encoder.finish()));
     }
 
     fn reset_op_impls(&mut self, module: &Module) {

@@ -16,7 +16,6 @@ pub struct ComputeHistogramImpl {
     runtime: Arc<Runtime>,
     pipeline: wgpu::ComputePipeline,
     bind_group_manager: BindGroupManager,
-    bind_group_key_cache: HashMap<Id, BindGroupDescriptorKey>,
 }
 impl ComputeHistogramImpl {
     pub fn new(runtime: Arc<Runtime>) -> Self {
@@ -31,14 +30,18 @@ impl ComputeHistogramImpl {
             runtime,
             pipeline,
             bind_group_manager,
-            bind_group_key_cache: HashMap::new(),
         }
     }
 }
 impl ComputeHistogramImpl {
     pub fn reset(&mut self) {}
 
-    pub fn prepare(&mut self, op: &ComputeHistogramOp, value_store: &mut ValueStore) {
+    pub fn encode_commands(
+        &mut self,
+        encoder: &mut wgpu::CommandEncoder,
+        op: &ComputeHistogramOp,
+        value_store: &mut ValueStore,
+    ) {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
 
         let buffer_props = BufferProperties {
@@ -52,13 +55,7 @@ impl ComputeHistogramImpl {
             &buffer_props,
         );
 
-        self.runtime.queue.write_buffer(
-            &output_buffer.buffer,
-            0,
-            bytemuck::cast_slice(&[0u32; 4 * 256]),
-        );
-
-        let bind_group_descriptor = BindGroupDescriptor {
+        let bind_group = self.bind_group_manager.get_or_create(BindGroupDescriptor {
             entries: vec![
                 BindGroupEntry {
                     binding: 0,
@@ -69,23 +66,7 @@ impl ComputeHistogramImpl {
                     resource: BindingResource::Buffer(&output_buffer),
                 },
             ],
-        };
-        let bind_group_key = bind_group_descriptor.to_key();
-        self.bind_group_manager.ensure(bind_group_descriptor);
-        self.bind_group_key_cache.insert(op.result, bind_group_key);
-    }
-
-    pub fn encode_commands<'a>(
-        &'a self,
-        encoder: &mut wgpu::CommandEncoder,
-        op: &ComputeHistogramOp,
-        value_store: &mut ValueStore,
-    ) {
-        let input_img = value_store.map.get(&op.arg).unwrap().as_image();
-        let bind_group_key = self.bind_group_key_cache.get(&op.result).unwrap();
-        let bind_group = self
-            .bind_group_manager
-            .get_from_key_or_panic(bind_group_key);
+        });
 
         {
             let mut compute_pass =
