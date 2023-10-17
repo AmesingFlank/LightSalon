@@ -1,5 +1,8 @@
 use crate::ui::{self, main_image::MainImageRenderResources, thumbnail::ThumbnailRenderResources};
-use eframe::egui::{self, accesskit::Vec2, CollapsingHeader, Ui};
+use eframe::{
+    egui::{self, accesskit::Vec2, CollapsingHeader, Ui, Visuals},
+    emath::remap, epaint::Color32,
+};
 use egui_extras::{Column, TableBuilder};
 use salon_core::{
     editor::EditorState,
@@ -9,6 +12,7 @@ use salon_core::{
     runtime::Runtime,
     session::Session,
 };
+use std::f64::consts::TAU;
 use std::{num::NonZeroU64, sync::Arc};
 
 use eframe::{
@@ -165,7 +169,25 @@ impl App {
             .default_open(true)
             .show(ui, |ui| {
                 if let Some(ref result) = self.session.current_process_result {
-                    
+                    let n = 100;
+                    let mut sin_values: Vec<_> = (0..=n)
+                        .map(|i| remap(i as f64, 0.0..=n as f64, -TAU..=TAU))
+                        .map(|i| [i, i.sin()])
+                        .collect();
+
+                    let line = Line::new(sin_values.split_off(n / 2)).fill(-1.5);
+                    let points = Points::new(sin_values).stems(-1.5).radius(1.0);
+
+                    let plot = Plot::new("items_demo")
+                        .legend(Legend::default().position(Corner::RightBottom))
+                        .show_x(false)
+                        .show_y(false)
+                        .height(self.ui_state.last_frame_size.unwrap().1 * 0.2)
+                        .data_aspect(1.0);
+                    plot.show(ui, |plot_ui| {
+                        plot_ui.line(line.name("Line with fill"));
+                        plot_ui.points(points.name("Points with stems"));
+                    });
                 }
             });
     }
@@ -202,10 +224,19 @@ impl App {
             self.session.current_process_result = Some(result)
         }
     }
+
+    fn get_visuals(&self) -> Visuals {
+        Visuals{
+            panel_fill: Color32::from_gray(32),
+            ..Visuals::dark()
+        }
+    }
 }
 
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+        ctx.set_visuals(self.get_visuals());
+        
         let is_first_frame = self.ui_state.last_frame_size.is_none();
         let last_frame_size = frame.info().window_info.size; // egui has a 1-frame delay
         self.ui_state.last_frame_size = Some((last_frame_size.x, last_frame_size.y));
