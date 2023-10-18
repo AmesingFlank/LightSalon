@@ -1,8 +1,10 @@
+const num_bins:u32 = 64u;
+
 struct Buffer {
-    r: array<atomic<u32>, 256>,
-    g: array<atomic<u32>, 256>,
-    b: array<atomic<u32>, 256>,
-    luma: array<atomic<u32>, 256>,
+    r: array<atomic<u32>, num_bins>,
+    g: array<atomic<u32>, num_bins>,
+    b: array<atomic<u32>, num_bins>,
+    luma: array<atomic<u32>, num_bins>,
 };
 
 @group(0) @binding(0)

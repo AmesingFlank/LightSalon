@@ -2,7 +2,7 @@ use std::{collections::HashMap, mem::size_of, sync::Arc};
 
 use crate::{
     buffer::BufferProperties,
-    engine::value_store::ValueStore,
+    engine::{value_store::ValueStore, ImageHistogram},
     image::ColorSpace,
     ir::{ComputeHistogramOp, Id},
     runtime::{
@@ -60,7 +60,7 @@ impl ComputeHistogramImpl {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
 
         let buffer_props = BufferProperties {
-            size: 4 * 256 * size_of::<u32>(),
+            size: 4 * ImageHistogram::num_bins() * size_of::<u32>(),
             host_readable: true,
         };
 
@@ -100,7 +100,7 @@ impl ComputeHistogramImpl {
 
             compute_pass.set_pipeline(&self.pipeline_clear);
             compute_pass.set_bind_group(0, &bind_group_clear, &[]);
-            compute_pass.dispatch_workgroups(256, 1, 1);
+            compute_pass.dispatch_workgroups(ImageHistogram::num_bins() as u32, 1, 1);
 
             compute_pass.set_pipeline(&self.pipeline_compute);
             compute_pass.set_bind_group(0, &bind_group_compute, &[]);

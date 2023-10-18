@@ -9,6 +9,12 @@ pub struct ImageHistogram {
     pub luma: Vec<u32>,
 }
 
+impl ImageHistogram {
+    pub fn num_bins() -> usize {
+        64
+    }
+}
+
 pub struct ImageStatistics {
     pub histogram_final: ImageHistogram,
 }
@@ -17,10 +23,18 @@ impl ImageStatistics {
     pub fn from_buffer(buffer: &Buffer, runtime: &Runtime) -> Self {
         let buffer_ints: Vec<u32> = runtime.read_buffer(buffer);
 
-        let r = buffer_ints.as_slice()[256 * 0..256 * 1].to_vec();
-        let g = buffer_ints.as_slice()[256 * 1..256 * 2].to_vec();
-        let b = buffer_ints.as_slice()[256 * 2..256 * 3].to_vec();
-        let luma = buffer_ints.as_slice()[256 * 3..256 * 4].to_vec();
+        let r = buffer_ints.as_slice()
+            [ImageHistogram::num_bins() * 0..ImageHistogram::num_bins() * 1]
+            .to_vec();
+        let g = buffer_ints.as_slice()
+            [ImageHistogram::num_bins() * 1..ImageHistogram::num_bins() * 2]
+            .to_vec();
+        let b = buffer_ints.as_slice()
+            [ImageHistogram::num_bins() * 2..ImageHistogram::num_bins() * 3]
+            .to_vec();
+        let luma = buffer_ints.as_slice()
+            [ImageHistogram::num_bins() * 3..ImageHistogram::num_bins() * 4]
+            .to_vec();
 
         let histogram_final = ImageHistogram { r, g, b, luma };
         ImageStatistics { histogram_final }

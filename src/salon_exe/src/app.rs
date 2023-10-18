@@ -1,12 +1,13 @@
 use crate::ui::{self, main_image::MainImageRenderResources, thumbnail::ThumbnailRenderResources};
 use eframe::{
     egui::{self, accesskit::Vec2, CollapsingHeader, Ui, Visuals},
-    emath::remap, epaint::Color32,
+    emath::remap,
+    epaint::Color32,
 };
 use egui_extras::{Column, TableBuilder};
 use salon_core::{
     editor::EditorState,
-    engine::Engine,
+    engine::{Engine, ImageHistogram},
     ir::{AdjustExposureOp, Module, Op},
     library::AddImageResult,
     runtime::Runtime,
@@ -169,25 +170,60 @@ impl App {
             .default_open(true)
             .show(ui, |ui| {
                 if let Some(ref result) = self.session.current_process_result {
-                    let n = 100;
-                    let mut sin_values: Vec<_> = (0..=n)
-                        .map(|i| remap(i as f64, 0.0..=n as f64, -TAU..=TAU))
-                        .map(|i| [i, i.sin()])
-                        .collect();
+                    if let Some(ref stats) = result.statistics {
+                        let hist = &stats.histogram_final;
+                        let mut max_histogram_val = 0;
+                        for v in hist.r.iter() {
+                            max_histogram_val = std::cmp::max(max_histogram_val, *v);
+                        }
+                        // for v in hist.g.iter() {
+                        //     max_histogram_val = std::cmp::max(max_histogram_val, *v);
+                        // }
+                        // for v in hist.b.iter() {
+                        //     max_histogram_val = std::cmp::max(max_histogram_val, *v);
+                        // }
+                        // for v in hist.luma.iter() {
+                        //     max_histogram_val = std::cmp::max(max_histogram_val, *v);
+                        // }
 
-                    let line = Line::new(sin_values.split_off(n / 2)).fill(-1.5);
-                    let points = Points::new(sin_values).stems(-1.5).radius(1.0);
+                        let r_line_data: Vec<[f64; 2]> = (0..ImageHistogram::num_bins())
+                            .map(|i| {
+                                [
+                                    i as f64 / ImageHistogram::num_bins() as f64,
+                                    stats.histogram_final.r[i] as f64 / max_histogram_val as f64,
+                                ]
+                            })
+                            .collect();
+                        let r_line = Line::new(r_line_data);
+                        let plot = Plot::new("histogram")
+                            .legend(Legend::default().position(Corner::RightBottom))
+                            .show_x(false)
+                            .show_y(false)
+                            .height(self.ui_state.last_frame_size.unwrap().1 * 0.2)
+                            .data_aspect(1.0);
+                        plot.show(ui, |plot_ui| {
+                            plot_ui.line(r_line);
+                        });
+                    }
+                    // let n = 100;
+                    // let mut sin_values: Vec<_> = (0..=n)
+                    //     .map(|i| remap(i as f64, 0.0..=n as f64, -TAU..=TAU))
+                    //     .map(|i| [i, i.sin()])
+                    //     .collect();
 
-                    let plot = Plot::new("items_demo")
-                        .legend(Legend::default().position(Corner::RightBottom))
-                        .show_x(false)
-                        .show_y(false)
-                        .height(self.ui_state.last_frame_size.unwrap().1 * 0.2)
-                        .data_aspect(1.0);
-                    plot.show(ui, |plot_ui| {
-                        plot_ui.line(line.name("Line with fill"));
-                        plot_ui.points(points.name("Points with stems"));
-                    });
+                    // let line = Line::new(sin_values.split_off(n / 2)).fill(-1.5);
+                    // let points = Points::new(sin_values).stems(-1.5).radius(1.0);
+
+                    // let plot = Plot::new("items_demo")
+                    //     .legend(Legend::default().position(Corner::RightBottom))
+                    //     .show_x(false)
+                    //     .show_y(false)
+                    //     .height(self.ui_state.last_frame_size.unwrap().1 * 0.2)
+                    //     .data_aspect(1.0);
+                    // plot.show(ui, |plot_ui| {
+                    //     plot_ui.line(line.name("Line with fill"));
+                    //     plot_ui.points(points.name("Points with stems"));
+                    // });
                 }
             });
     }
@@ -226,7 +262,7 @@ impl App {
     }
 
     fn get_visuals(&self) -> Visuals {
-        Visuals{
+        Visuals {
             panel_fill: Color32::from_gray(32),
             ..Visuals::dark()
         }
@@ -236,7 +272,7 @@ impl App {
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         ctx.set_visuals(self.get_visuals());
-        
+
         let is_first_frame = self.ui_state.last_frame_size.is_none();
         let last_frame_size = frame.info().window_info.size; // egui has a 1-frame delay
         self.ui_state.last_frame_size = Some((last_frame_size.x, last_frame_size.y));
