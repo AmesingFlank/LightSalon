@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::Arc};
 use crate::{
     image::Image,
     ir::{Id, IdTag, InputOp, Module, Op, Value},
-    runtime::Runtime,
+    runtime::Runtime, engine::ImageHistogram,
 };
 
 use super::{
@@ -57,7 +57,7 @@ impl Engine {
             let stats = ImageStatistics::from_buffer(&statistics_buffer, &self.runtime);
             // println!("");
             // let mut sum = 0u32;
-            // for i in 0..256 {
+            // for i in 0..ImageHistogram::num_bins() {
             //     print!("{x} ", x=stats.histogram_final.r[i]);
             //     sum = sum + stats.histogram_final.r[i];
             // }
