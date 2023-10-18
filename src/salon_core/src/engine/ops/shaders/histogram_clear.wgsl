@@ -1,10 +1,11 @@
-const num_bins:u32 = 64u;
+const max_bins:u32 = 256u;
 
 struct Buffer {
-    r: array<atomic<u32>, num_bins>,
-    g: array<atomic<u32>, num_bins>,
-    b: array<atomic<u32>, num_bins>,
-    luma: array<atomic<u32>, num_bins>,
+    r: array<atomic<u32>, max_bins>,
+    g: array<atomic<u32>, max_bins>,
+    b: array<atomic<u32>, max_bins>,
+    luma: array<atomic<u32>, max_bins>,
+    num_bins: u32,
 };
 
 @group(0) @binding(0)

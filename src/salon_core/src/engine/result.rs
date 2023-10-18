@@ -7,11 +7,16 @@ pub struct ImageHistogram {
     pub g: Vec<u32>,
     pub b: Vec<u32>,
     pub luma: Vec<u32>,
+    pub num_bins: u32,
 }
 
 impl ImageHistogram {
-    pub fn num_bins() -> usize {
-        64
+    pub fn max_bins() -> usize {
+        256
+    }
+    pub fn num_bins_for(dimensions: (u32, u32)) -> usize {
+        let bins = (((dimensions.0 * dimensions.1) as f64).sqrt() / 10.0) as usize;
+        std::cmp::max(4, std::cmp::min(ImageHistogram::max_bins(), bins))
     }
 }
 
@@ -24,19 +29,27 @@ impl ImageStatistics {
         let buffer_ints: Vec<u32> = runtime.read_buffer(buffer);
 
         let r = buffer_ints.as_slice()
-            [ImageHistogram::num_bins() * 0..ImageHistogram::num_bins() * 1]
+            [ImageHistogram::max_bins() * 0..ImageHistogram::max_bins() * 1]
             .to_vec();
         let g = buffer_ints.as_slice()
-            [ImageHistogram::num_bins() * 1..ImageHistogram::num_bins() * 2]
+            [ImageHistogram::max_bins() * 1..ImageHistogram::max_bins() * 2]
             .to_vec();
         let b = buffer_ints.as_slice()
-            [ImageHistogram::num_bins() * 2..ImageHistogram::num_bins() * 3]
+            [ImageHistogram::max_bins() * 2..ImageHistogram::max_bins() * 3]
             .to_vec();
         let luma = buffer_ints.as_slice()
-            [ImageHistogram::num_bins() * 3..ImageHistogram::num_bins() * 4]
+            [ImageHistogram::max_bins() * 3..ImageHistogram::max_bins() * 4]
             .to_vec();
 
-        let histogram_final = ImageHistogram { r, g, b, luma };
+        let num_bins = buffer_ints[ImageHistogram::max_bins() * 4];
+
+        let histogram_final = ImageHistogram {
+            r,
+            g,
+            b,
+            luma,
+            num_bins,
+        };
         ImageStatistics { histogram_final }
     }
 }

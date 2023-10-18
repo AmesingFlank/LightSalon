@@ -186,11 +186,11 @@ impl App {
                         //     max_histogram_val = std::cmp::max(max_histogram_val, *v);
                         // }
 
-                        let r_line_data: Vec<[f64; 2]> = (0..ImageHistogram::num_bins())
+                        let r_line_data: Vec<[f64; 2]> = (0..hist.num_bins)
                             .map(|i| {
                                 [
-                                    i as f64 / ImageHistogram::num_bins() as f64,
-                                    stats.histogram_final.r[i] as f64 / max_histogram_val as f64,
+                                    i as f64 / hist.num_bins as f64,
+                                    stats.histogram_final.r[i as usize] as f64 / max_histogram_val as f64,
                                 ]
                             })
                             .collect();

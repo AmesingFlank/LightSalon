@@ -1,9 +1,9 @@
 use std::{collections::HashMap, mem::size_of, sync::Arc};
 
 use crate::{
-    buffer::BufferProperties,
+    buffer::{BufferProperties, RingBuffer},
     engine::{value_store::ValueStore, ImageHistogram},
-    image::ColorSpace,
+    image::{ColorSpace, Image},
     ir::{ComputeHistogramOp, Id},
     runtime::{
         BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager,
@@ -14,6 +14,8 @@ use crate::{
 
 pub struct ComputeHistogramImpl {
     runtime: Arc<Runtime>,
+
+    ring_buffer: RingBuffer,
 
     pipeline_clear: wgpu::ComputePipeline,
     bind_group_manager_clear: BindGroupManager,
@@ -39,8 +41,17 @@ impl ComputeHistogramImpl {
         let bind_group_manager_compute =
             BindGroupManager::new(runtime.clone(), bind_group_layout_compute);
 
+        let ring_buffer = RingBuffer::new(
+            runtime.clone(),
+            BufferProperties {
+                size: size_of::<f32>(),
+                host_readable: false,
+            },
+        );
+
         ComputeHistogramImpl {
             runtime,
+            ring_buffer,
             pipeline_clear,
             bind_group_manager_clear,
             pipeline_compute,
@@ -49,7 +60,9 @@ impl ComputeHistogramImpl {
     }
 }
 impl ComputeHistogramImpl {
-    pub fn reset(&mut self) {}
+    pub fn reset(&mut self) {
+        self.ring_buffer.mark_all_available()
+    }
 
     pub fn encode_commands(
         &mut self,
@@ -60,7 +73,7 @@ impl ComputeHistogramImpl {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
 
         let buffer_props = BufferProperties {
-            size: 4 * ImageHistogram::num_bins() * size_of::<u32>(),
+            size: (4 * ImageHistogram::max_bins() + 1) * size_of::<u32>(),
             host_readable: true,
         };
 
@@ -68,6 +81,14 @@ impl ComputeHistogramImpl {
             self.runtime.as_ref(),
             op.result,
             &buffer_props,
+        );
+
+        let uniform_buffer = self.ring_buffer.get();
+        let num_bins = ImageHistogram::num_bins_for(input_img.properties.dimensions);
+        self.runtime.queue.write_buffer(
+            &uniform_buffer.buffer,
+            0,
+            bytemuck::cast_slice(&[num_bins as u32]),
         );
 
         let bind_group_clear = self
@@ -89,6 +110,10 @@ impl ComputeHistogramImpl {
                         },
                         BindGroupEntry {
                             binding: 1,
+                            resource: BindingResource::Buffer(uniform_buffer),
+                        },
+                        BindGroupEntry {
+                            binding: 2,
                             resource: BindingResource::Buffer(&output_buffer),
                         },
                     ],
@@ -100,7 +125,7 @@ impl ComputeHistogramImpl {
 
             compute_pass.set_pipeline(&self.pipeline_clear);
             compute_pass.set_bind_group(0, &bind_group_clear, &[]);
-            compute_pass.dispatch_workgroups(ImageHistogram::num_bins() as u32, 1, 1);
+            compute_pass.dispatch_workgroups(ImageHistogram::max_bins() as u32, 1, 1);
 
             compute_pass.set_pipeline(&self.pipeline_compute);
             compute_pass.set_bind_group(0, &bind_group_compute, &[]);

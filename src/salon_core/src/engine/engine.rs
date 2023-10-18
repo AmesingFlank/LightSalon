@@ -57,11 +57,12 @@ impl Engine {
             let stats = ImageStatistics::from_buffer(&statistics_buffer, &self.runtime);
             // println!("");
             // let mut sum = 0u32;
-            // for i in 0..ImageHistogram::num_bins() {
+            // for i in 0..stats.histogram_final.num_bins as usize {
             //     print!("{x} ", x=stats.histogram_final.r[i]);
             //     sum = sum + stats.histogram_final.r[i];
             // }
             // println!("");
+            // println!("num_bins={num_bins}",num_bins=stats.histogram_final.num_bins);
             // println!("sum={sum}",sum=sum);
             // println!("");
             result.statistics = Some(stats)
