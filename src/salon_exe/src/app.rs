@@ -261,6 +261,7 @@ impl App {
         CollapsingHeader::new("Light & Color")
             .default_open(true)
             .show(ui, |ui| {
+                ui.spacing_mut().slider_width = ui.available_width()*0.6;
                 ui.add(
                     egui::Slider::new(&mut editor_state.exposure_val, -4.0..=4.0).text("Exposure"),
                 );
