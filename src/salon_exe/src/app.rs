@@ -194,13 +194,20 @@ impl App {
                                 ]
                             })
                             .collect();
-                        let r_line = Line::new(r_line_data);
+                        let r_line = Line::new(r_line_data)
+                            .color(Color32::from_rgb(250, 0, 0))
+                            .fill(0.0);
                         let plot = Plot::new("histogram")
-                            .legend(Legend::default().position(Corner::RightBottom))
+                            .height(self.ui_state.last_frame_size.unwrap().1 * 0.2)
                             .show_x(false)
                             .show_y(false)
-                            .height(self.ui_state.last_frame_size.unwrap().1 * 0.2)
-                            .data_aspect(1.0);
+                            .allow_zoom(false)
+                            .allow_scroll(false)
+                            .allow_double_click_reset(false)
+                            .allow_drag(false)
+                            .clamp_grid(true)
+                            .show_axes([false, false])
+                            .show_grid([false, false]);
                         plot.show(ui, |plot_ui| {
                             plot_ui.line(r_line);
                         });
@@ -215,7 +222,7 @@ impl App {
                     // let points = Points::new(sin_values).stems(-1.5).radius(1.0);
 
                     // let plot = Plot::new("items_demo")
-                    //     .legend(Legend::default().position(Corner::RightBottom))
+                    //     .show_grid(false)
                     //     .show_x(false)
                     //     .show_y(false)
                     //     .height(self.ui_state.last_frame_size.unwrap().1 * 0.2)
