@@ -176,27 +176,46 @@ impl App {
                         for v in hist.r.iter() {
                             max_histogram_val = std::cmp::max(max_histogram_val, *v);
                         }
-                        // for v in hist.g.iter() {
-                        //     max_histogram_val = std::cmp::max(max_histogram_val, *v);
-                        // }
-                        // for v in hist.b.iter() {
-                        //     max_histogram_val = std::cmp::max(max_histogram_val, *v);
-                        // }
-                        // for v in hist.luma.iter() {
-                        //     max_histogram_val = std::cmp::max(max_histogram_val, *v);
-                        // }
+                        for v in hist.g.iter() {
+                            max_histogram_val = std::cmp::max(max_histogram_val, *v);
+                        }
+                        for v in hist.b.iter() {
+                            max_histogram_val = std::cmp::max(max_histogram_val, *v);
+                        }
+                        for v in hist.luma.iter() {
+                            max_histogram_val = std::cmp::max(max_histogram_val, *v);
+                        }
 
-                        let r_line_data: Vec<[f64; 2]> = (0..hist.num_bins)
-                            .map(|i| {
-                                [
-                                    i as f64 / hist.num_bins as f64,
-                                    stats.histogram_final.r[i as usize] as f64 / max_histogram_val as f64,
-                                ]
-                            })
-                            .collect();
+                        let get_line_data = |v: &Vec<u32>| {
+                            let line_data: Vec<[f64; 2]> = (0..hist.num_bins)
+                                .map(|i| {
+                                    [
+                                        i as f64 / hist.num_bins as f64,
+                                        v[i as usize] as f64 / max_histogram_val as f64,
+                                    ]
+                                })
+                                .collect();
+                            line_data
+                        };
+
+                        let r_line_data = get_line_data(&hist.r);
+                        let g_line_data = get_line_data(&hist.g);
+                        let b_line_data = get_line_data(&hist.b);
+                        let luma_line_data = get_line_data(&hist.luma);
+
                         let r_line = Line::new(r_line_data)
-                            .color(Color32::from_rgb(250, 0, 0))
+                            .color(Color32::from_rgb(220, 0, 0))
                             .fill(0.0);
+                        let g_line = Line::new(g_line_data)
+                            .color(Color32::from_rgb(0, 200, 0))
+                            .fill(0.0);
+                        let b_line = Line::new(b_line_data)
+                            .color(Color32::from_rgb(30, 50, 250))
+                            .fill(0.0);
+                        let luma_line = Line::new(luma_line_data)
+                            .color(Color32::from_rgb(200, 200, 200))
+                            .fill(0.0);
+
                         let plot = Plot::new("histogram")
                             .height(self.ui_state.last_frame_size.unwrap().1 * 0.2)
                             .show_x(false)
@@ -210,6 +229,9 @@ impl App {
                             .show_grid([false, false]);
                         plot.show(ui, |plot_ui| {
                             plot_ui.line(r_line);
+                            plot_ui.line(g_line);
+                            plot_ui.line(b_line);
+                            plot_ui.line(luma_line);
                         });
                     }
                     // let n = 100;

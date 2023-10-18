@@ -12,7 +12,7 @@ pub struct ImageHistogram {
 
 impl ImageHistogram {
     pub fn max_bins() -> usize {
-        256
+        128
     }
     pub fn num_bins_for(dimensions: (u32, u32)) -> usize {
         let bins = (((dimensions.0 * dimensions.1) as f64).sqrt() / 10.0) as usize;

@@ -1,4 +1,4 @@
-const max_bins:u32 = 256u;
+const max_bins:u32 = 128u;
 
 struct Buffer {
     r: array<atomic<u32>, max_bins>,
