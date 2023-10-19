@@ -10,6 +10,7 @@ use crate::{
         BindingResource, Runtime,
     },
     shader::{Shader, ShaderLibraryModule},
+    utils::math::div_up,
 };
 
 pub struct ComputeHistogramImpl {
@@ -130,11 +131,10 @@ impl ComputeHistogramImpl {
             compute_pass.set_pipeline(&self.pipeline_compute);
             compute_pass.set_bind_group(0, &bind_group_compute, &[]);
 
-            compute_pass.dispatch_workgroups(
-                input_img.properties.dimensions.0,
-                input_img.properties.dimensions.1,
-                1,
-            );
+            let num_workgroups_x = div_up(input_img.properties.dimensions.0, 8);
+            let num_workgroups_y = div_up(input_img.properties.dimensions.1, 8);
+
+            compute_pass.dispatch_workgroups(num_workgroups_x, num_workgroups_y, 1);
         }
     }
 }
