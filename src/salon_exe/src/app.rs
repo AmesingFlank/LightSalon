@@ -8,6 +8,7 @@ use egui_extras::{Column, TableBuilder};
 use salon_core::{
     editor::EditorState,
     engine::{Engine, ImageHistogram},
+    image::Image,
     ir::{AdjustExposureOp, Module, Op},
     library::AddImageResult,
     runtime::Runtime,
@@ -117,6 +118,10 @@ impl App {
                         y: max_x * image_aspect_ratio,
                     }
                 };
+                self.ui_state.lowest_rendered_mip = Image::get_lowest_rendered_mip(
+                    image.properties.dimensions,
+                    (size.x as u32, size.y as u32),
+                );
                 ui.centered_and_justified(|ui| {
                     let (rect, response) = ui.allocate_exact_size(size, egui::Sense::drag());
                     ui.painter().add(egui_wgpu::Callback::new_paint_callback(
@@ -261,7 +266,7 @@ impl App {
         CollapsingHeader::new("Light & Color")
             .default_open(true)
             .show(ui, |ui| {
-                ui.spacing_mut().slider_width = ui.available_width()*0.6;
+                ui.spacing_mut().slider_width = ui.available_width() * 0.6;
                 ui.add(
                     egui::Slider::new(&mut editor_state.exposure_val, -4.0..=4.0).text("Exposure"),
                 );
@@ -357,12 +362,14 @@ impl eframe::App for App {
 
 struct AppUiState {
     last_frame_size: Option<(f32, f32)>,
+    lowest_rendered_mip: u32,
 }
 
 impl AppUiState {
     fn new() -> Self {
         AppUiState {
             last_frame_size: None,
+            lowest_rendered_mip: 0,
         }
     }
 }

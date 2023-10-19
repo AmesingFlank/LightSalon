@@ -9,8 +9,10 @@ pub struct MipmapGenerator {
 // https://github.com/gfx-rs/wgpu/blob/trunk/examples/mipmap/src/main.rs
 impl MipmapGenerator {
     pub fn new(runtime: &Runtime) -> Self {
-        let (pipeline, bind_group_layout) = runtime
-            .create_render_pipeline(include_str!("./mipmap_generator.wgsl"), wgpu::TextureFormat::Rgba16Float);
+        let (pipeline, bind_group_layout) = runtime.create_render_pipeline(
+            include_str!("./mipmap_generator.wgsl"),
+            wgpu::TextureFormat::Rgba16Float,
+        );
         let sampler = runtime.device.create_sampler(&wgpu::SamplerDescriptor {
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
@@ -27,27 +29,13 @@ impl MipmapGenerator {
         }
     }
 
-    pub fn encode_mipmap_generation_command<'i>(
-        &'i self,
-        runtime: &'i Runtime,
-        img: &'i Image,
-        encoder: &'i mut wgpu::CommandEncoder,
+    pub fn encode_mipmap_generation_command(
+        &self,
+        runtime: &Runtime,
+        img: &Image,
+        encoder: &mut wgpu::CommandEncoder,
     ) {
         let mip_count = Image::mip_level_count(&img.properties.dimensions);
-        let views = (0..mip_count)
-            .map(|mip| {
-                img.texture.create_view(&wgpu::TextureViewDescriptor {
-                    label: None,
-                    format: None,
-                    dimension: None,
-                    aspect: wgpu::TextureAspect::All,
-                    base_mip_level: mip,
-                    mip_level_count: Some(1),
-                    base_array_layer: 0,
-                    array_layer_count: None,
-                })
-            })
-            .collect::<Vec<_>>();
 
         for target_mip in 1..mip_count as usize {
             let bind_group = runtime
@@ -57,7 +45,7 @@ impl MipmapGenerator {
                     entries: &[
                         wgpu::BindGroupEntry {
                             binding: 0,
-                            resource: wgpu::BindingResource::TextureView(&views[target_mip - 1]),
+                            resource: wgpu::BindingResource::TextureView(&img.texture_view_single_mip[target_mip - 1]),
                         },
                         wgpu::BindGroupEntry {
                             binding: 1,
@@ -70,7 +58,7 @@ impl MipmapGenerator {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: None,
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &views[target_mip],
+                    view: &img.texture_view_single_mip[target_mip],
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color::WHITE),
@@ -85,7 +73,7 @@ impl MipmapGenerator {
         }
     }
 
-    pub fn generate<'i>(&'i self, runtime: &'i Runtime, img: &'i Image) {
+    pub fn generate(&self, runtime: &Runtime, img: &Image) {
         let mut encoder = runtime
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });

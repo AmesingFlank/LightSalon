@@ -57,4 +57,12 @@ impl Image {
         let levels = (max_dim as f32).log2() as u32;
         levels
     }
+
+    pub fn get_lowest_rendered_mip(image_dimensions: (u32, u32), rendered_dimensions: (u32, u32)) -> u32 {
+        let x_ratio = image_dimensions.0 as f32 / rendered_dimensions.0 as f32;
+        let x_lod = x_ratio.log2().floor() as u32;
+        let y_ratio = image_dimensions.1 as f32 / rendered_dimensions.1 as f32;
+        let y_lod = y_ratio.log2().floor() as u32;
+        std::cmp::min(x_lod, y_lod)
+    }
 }
