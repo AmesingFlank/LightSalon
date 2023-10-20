@@ -209,13 +209,13 @@ impl App {
                         let luma_line_data = get_line_data(&hist.luma);
 
                         let r_line = Line::new(r_line_data)
-                            .color(Color32::from_rgb(220, 0, 0))
+                            .color(Color32::from_rgb(205, 25, 25))
                             .fill(0.0);
                         let g_line = Line::new(g_line_data)
-                            .color(Color32::from_rgb(0, 200, 0))
+                            .color(Color32::from_rgb(25, 205, 25))
                             .fill(0.0);
                         let b_line = Line::new(b_line_data)
-                            .color(Color32::from_rgb(30, 50, 250))
+                            .color(Color32::from_rgb(25, 25, 205))
                             .fill(0.0);
                         let luma_line = Line::new(luma_line_data)
                             .color(Color32::from_rgb(200, 200, 200))

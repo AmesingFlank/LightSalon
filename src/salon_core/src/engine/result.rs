@@ -12,11 +12,10 @@ pub struct ImageHistogram {
 
 impl ImageHistogram {
     pub fn max_bins() -> usize {
-        128
+        256
     }
     pub fn num_bins_for(dimensions: (u32, u32)) -> usize {
-        let bins = (((dimensions.0 * dimensions.1) as f64).sqrt() / 10.0) as usize;
-        std::cmp::max(4, std::cmp::min(ImageHistogram::max_bins(), bins))
+        256
     }
 }
 
