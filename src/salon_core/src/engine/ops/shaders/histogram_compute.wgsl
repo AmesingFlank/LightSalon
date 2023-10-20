@@ -21,13 +21,15 @@ struct Buffer {
 @group(0) @binding(2)
 var<storage, read_write> buffer: Buffer;
 
+var<workgroup> buffer_local: Buffer;
+
 fn val_to_bin(v: f32) -> u32 {
     return u32(v * (f32(uniforms.num_bins) - 1.00001));
 }
 
 @compute
 @workgroup_size(8, 8)
-fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>, @builtin(local_invocation_id) local_id: vec3<u32>) {
     let input_size = textureDimensions(input);
     if(global_id.x >= input_size.x || global_id.y >= input_size.y){
         return;
@@ -42,8 +44,19 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let g_bin = val_to_bin(dot(c, vec3(0.1, 0.8, 0.1)));
     let b_bin = val_to_bin(dot(c, vec3(0.1, 0.1, 0.8)));
     let luma_bin = val_to_bin(dot(c, vec3(0.2126, 0.7152, 0.0722)));
-    atomicAdd(&buffer.r[r_bin], 1u);
-    atomicAdd(&buffer.g[g_bin], 1u);
-    atomicAdd(&buffer.b[b_bin], 1u);
-    atomicAdd(&buffer.luma[luma_bin], 1u);
+    atomicAdd(&buffer_local.r[r_bin], 1u);
+    atomicAdd(&buffer_local.g[g_bin], 1u);
+    atomicAdd(&buffer_local.b[b_bin], 1u);
+    atomicAdd(&buffer_local.luma[luma_bin], 1u);
+
+    workgroupBarrier();
+
+    var write_index = local_id.x * 8u + local_id.y;
+    while (write_index < max_bins){
+        atomicAdd(&buffer.r[write_index], buffer_local.r[write_index]);
+        atomicAdd(&buffer.g[write_index], buffer_local.g[write_index]);
+        atomicAdd(&buffer.b[write_index], buffer_local.b[write_index]);
+        atomicAdd(&buffer.luma[write_index], buffer_local.luma[write_index]);
+        write_index = write_index + 8u * 8u;
+    }
 }
