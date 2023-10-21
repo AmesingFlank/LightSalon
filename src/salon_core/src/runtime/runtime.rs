@@ -1,7 +1,6 @@
 use std::{io::Cursor, path::PathBuf, sync::Arc};
 
 use bytemuck::Pod;
-use image::{imageops, DynamicImage, GenericImageView, ImageBuffer, Rgb};
 
 use crate::{
     buffer::{Buffer, BufferProperties},
@@ -9,6 +8,8 @@ use crate::{
     sampler::Sampler,
     utils::{color_space_converter::ColorSpaceConverter, mipmap_generator::MipmapGenerator},
 };
+
+use zune_jpeg::JpegDecoder;
 
 use half::prelude::*;
 
@@ -183,96 +184,18 @@ impl Runtime {
         extension: &str,
     ) -> Result<Image, String> {
         let extension = extension.to_lowercase();
-        if extension == "jpg" || extension == "jpeg" || extension == "png" {
-            return self.create_image_from_bytes_jpg_png(image_bytes);
+        if extension == "jpg" || extension == "jpeg" {
+            return self.create_image_from_bytes_jpg(image_bytes);
         }
-        // Raw loading: doens't work!
-        // let raw_extensions = HashSet::from([
-        //     "raf", // fujifilm
-        //     "crw", "cr2", // canon
-        //     "nrw", "nef", // nikon
-        //     "arw", "srf", "sr2", // sony,
-        //     "rw2", // Panasonic, Leica,
-        //     "3fr", // Hasselblad
-        // ]);
-        // if raw_extensions.contains(extension.as_str()) {
-        //     return self.create_image_from_bytes_raw(image_bytes);
-        // }
-
         Err("unsupported image format: ".to_owned() + extension.as_str())
     }
 
-    // Raw loading: doens't work!
-    // pub fn create_image_from_bytes_raw(&self, image_bytes: &[u8]) -> Result<Image, String> {
-    //     let decode_result = rawloader::decode(&mut Cursor::new(image_bytes));
-    //     let Ok(raw) = decode_result else {
-    //         return Err(decode_result.err().unwrap().to_string());
-    //     };
+    pub fn create_image_from_bytes_jpg(&self, image_bytes: &[u8]) -> Result<Image, String> {
+        let mut decoder = JpegDecoder::new(image_bytes);
+        let pixels_rgb8 = decoder.decode().unwrap();
+        let dimensions = decoder.dimensions().unwrap();
+        let dimensions = (dimensions.0 as u32, dimensions.1 as u32);
 
-    //     let source = ImageSource::Raw(raw);
-    //     let Ok(mut pipeline) = Pipeline::new_from_source(source) else {
-    //         return Err("imagepipe cannot decode file".to_owned());
-    //     };
-
-    //     pipeline.run(None);
-    //     let Ok(image) = pipeline.output_16bit(None) else {
-    //         return Err("imagepipe cannot output file".to_owned());
-    //     };
-
-    //     let image = ImageBuffer::<Rgb<u16>, Vec<u16>>::from_raw(
-    //         image.width as u32,
-    //         image.height as u32,
-    //         image.data,
-    //     );
-
-    //     let image = image::DynamicImage::ImageRgb16(image.expect("cannot create DynamicImage"));
-    //     Ok(self.create_image_from_dynamic_image(image, true))
-    // }
-
-    pub fn create_image_from_bytes_jpg_png(&self, image_bytes: &[u8]) -> Result<Image, String> {
-        let Ok(mut img) = image::load_from_memory(image_bytes) else {
-            return Err("image::load_from_memory failed".to_owned());
-        };
-
-        // use exif to fix image orientation
-        // https://github.com/image-rs/image/issues/1958
-        let exif_reader = exif::Reader::new();
-        let mut cursor = Cursor::new(image_bytes);
-        let exif = exif_reader.read_from_container(&mut cursor);
-
-        let orientation: u32 = match exif {
-            Ok(exif) => match exif.get_field(exif::Tag::Orientation, exif::In::PRIMARY) {
-                Some(orientation) => match orientation.value.get_uint(0) {
-                    Some(v @ 1..=8) => v,
-                    _ => 1,
-                },
-                None => 1,
-            },
-            Err(_) => 1,
-        };
-
-        if orientation == 2 {
-            img = DynamicImage::ImageRgba8(imageops::flip_horizontal(&img));
-        } else if orientation == 3 {
-            img = DynamicImage::ImageRgba8(imageops::rotate180(&img));
-        } else if orientation == 4 {
-            img = DynamicImage::ImageRgba8(imageops::flip_horizontal(&img));
-        } else if orientation == 5 {
-            img = DynamicImage::ImageRgba8(imageops::rotate90(&img));
-            img = DynamicImage::ImageRgba8(imageops::flip_horizontal(&img));
-        } else if orientation == 6 {
-            img = DynamicImage::ImageRgba8(imageops::rotate90(&img));
-        } else if orientation == 7 {
-            img = DynamicImage::ImageRgba8(imageops::rotate270(&img));
-            img = DynamicImage::ImageRgba8(imageops::flip_horizontal(&img));
-        } else if orientation == 8 {
-            img = DynamicImage::ImageRgba8(imageops::rotate270(&img));
-        }
-        Ok(self.create_image_from_dynamic_image(img))
-    }
-
-    pub fn create_image_from_dynamic_image(&self, dynamic_image: image::DynamicImage) -> Image {
-        let dimensions = dynamic_image.dimensions();
         let properties = ImageProperties {
             dimensions,
             format: ImageFormat::Rgba16Float,
@@ -280,24 +203,31 @@ impl Runtime {
         };
         let result = self.create_image_of_properties(properties);
 
-        let dynamic_image_32f = dynamic_image.to_rgba32f();
-        let image_f32s = dynamic_image_32f.as_raw();
-        let mut image_f16s_bytes = Vec::with_capacity(image_f32s.len() * 2);
-        for i in 0..image_f32s.len() {
-            let f = image_f32s[i];
+        let mut pixels_rgba8 = Vec::with_capacity(pixels_rgb8.len() * 4 / 3);
+
+        for i in 0..pixels_rgb8.len() / 3 {
+            pixels_rgba8.push(pixels_rgb8[i * 3]);
+            pixels_rgba8.push(pixels_rgb8[i * 3 + 1]);
+            pixels_rgba8.push(pixels_rgb8[i * 3 + 2]);
+            pixels_rgba8.push(255);
+        }
+
+        let mut pixels_rgba16 = Vec::with_capacity(pixels_rgba8.len() * 2);
+        for i in 0..pixels_rgba8.len() {
+            let f = pixels_rgba8[i] as f32 / 255.0;
             let h = f16::from_f32(f);
             let h_bytes = h.to_be_bytes();
-            image_f16s_bytes.push(h_bytes[1]);
-            image_f16s_bytes.push(h_bytes[0]);
+            pixels_rgba16.push(h_bytes[1]);
+            pixels_rgba16.push(h_bytes[0]);
         }
+
+        let bytes_per_row = dimensions.0 * result.properties.format.bytes_per_pixel();
 
         let size = wgpu::Extent3d {
             width: dimensions.0,
             height: dimensions.1,
             depth_or_array_layers: 1,
         };
-
-        let bytes_per_row = dimensions.0 * result.properties.format.bytes_per_pixel();
 
         self.queue.write_texture(
             // Tells wgpu where to copy the pixel data
@@ -307,7 +237,7 @@ impl Runtime {
                 origin: wgpu::Origin3d::ZERO,
                 aspect: wgpu::TextureAspect::All,
             },
-            image_f16s_bytes.as_slice(),
+            pixels_rgba16.as_slice(),
             wgpu::ImageDataLayout {
                 offset: 0,
                 bytes_per_row: Some(bytes_per_row),
@@ -317,7 +247,7 @@ impl Runtime {
         );
 
         self.ensure_mipmap(&result);
-        result
+        Ok(result)
     }
 
     pub fn copy_image(&self, src: &Image, dest: &Image) {
@@ -429,7 +359,7 @@ impl Runtime {
         buffer_slice.map_async(wgpu::MapMode::Read, move |_| {});
         // hacky
         while !self.device.poll(wgpu::Maintain::Wait) {}
-        let mapped_range= buffer_slice.get_mapped_range();
+        let mapped_range = buffer_slice.get_mapped_range();
         // Since contents are got in bytes, this converts these bytes back to u32
         let result = bytemuck::cast_slice(&mapped_range).to_vec();
         drop(mapped_range);

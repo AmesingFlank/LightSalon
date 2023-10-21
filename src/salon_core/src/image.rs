@@ -1,4 +1,3 @@
-use image::GenericImageView;
 use std::path::PathBuf;
 
 use crate::runtime;
