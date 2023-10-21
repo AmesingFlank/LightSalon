@@ -272,6 +272,10 @@ impl App {
                 );
 
                 ui.add(
+                    egui::Slider::new(&mut editor_state.contrast_val, -100.0..=100.0).text("Contrast"),
+                );
+
+                ui.add(
                     egui::Slider::new(&mut editor_state.saturation_val, -100.0..=100.0)
                         .text("Saturation"),
                 );

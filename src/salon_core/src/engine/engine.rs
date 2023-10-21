@@ -11,6 +11,7 @@ use super::{
     op_impl_collection::OpImplCollection,
     ops::{
         collect_statistics::CollectStatisticsImpl,
+        contrast::AdjustContrastImpl,
         exposure::AdjustExposureImpl,
         histogram::{self, ComputeHistogramImpl},
         saturation::{self, AdjustSaturationImpl},
@@ -94,6 +95,13 @@ impl Engine {
                         &mut self.value_store,
                     );
                 }
+                Op::AdjustContrast(ref op) => {
+                    self.op_impls.contrast.as_mut().unwrap().encode_commands(
+                        &mut encoder,
+                        op,
+                        &mut self.value_store,
+                    );
+                }
                 Op::AdjustSaturation(ref op) => {
                     self.op_impls.saturation.as_mut().unwrap().encode_commands(
                         &mut encoder,
@@ -141,6 +149,12 @@ impl Engine {
                         self.op_impls.exposure = Some(AdjustExposureImpl::new(self.runtime.clone()))
                     }
                     self.op_impls.exposure.as_mut().unwrap().reset();
+                }
+                Op::AdjustContrast(_) => {
+                    if self.op_impls.contrast.is_none() {
+                        self.op_impls.contrast = Some(AdjustContrastImpl::new(self.runtime.clone()))
+                    }
+                    self.op_impls.contrast.as_mut().unwrap().reset();
                 }
                 Op::AdjustSaturation(_) => {
                     if self.op_impls.saturation.is_none() {

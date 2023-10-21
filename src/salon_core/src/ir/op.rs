@@ -4,6 +4,7 @@ use super::Id;
 pub enum Op {
     Input(InputOp),
     AdjustExposure(AdjustExposureOp),
+    AdjustContrast(AdjustContrastOp),
     AdjustSaturation(AdjustSaturationOp),
     ComputeHistogram(ComputeHistogramOp),
     CollectStatistics(CollectStatisticsOp),
@@ -11,7 +12,7 @@ pub enum Op {
 
 #[derive(Clone)]
 pub struct InputOp {
-    pub result: Id
+    pub result: Id,
 }
 
 #[derive(Clone)]
@@ -19,6 +20,13 @@ pub struct AdjustExposureOp {
     pub result: Id,
     pub arg: Id,
     pub exposure: f32,
+}
+
+#[derive(Clone)]
+pub struct AdjustContrastOp {
+    pub result: Id,
+    pub arg: Id,
+    pub contrast: f32,
 }
 
 #[derive(Clone)]
@@ -31,12 +39,11 @@ pub struct AdjustSaturationOp {
 #[derive(Clone)]
 pub struct ComputeHistogramOp {
     pub result: Id,
-    pub arg: Id, 
+    pub arg: Id,
 }
-
 
 #[derive(Clone)]
 pub struct CollectStatisticsOp {
     pub result: Id,
-    pub histogram: Id, 
+    pub histogram: Id,
 }
