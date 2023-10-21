@@ -16,50 +16,63 @@ use crate::{
 pub struct ComputeBasicStatisticsImpl {
     runtime: Arc<Runtime>,
 
+    ring_buffer: RingBuffer,
+
     pipeline_clear: wgpu::ComputePipeline,
     bind_group_manager_clear: BindGroupManager,
 
-    pipeline_compute: wgpu::ComputePipeline,
-    bind_group_manager_compute: BindGroupManager,
+    pipeline_sum: wgpu::ComputePipeline,
+    bind_group_manager_sum: BindGroupManager,
+
+    pipeline_divide: wgpu::ComputePipeline,
+    bind_group_manager_divide: BindGroupManager,
 }
 impl ComputeBasicStatisticsImpl {
     pub fn new(runtime: Arc<Runtime>) -> Self {
-        let shader_clear = Shader::from_code(include_str!("shaders/basic_statistics_clear.wgsl"))
-            .with_library(ShaderLibraryModule::ColorSpaces)
-            .full_code();
+        let shader_clear =
+            Shader::from_code(include_str!("shaders/basic_statistics_clear.wgsl")).full_code();
         let (pipeline_clear, bind_group_layout_clear) =
             runtime.create_compute_pipeline(shader_clear.as_str());
         let bind_group_manager_clear =
             BindGroupManager::new(runtime.clone(), bind_group_layout_clear);
 
-        let shader_compute =
-            Shader::from_code(include_str!("shaders/basic_statistics_compute.wgsl"))
-                .with_library(ShaderLibraryModule::ColorSpaces)
-                .full_code();
-        let (pipeline_compute, bind_group_layout_compute) =
-            runtime.create_compute_pipeline(shader_compute.as_str());
-        let bind_group_manager_compute =
-            BindGroupManager::new(runtime.clone(), bind_group_layout_compute);
+        let shader_sum =
+            Shader::from_code(include_str!("shaders/basic_statistics_sum.wgsl")).full_code();
+        let (pipeline_sum, bind_group_layout_sum) =
+            runtime.create_compute_pipeline(shader_sum.as_str());
+        let bind_group_manager_sum = BindGroupManager::new(runtime.clone(), bind_group_layout_sum);
+
+        let shader_divide =
+            Shader::from_code(include_str!("shaders/basic_statistics_divide.wgsl")).full_code();
+        let (pipeline_divide, bind_group_layout_divide) =
+            runtime.create_compute_pipeline(shader_divide.as_str());
+        let bind_group_manager_divide =
+            BindGroupManager::new(runtime.clone(), bind_group_layout_divide);
 
         let ring_buffer = RingBuffer::new(
             runtime.clone(),
             BufferProperties {
-                size: size_of::<f32>(),
+                size: 4 * size_of::<u32>(),
                 host_readable: false,
             },
         );
 
         ComputeBasicStatisticsImpl {
             runtime,
+            ring_buffer,
             pipeline_clear,
             bind_group_manager_clear,
-            pipeline_compute,
-            bind_group_manager_compute,
+            pipeline_sum,
+            bind_group_manager_sum,
+            pipeline_divide,
+            bind_group_manager_divide,
         }
     }
 }
 impl ComputeBasicStatisticsImpl {
-    pub fn reset(&mut self) {}
+    pub fn reset(&mut self) {
+        self.ring_buffer.mark_all_available();
+    }
 
     pub fn encode_commands(
         &mut self,
@@ -70,7 +83,7 @@ impl ComputeBasicStatisticsImpl {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
 
         let buffer_props = BufferProperties {
-            size: 3 * size_of::<u32>(),
+            size: 4 * size_of::<f32>(),
             host_readable: true,
         };
 
@@ -80,29 +93,46 @@ impl ComputeBasicStatisticsImpl {
             &buffer_props,
         );
 
+        let working_buffer = self.ring_buffer.get();
+
         let bind_group_clear = self
             .bind_group_manager_clear
             .get_or_create(BindGroupDescriptor {
                 entries: vec![BindGroupEntry {
                     binding: 0,
-                    resource: BindingResource::Buffer(&output_buffer),
+                    resource: BindingResource::Buffer(working_buffer),
                 }],
             });
 
-        let bind_group_compute =
-            self.bind_group_manager_compute
-                .get_or_create(BindGroupDescriptor {
-                    entries: vec![
-                        BindGroupEntry {
-                            binding: 0,
-                            resource: BindingResource::Texture(&input_img),
-                        },
-                        BindGroupEntry {
-                            binding: 1,
-                            resource: BindingResource::Buffer(&output_buffer),
-                        },
-                    ],
-                });
+        let bind_group_sum = self
+            .bind_group_manager_sum
+            .get_or_create(BindGroupDescriptor {
+                entries: vec![
+                    BindGroupEntry {
+                        binding: 0,
+                        resource: BindingResource::Texture(&input_img),
+                    },
+                    BindGroupEntry {
+                        binding: 1,
+                        resource: BindingResource::Buffer(&working_buffer),
+                    },
+                ],
+            });
+
+        let bind_group_divide = self
+            .bind_group_manager_divide
+            .get_or_create(BindGroupDescriptor {
+                entries: vec![
+                    BindGroupEntry {
+                        binding: 0,
+                        resource: BindingResource::Buffer(working_buffer),
+                    },
+                    BindGroupEntry {
+                        binding: 1,
+                        resource: BindingResource::Buffer(&output_buffer),
+                    },
+                ],
+            });
 
         {
             let mut compute_pass =
@@ -112,13 +142,17 @@ impl ComputeBasicStatisticsImpl {
             compute_pass.set_bind_group(0, &bind_group_clear, &[]);
             compute_pass.dispatch_workgroups(1, 1, 1);
 
-            compute_pass.set_pipeline(&self.pipeline_compute);
-            compute_pass.set_bind_group(0, &bind_group_compute, &[]);
+            compute_pass.set_pipeline(&self.pipeline_sum);
+            compute_pass.set_bind_group(0, &bind_group_sum, &[]);
 
             let num_workgroups_x = div_up(input_img.properties.dimensions.0, 8);
             let num_workgroups_y = div_up(input_img.properties.dimensions.1, 8);
 
             compute_pass.dispatch_workgroups(num_workgroups_x, num_workgroups_y, 1);
+
+            compute_pass.set_pipeline(&self.pipeline_divide);
+            compute_pass.set_bind_group(0, &bind_group_divide, &[]);
+            compute_pass.dispatch_workgroups(1, 1, 1);
         }
     }
 }

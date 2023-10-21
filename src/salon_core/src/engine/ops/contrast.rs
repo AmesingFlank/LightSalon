@@ -9,8 +9,9 @@ use crate::{
         BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager,
         BindingResource, Runtime,
     },
+    sampler::Sampler,
     shader::{Shader, ShaderLibraryModule},
-    utils::math::div_up, sampler::Sampler,
+    utils::math::div_up,
 };
 
 pub struct AdjustContrastImpl {
@@ -18,7 +19,6 @@ pub struct AdjustContrastImpl {
     pipeline: wgpu::ComputePipeline,
     bind_group_manager: BindGroupManager,
     ring_buffer: RingBuffer,
-    sampler: Sampler,
 }
 impl AdjustContrastImpl {
     pub fn new(runtime: Arc<Runtime>) -> Self {
@@ -33,27 +33,16 @@ impl AdjustContrastImpl {
         let ring_buffer = RingBuffer::new(
             runtime.clone(),
             BufferProperties {
-                size: 2 * size_of::<f32>(),
+                size: size_of::<f32>(),
                 host_readable: false,
             },
         );
-
-        let sampler = runtime.create_sampler(&wgpu::SamplerDescriptor {
-            address_mode_u: wgpu::AddressMode::ClampToEdge,
-            address_mode_v: wgpu::AddressMode::ClampToEdge,
-            address_mode_w: wgpu::AddressMode::ClampToEdge,
-            mag_filter: wgpu::FilterMode::Linear,
-            min_filter: wgpu::FilterMode::Linear,
-            mipmap_filter: wgpu::FilterMode::Linear,
-            ..Default::default()
-        });
 
         AdjustContrastImpl {
             runtime,
             pipeline,
             bind_group_manager,
             ring_buffer,
-            sampler
         }
     }
 }
@@ -69,8 +58,12 @@ impl AdjustContrastImpl {
         value_store: &mut ValueStore,
     ) {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
-
-        self.runtime.encode_mipmap_generation_command(&input_img, encoder);
+        let input_basic_stats = value_store
+            .map
+            .get(&op.basic_stats)
+            .unwrap()
+            .as_buffer()
+            .clone();
 
         let output_img = value_store.ensure_value_at_id_is_image_of_properties(
             self.runtime.as_ref(),
@@ -80,11 +73,9 @@ impl AdjustContrastImpl {
 
         let buffer = self.ring_buffer.get();
 
-        let max_lod = Image::mip_level_count(&input_img.properties.dimensions) as f32;
-
         self.runtime
             .queue
-            .write_buffer(&buffer.buffer, 0, bytemuck::cast_slice(&[op.contrast, max_lod]));
+            .write_buffer(&buffer.buffer, 0, bytemuck::cast_slice(&[op.contrast]));
 
         let bind_group = self.bind_group_manager.get_or_create(BindGroupDescriptor {
             entries: vec![
@@ -94,7 +85,7 @@ impl AdjustContrastImpl {
                 },
                 BindGroupEntry {
                     binding: 1,
-                    resource: BindingResource::Sampler(&self.sampler),
+                    resource: BindingResource::Buffer(&input_basic_stats),
                 },
                 BindGroupEntry {
                     binding: 2,

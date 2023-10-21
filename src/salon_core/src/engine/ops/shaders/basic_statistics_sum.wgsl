@@ -2,9 +2,11 @@
 var input: texture_2d<f32>;
  
 struct Buffer {
-    mean_r: atomic<u32>,
-    mean_g: atomic<u32>,
-    mean_b: atomic<u32>,
+    sum_r: atomic<u32>,
+    sum_g: atomic<u32>,
+    sum_b: atomic<u32>,
+
+    sum_count: atomic<u32>,
 };
 
 @group(0) @binding(1)
@@ -24,15 +26,19 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>, @builtin(local_i
     let r = u32(c.r * 255.0);
     let g = u32(c.g * 255.0);
     let b = u32(c.b * 255.0);
-    atomicAdd(&buffer_local.mean_r, r);
-    atomicAdd(&buffer_local.mean_r, g);
-    atomicAdd(&buffer_local.mean_r, b);
+    atomicAdd(&buffer_local.sum_r, r);
+    atomicAdd(&buffer_local.sum_g, g);
+    atomicAdd(&buffer_local.sum_b, b);
 
     workgroupBarrier();
 
     if(local_id.x == 0u && local_id.y == 0u) {
-        atomicAdd(&buffer.mean_r, buffer_local.mean_r);
-        atomicAdd(&buffer.mean_g, buffer_local.mean_g);
-        atomicAdd(&buffer.mean_b, buffer_local.mean_b);
+        let wg_size = 8u * 8u;
+
+        atomicAdd(&buffer.sum_r, buffer_local.sum_r / wg_size);
+        atomicAdd(&buffer.sum_g, buffer_local.sum_g / wg_size);
+        atomicAdd(&buffer.sum_b, buffer_local.sum_b / wg_size);
+
+        atomicAdd(&buffer.sum_count, 1u);
     }
 }

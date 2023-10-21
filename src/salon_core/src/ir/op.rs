@@ -27,6 +27,7 @@ pub struct AdjustExposureOp {
 pub struct AdjustContrastOp {
     pub result: Id,
     pub arg: Id,
+    pub basic_stats: Id,
     pub contrast: f32,
 }
 
