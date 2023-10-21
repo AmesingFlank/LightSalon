@@ -177,28 +177,10 @@ impl App {
                 if let Some(ref result) = self.session.current_process_result {
                     if let Some(ref stats) = result.statistics {
                         let hist = &stats.histogram_final;
-                        let mut max_histogram_val = 0;
-                        for v in hist.r.iter() {
-                            max_histogram_val = std::cmp::max(max_histogram_val, *v);
-                        }
-                        for v in hist.g.iter() {
-                            max_histogram_val = std::cmp::max(max_histogram_val, *v);
-                        }
-                        for v in hist.b.iter() {
-                            max_histogram_val = std::cmp::max(max_histogram_val, *v);
-                        }
-                        for v in hist.luma.iter() {
-                            max_histogram_val = std::cmp::max(max_histogram_val, *v);
-                        }
 
                         let get_line_data = |v: &Vec<u32>| {
                             let line_data: Vec<[f64; 2]> = (0..hist.num_bins)
-                                .map(|i| {
-                                    [
-                                        i as f64 / hist.num_bins as f64,
-                                        v[i as usize] as f64 / max_histogram_val as f64,
-                                    ]
-                                })
+                                .map(|i| [i as f64 / hist.num_bins as f64, v[i as usize] as f64])
                                 .collect();
                             line_data
                         };
@@ -221,6 +203,11 @@ impl App {
                             .color(Color32::from_rgb(200, 200, 200))
                             .fill(0.0);
 
+                        let img_dim = result.final_image.as_ref().unwrap().properties.dimensions;
+                        let num_pixels = img_dim.0 * img_dim.1;
+                        let mut y_top = hist.max_value() as f32;
+                        y_top = y_top.min(10.0 * num_pixels as f32 / hist.num_bins as f32);
+
                         let plot = Plot::new("histogram")
                             .height(self.ui_state.last_frame_size.unwrap().1 * 0.2)
                             .show_x(false)
@@ -229,7 +216,10 @@ impl App {
                             .allow_scroll(false)
                             .allow_double_click_reset(false)
                             .allow_drag(false)
-                            .clamp_grid(true)
+                            .include_x(0.0)
+                            .include_x(1.0)
+                            .include_y(0.0)
+                            .include_y(y_top)
                             .show_axes([false, false])
                             .show_grid([false, false]);
                         plot.show(ui, |plot_ui| {
@@ -272,7 +262,8 @@ impl App {
                 );
 
                 ui.add(
-                    egui::Slider::new(&mut editor_state.contrast_val, -100.0..=100.0).text("Contrast"),
+                    egui::Slider::new(&mut editor_state.contrast_val, -100.0..=100.0)
+                        .text("Contrast"),
                 );
 
                 ui.add(
