@@ -10,6 +10,7 @@ use crate::{
 use super::{
     op_impl_collection::OpImplCollection,
     ops::{
+        basic_statistics::ComputeBasicStatisticsImpl,
         collect_statistics::CollectStatisticsImpl,
         contrast::AdjustContrastImpl,
         exposure::AdjustExposureImpl,
@@ -109,6 +110,13 @@ impl Engine {
                         &mut self.value_store,
                     );
                 }
+                Op::ComputeBasicStatistics(ref op) => {
+                    self.op_impls.basic_statistics.as_mut().unwrap().encode_commands(
+                        &mut encoder,
+                        op,
+                        &mut self.value_store,
+                    );
+                }
                 Op::ComputeHistogram(ref op) => {
                     self.op_impls.histogram.as_mut().unwrap().encode_commands(
                         &mut encoder,
@@ -162,6 +170,13 @@ impl Engine {
                             Some(AdjustSaturationImpl::new(self.runtime.clone()))
                     }
                     self.op_impls.saturation.as_mut().unwrap().reset();
+                }
+                Op::ComputeBasicStatistics(_) => {
+                    if self.op_impls.basic_statistics.is_none() {
+                        self.op_impls.basic_statistics =
+                            Some(ComputeBasicStatisticsImpl::new(self.runtime.clone()))
+                    }
+                    self.op_impls.basic_statistics.as_mut().unwrap().reset();
                 }
                 Op::ComputeHistogram(_) => {
                     if self.op_impls.histogram.is_none() {

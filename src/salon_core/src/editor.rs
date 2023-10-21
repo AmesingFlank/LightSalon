@@ -1,4 +1,4 @@
-use crate::ir::{AdjustContrastOp, AdjustExposureOp, AdjustSaturationOp, Module, Op};
+use crate::ir::{AdjustContrastOp, AdjustExposureOp, AdjustSaturationOp, Module, Op, ComputeBasicStatisticsOp};
 
 pub struct Editor {
     pub current_state: EditorState,
@@ -49,6 +49,12 @@ impl EditorState {
         }
 
         if self.contrast_val != 0.0 {
+            let basic_stats_id = module.alloc_id();
+            module.push_op(Op::ComputeBasicStatistics(ComputeBasicStatisticsOp {
+                result: basic_stats_id,
+                arg: current_output_id,
+            }));
+
             let contrast_adjusted_image_id = module.alloc_id();
             let contrast_op = Op::AdjustContrast(AdjustContrastOp {
                 result: contrast_adjusted_image_id,
