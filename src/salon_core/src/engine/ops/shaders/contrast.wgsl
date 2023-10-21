@@ -4,7 +4,7 @@
 var input: texture_2d<f32>;
 
 struct BasicStats {
-    mean_rgba: vec4<f32>,
+    meana: vec4<f32>,
 };
 
 @group(0) @binding(1)
@@ -20,6 +20,19 @@ struct Params {
 @group(0) @binding(3)
 var<uniform> params: Params;
 
+fn opposite_from_mean(x: f32, mean_x: f32) -> f32 {
+    if (x < mean_x) {
+        return 0.0;
+    }
+    else if (x > mean_x) {
+        return max(1.0, x+0.01); // need to consider HDR images
+    }
+    else {
+        // x == mean_x
+        return x;
+    }
+}
+
 @compute
 @workgroup_size(8, 8)
 fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
@@ -28,14 +41,22 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         return;
     }
 
-    let mean_rgb = basic_stats.mean_rgba.rgb;
-
+    let mean = basic_stats.meana.rgb;
     var rgb = textureLoad(input, global_id.xy, 0).rgb;
+    let opposite = vec3(
+        opposite_from_mean(rgb.r, mean.r),
+        opposite_from_mean(rgb.g, mean.g),
+        opposite_from_mean(rgb.b, mean.b),
+    );
 
-    var diff = rgb - mean_rgb;
-    diff = diff * (1.0 + params.contrast * 0.01 * 0.5);
+    var diff = rgb - mean;
 
-    rgb = mean_rgb + diff;
+    var speed = (rgb - mean) / (opposite - mean);
+
+    speed = min(speed, (opposite - rgb) / (opposite - mean));
+
+    diff = diff * (1.0 + params.contrast * 0.01 * speed) ;
+    rgb = mean + diff;
 
     textureStore(output, global_id.xy, vec4<f32>(rgb, 1.0));
 }
