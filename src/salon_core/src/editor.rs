@@ -1,5 +1,6 @@
 use crate::ir::{
-    AdjustContrastOp, AdjustExposureOp, AdjustSaturationOp, ComputeBasicStatisticsOp, Module, Op,
+    AdjustContrastOp, AdjustExposureOp, AdjustSaturationOp, ComputeBasicStatisticsOp, Id, Module,
+    Op,
 };
 
 pub struct Editor {
@@ -38,50 +39,58 @@ impl EditorState {
 
         let mut current_output_id = module.get_output_id().expect("expecting an output id");
 
+        self.maybe_add_exposure(&mut module, &mut current_output_id);
+        self.maybe_add_contrast(&mut module, &mut current_output_id);
+        self.maybe_add_saturation(&mut module, &mut current_output_id);
+
+        module.add_statistics_ops();
+
+        module
+    }
+
+    fn maybe_add_exposure(&self, module: &mut Module, current_output_id: &mut Id) {
         if self.exposure_val != 0.0 {
             let exposure_adjusted_image_id = module.alloc_id();
-            let exposure_op = Op::AdjustExposure(AdjustExposureOp {
+            module.push_op(Op::AdjustExposure(AdjustExposureOp {
                 result: exposure_adjusted_image_id,
-                arg: current_output_id,
+                arg: *current_output_id,
                 exposure: self.exposure_val,
-            });
-            module.push_op(exposure_op);
+            }));
             module.set_output_id(exposure_adjusted_image_id);
-            current_output_id = exposure_adjusted_image_id;
+            *current_output_id = exposure_adjusted_image_id;
         }
+    }
 
+    fn maybe_add_contrast(&self, module: &mut Module, current_output_id: &mut Id) {
         if self.contrast_val != 0.0 {
             let basic_stats_id = module.alloc_id();
             module.push_op(Op::ComputeBasicStatistics(ComputeBasicStatisticsOp {
                 result: basic_stats_id,
-                arg: current_output_id,
+                arg: *current_output_id,
             }));
 
             let contrast_adjusted_image_id = module.alloc_id();
             module.push_op(Op::AdjustContrast(AdjustContrastOp {
                 result: contrast_adjusted_image_id,
-                arg: current_output_id,
+                arg: *current_output_id,
                 basic_stats: basic_stats_id,
                 contrast: self.contrast_val,
             }));
             module.set_output_id(contrast_adjusted_image_id);
-            current_output_id = contrast_adjusted_image_id;
+            *current_output_id = contrast_adjusted_image_id;
         }
+    }
 
+    fn maybe_add_saturation(&self, module: &mut Module, current_output_id: &mut Id) {
         if self.saturation_val != 0.0 {
             let saturation_adjusted_image_id = module.alloc_id();
-            let saturation_op = Op::AdjustSaturation(AdjustSaturationOp {
+            module.push_op(Op::AdjustSaturation(AdjustSaturationOp {
                 result: saturation_adjusted_image_id,
-                arg: current_output_id,
+                arg: *current_output_id,
                 saturation: self.saturation_val,
-            });
-            module.push_op(saturation_op);
+            }));
             module.set_output_id(saturation_adjusted_image_id);
-            current_output_id = saturation_adjusted_image_id;
+            *current_output_id = saturation_adjusted_image_id;
         }
-
-        module.add_statistics_ops();
-
-        module
     }
 }
