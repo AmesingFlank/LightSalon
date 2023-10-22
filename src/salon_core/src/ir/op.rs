@@ -6,6 +6,7 @@ pub enum Op {
     AdjustExposure(AdjustExposureOp),
     AdjustContrast(AdjustContrastOp),
     AdjustHighlights(AdjustHighlightsOp),
+    AdjustShadows(AdjustShadowsOp),
     AdjustSaturation(AdjustSaturationOp),
     ComputeBasicStatistics(ComputeBasicStatisticsOp),
     ComputeHistogram(ComputeHistogramOp),
@@ -37,6 +38,13 @@ pub struct AdjustHighlightsOp {
     pub result: Id,
     pub arg: Id,
     pub highlights: f32,
+}
+
+#[derive(Clone)]
+pub struct AdjustShadowsOp {
+    pub result: Id,
+    pub arg: Id,
+    pub shadows: f32,
 }
 
 #[derive(Clone)]

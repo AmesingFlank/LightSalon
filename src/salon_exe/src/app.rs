@@ -270,6 +270,11 @@ impl App {
                     egui::Slider::new(&mut editor_state.highlights_val, -100.0..=100.0)
                         .text("Highlights"),
                 );
+
+                ui.add(
+                    egui::Slider::new(&mut editor_state.shadows_val, -100.0..=100.0)
+                        .text("Shadows"),
+                );
             });
     }
 
