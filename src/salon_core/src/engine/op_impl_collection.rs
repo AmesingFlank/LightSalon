@@ -1,9 +1,10 @@
-use super::ops::{exposure::AdjustExposureImpl, saturation::AdjustSaturationImpl, histogram::ComputeHistogramImpl, collect_statistics::CollectStatisticsImpl, contrast::AdjustContrastImpl, basic_statistics::ComputeBasicStatisticsImpl};
+use super::ops::{exposure::AdjustExposureImpl, saturation::AdjustSaturationImpl, histogram::ComputeHistogramImpl, collect_statistics::CollectStatisticsImpl, contrast::AdjustContrastImpl, basic_statistics::ComputeBasicStatisticsImpl, highlights::AdjustHighlightsImpl};
 
 #[derive(Default)]
 pub struct OpImplCollection {
     pub exposure: Option<AdjustExposureImpl>,
     pub contrast: Option<AdjustContrastImpl>,
+    pub highlights: Option<AdjustHighlightsImpl>,
     pub saturation: Option<AdjustSaturationImpl>,
     pub basic_statistics: Option<ComputeBasicStatisticsImpl>,
     pub histogram: Option<ComputeHistogramImpl>,

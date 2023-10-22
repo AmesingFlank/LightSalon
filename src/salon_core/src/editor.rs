@@ -1,6 +1,6 @@
 use crate::ir::{
     AdjustContrastOp, AdjustExposureOp, AdjustSaturationOp, ComputeBasicStatisticsOp, Id, Module,
-    Op,
+    Op, AdjustHighlightsOp,
 };
 
 pub struct Editor {
@@ -23,6 +23,7 @@ impl Editor {
 pub struct EditorState {
     pub exposure_val: f32,
     pub contrast_val: f32,
+    pub highlights_val: f32,
     pub saturation_val: f32,
 }
 
@@ -31,6 +32,7 @@ impl EditorState {
         EditorState {
             exposure_val: 0.0,
             contrast_val: 0.0,
+            highlights_val: 0.0,
             saturation_val: 0.0,
         }
     }
@@ -41,6 +43,7 @@ impl EditorState {
 
         self.maybe_add_exposure(&mut module, &mut current_output_id);
         self.maybe_add_contrast(&mut module, &mut current_output_id);
+        self.maybe_add_highlights(&mut module, &mut current_output_id);
         self.maybe_add_saturation(&mut module, &mut current_output_id);
 
         module.add_statistics_ops();
@@ -78,6 +81,19 @@ impl EditorState {
             }));
             module.set_output_id(contrast_adjusted_image_id);
             *current_output_id = contrast_adjusted_image_id;
+        }
+    }
+
+    fn maybe_add_highlights(&self, module: &mut Module, current_output_id: &mut Id) {
+        if self.highlights_val != 0.0 {
+            let highlights_adjusted_image_id = module.alloc_id();
+            module.push_op(Op::AdjustHighlights(AdjustHighlightsOp {
+                result: highlights_adjusted_image_id,
+                arg: *current_output_id,
+                highlights: self.highlights_val,
+            }));
+            module.set_output_id(highlights_adjusted_image_id);
+            *current_output_id = highlights_adjusted_image_id;
         }
     }
 

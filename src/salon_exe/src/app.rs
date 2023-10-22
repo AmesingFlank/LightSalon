@@ -252,8 +252,8 @@ impl App {
             });
     }
 
-    fn color_adjust(&mut self, ui: &mut Ui, editor_state: &mut EditorState) {
-        CollapsingHeader::new("Light & Color")
+    fn light_adjust(&mut self, ui: &mut Ui, editor_state: &mut EditorState) {
+        CollapsingHeader::new("Light")
             .default_open(true)
             .show(ui, |ui| {
                 ui.spacing_mut().slider_width = ui.available_width() * 0.6;
@@ -267,6 +267,18 @@ impl App {
                 );
 
                 ui.add(
+                    egui::Slider::new(&mut editor_state.highlights_val, -100.0..=100.0)
+                        .text("Highlights"),
+                );
+            });
+    }
+
+    fn color_adjust(&mut self, ui: &mut Ui, editor_state: &mut EditorState) {
+        CollapsingHeader::new("Color")
+            .default_open(true)
+            .show(ui, |ui| {
+                ui.spacing_mut().slider_width = ui.available_width() * 0.6;
+                ui.add(
                     egui::Slider::new(&mut editor_state.saturation_val, -100.0..=100.0)
                         .text("Saturation"),
                 );
@@ -276,6 +288,7 @@ impl App {
     fn editor(&mut self, ui: &mut Ui) {
         let mut editor_state = self.session.editor.current_state.clone();
         self.histogram(ui);
+        self.light_adjust(ui, &mut editor_state);
         self.color_adjust(ui, &mut editor_state);
 
         if self.session.current_image_index.is_none() {

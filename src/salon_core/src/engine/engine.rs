@@ -15,7 +15,7 @@ use super::{
         contrast::AdjustContrastImpl,
         exposure::AdjustExposureImpl,
         histogram::{self, ComputeHistogramImpl},
-        saturation::{self, AdjustSaturationImpl},
+        saturation::{self, AdjustSaturationImpl}, highlights::AdjustHighlightsImpl,
     },
     result::ProcessResult,
     value_store::ValueStore,
@@ -103,6 +103,13 @@ impl Engine {
                         &mut self.value_store,
                     );
                 }
+                Op::AdjustHighlights(ref op) => {
+                    self.op_impls.highlights.as_mut().unwrap().encode_commands(
+                        &mut encoder,
+                        op,
+                        &mut self.value_store,
+                    );
+                }
                 Op::AdjustSaturation(ref op) => {
                     self.op_impls.saturation.as_mut().unwrap().encode_commands(
                         &mut encoder,
@@ -163,6 +170,12 @@ impl Engine {
                         self.op_impls.contrast = Some(AdjustContrastImpl::new(self.runtime.clone()))
                     }
                     self.op_impls.contrast.as_mut().unwrap().reset();
+                }
+                Op::AdjustHighlights(_) => {
+                    if self.op_impls.highlights.is_none() {
+                        self.op_impls.highlights = Some(AdjustHighlightsImpl::new(self.runtime.clone()))
+                    }
+                    self.op_impls.highlights.as_mut().unwrap().reset();
                 }
                 Op::AdjustSaturation(_) => {
                     if self.op_impls.saturation.is_none() {
