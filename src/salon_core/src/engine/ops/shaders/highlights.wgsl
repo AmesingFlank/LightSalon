@@ -13,10 +13,6 @@ struct Params {
 @group(0) @binding(2)
 var<uniform> params: Params;
 
-fn influence(l: f32) -> f32 {
-    return min((l * l) * (l * l), 1.0);
-}
-
 @compute
 @workgroup_size(8, 8)
 fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
@@ -25,8 +21,25 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         return;
     }
     var rgb = textureLoad(input, global_id.xy, 0).rgb;
-    var hsv = rgb_to_hsv(rgb);
-    hsv.z *= pow(2.0, params.value * 0.01 * influence(hsv.z));
-    rgb = hsv_to_rgb(hsv);
+    var hsl = rgb_to_hsl(rgb);
+
+    let base = 0.6;
+    let scale = 1.0 / (1.0 - base);
+    let highlights = params.value * 0.01;
+    var l = hsl.z;
+
+    if(l > base) {
+        l = (l - base) * scale;
+        if(highlights < 0.0) {
+            l = pow(l,  1.0 - highlights * 2.0);
+        }
+        else {
+            l = pow(l, 1.0 / (1.0 + highlights * 2.0));
+        }
+        l = l / scale + base; 
+    }
+
+    hsl.z = l;
+    rgb = hsl_to_rgb(hsl);
     textureStore(output, global_id.xy, vec4<f32>(rgb, 1.0));
 }
