@@ -7,6 +7,7 @@ pub enum Op {
     AdjustContrast(AdjustContrastOp),
     AdjustHighlights(AdjustHighlightsOp),
     AdjustShadows(AdjustShadowsOp),
+    AdjustVibrance(AdjustVibranceOp),
     AdjustSaturation(AdjustSaturationOp),
     ComputeBasicStatistics(ComputeBasicStatisticsOp),
     ComputeHistogram(ComputeHistogramOp),
@@ -46,6 +47,14 @@ pub struct AdjustShadowsOp {
     pub arg: Id,
     pub shadows: f32,
 }
+
+#[derive(Clone)]
+pub struct AdjustVibranceOp {
+    pub result: Id,
+    pub arg: Id,
+    pub vibrance: f32,
+}
+
 
 #[derive(Clone)]
 pub struct AdjustSaturationOp {

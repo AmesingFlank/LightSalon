@@ -15,7 +15,7 @@ use super::{
         contrast::AdjustContrastImpl,
         exposure::AdjustExposureImpl,
         histogram::{self, ComputeHistogramImpl},
-        saturation::{self, AdjustSaturationImpl}, highlights::AdjustHighlightsImpl, shadows::AdjustShadowsImpl,
+        saturation::{self, AdjustSaturationImpl}, highlights::AdjustHighlightsImpl, shadows::AdjustShadowsImpl, vibrance::AdjustVibranceImpl,
     },
     result::ProcessResult,
     value_store::ValueStore,
@@ -117,6 +117,13 @@ impl Engine {
                         &mut self.value_store,
                     );
                 }
+                Op::AdjustVibrance(ref op) => {
+                    self.op_impls.vibrance.as_mut().unwrap().encode_commands(
+                        &mut encoder,
+                        op,
+                        &mut self.value_store,
+                    );
+                }
                 Op::AdjustSaturation(ref op) => {
                     self.op_impls.saturation.as_mut().unwrap().encode_commands(
                         &mut encoder,
@@ -189,6 +196,13 @@ impl Engine {
                         self.op_impls.shadows = Some(AdjustShadowsImpl::new(self.runtime.clone()))
                     }
                     self.op_impls.shadows.as_mut().unwrap().reset();
+                }
+                Op::AdjustVibrance(_) => {
+                    if self.op_impls.vibrance.is_none() {
+                        self.op_impls.vibrance =
+                            Some(AdjustVibranceImpl::new(self.runtime.clone()))
+                    }
+                    self.op_impls.vibrance.as_mut().unwrap().reset();
                 }
                 Op::AdjustSaturation(_) => {
                     if self.op_impls.saturation.is_none() {
