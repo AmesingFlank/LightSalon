@@ -26,28 +26,30 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     var XYZ = rgb_to_XYZ(rgb);
     var xyY = XYZ_to_xyY(XYZ);
     var xy = xyY.xy;
+    var uv = xy_to_uv(xy);
 
-    let CCT_clamp_min: f32 = 1000.0;
-    let CCT_clamp_max: f32 = 25000.0;
+    let original_CCT = 5000.0;
+    let original_CCT_uv = T_planckian_to_uv_krystek(original_CCT);
 
-    var CCT_Duv = xy_to_CCT_Duv(xy, CCT_clamp_min, CCT_clamp_max);
-
-    var CCT = CCT_Duv.x;
-    var Duv = CCT_Duv.y;
+    var new_CCT = original_CCT;
 
     if (params.temperature != 0.0) {
-        CCT += params.temperature * 10.0;
-        CCT = min(CCT, CCT_clamp_max);
-        CCT = max(CCT, CCT_clamp_min);
+        new_CCT = original_CCT + params.temperature * 10.0;
     }
+
+    let new_CCT_uv = T_planckian_to_uv_krystek(new_CCT);
+    var new_CCT_uv_delta = uv - new_CCT_uv;
 
     if (params.tint != 0.0) {
-        Duv -= params.tint / 3000.0;
+        let Duv = length(new_CCT_uv_delta);
+        let change_in_Duv = params.tint / 3000.0;
+        let new_Duv = Duv + change_in_Duv;
+        new_CCT_uv_delta = new_CCT_uv_delta * (new_Duv / Duv);
     }
 
-    CCT_Duv = vec2(CCT, Duv);
+    uv = original_CCT_uv + new_CCT_uv_delta;
 
-    xy = CCT_Duv_to_xy(CCT_Duv);
+    xy = uv_to_xy(uv);
     xyY = vec3(xy, xyY.z);
 
     XYZ = xyY_to_XYZ(xyY);

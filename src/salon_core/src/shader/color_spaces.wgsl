@@ -179,11 +179,9 @@ fn xy_to_CCT_Hernandez(xy: vec2<f32>) -> f32 {
   return CCT;
 }
 
-fn xy_to_CCT_Duv(xy: vec2<f32>, CCT_clamp_min: f32, CCT_clamp_max: f32) -> vec2<f32> {
+fn xy_to_CCT_Duv(xy: vec2<f32>) -> vec2<f32> {
   
   var CCT = xy_to_CCT_Hernandez(xy);
-  CCT = min(CCT, CCT_clamp_max);
-  CCT = max(CCT, CCT_clamp_min);
 
   // we can also use uv_to_Duv here, but probably better to just compute Duv from distance to the locus
   let uv = xy_to_uv(xy);
