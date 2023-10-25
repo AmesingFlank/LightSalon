@@ -160,25 +160,33 @@ fn uv_to_Duv(uv: vec2<f32>) -> f32 {
   return Duv;
 }
 
-fn xy_to_CCT_Duv(xy: vec2<f32>) -> vec2<f32> {
-  let uv = xy_to_uv(xy);
-
+fn xy_to_CCT_McCamy(xy: vec2<f32>) -> f32 {
   // https://www.waveformlighting.com/tech/calculate-color-temperature-cct-from-cie-1931-xy-coordinates
-  // let n = (xy.x - 0.3320) / (0.1858 - xy.y);
-  // let CCT = 437.0 * n * n * n + 3601.0 * n * n + 6861.0 * n + 5517.0;
+  let n = (xy.x - 0.3320) / (0.1858 - xy.y);
+  let CCT = 437.0 * n * n * n + 3601.0 * n * n + 6861.0 * n + 5517.0;
+  return CCT;
+}
 
+fn xy_to_CCT_Hernandez(xy: vec2<f32>) -> f32 {
   // https://github.com/darktable-org/darktable/blob/99e1d8c3ba804474501c0fc8fdd26f722a492f6c/src/common/illuminants.h#L121
   // https://github.com/ofek/colour/blob/04f4863ef49093a93244c1fedafd1d5e2b1b76da/colour/temperature/cct.py#L836
   var n = (xy.x - 0.3366) / (xy.y - 0.1735);
-  var CCT = (-949.86315 + 6253.80338 * exp(-n / 0.92159) + 28.70599f * exp(-n / 0.20039)  + 0.00004 * exp(-n / 0.07125));
+  var CCT = (-949.86315 + 6253.80338 * exp(-n / 0.92159) + 28.70599 * exp(-n / 0.20039)  + 0.00004 * exp(-n / 0.07125));
   if(CCT > 50000.0) {
     n =  (xy.x - 0.3356) / (xy.y - 0.1691);
     CCT = 36284.48953 + 0.00228 * exp(-n / 0.07861) +  5.4535e-36 * exp(-n / 0.01543);
   }
+  return CCT;
+}
 
-  CCT = min(CCT, 25000.0);
+fn xy_to_CCT_Duv(xy: vec2<f32>, CCT_clamp_min: f32, CCT_clamp_max: f32) -> vec2<f32> {
+  
+  var CCT = xy_to_CCT_Hernandez(xy);
+  CCT = min(CCT, CCT_clamp_max);
+  CCT = max(CCT, CCT_clamp_min);
 
   // we can also use uv_to_Duv here, but probably better to just compute Duv from distance to the locus
+  let uv = xy_to_uv(xy);
   let u0_v0 = T_planckian_to_uv_krystek(CCT);
   let Duv = length(u0_v0 - uv);
 

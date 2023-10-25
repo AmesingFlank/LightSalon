@@ -26,15 +26,26 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     var XYZ = rgb_to_XYZ(rgb);
     var xyY = XYZ_to_xyY(XYZ);
     var xy = xyY.xy;
-    var CCT_Duv = xy_to_CCT_Duv(xy);
+
+    let CCT_clamp_min: f32 = 1000.0;
+    let CCT_clamp_max: f32 = 25000.0;
+
+    var CCT_Duv = xy_to_CCT_Duv(xy, CCT_clamp_min, CCT_clamp_max);
+
+    var CCT = CCT_Duv.x;
+    var Duv = CCT_Duv.y;
 
     if (params.temperature != 0.0) {
-        CCT_Duv.x += params.temperature * 10.0;
+        CCT += params.temperature * 10.0;
+        CCT = min(CCT, CCT_clamp_max);
+        CCT = max(CCT, CCT_clamp_min);
     }
 
     if (params.tint != 0.0) {
-        CCT_Duv.y -= params.tint / 3000.0;
+        Duv -= params.tint / 3000.0;
     }
+
+    CCT_Duv = vec2(CCT, Duv);
 
     xy = CCT_Duv_to_xy(CCT_Duv);
     xyY = vec3(xy, xyY.z);
