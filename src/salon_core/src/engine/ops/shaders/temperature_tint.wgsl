@@ -41,10 +41,8 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     var new_CCT_uv_delta = uv - new_CCT_uv;
 
     if (params.tint != 0.0) {
-        let Duv = length(new_CCT_uv_delta);
-        let change_in_Duv = params.tint / 3000.0;
-        let new_Duv = Duv + change_in_Duv;
-        new_CCT_uv_delta = new_CCT_uv_delta * (new_Duv / Duv);
+        let change_in_uv = vec2(1.0, -1.0) * params.tint / 3000.0;
+        new_CCT_uv_delta = new_CCT_uv_delta + change_in_uv;
     }
 
     uv = original_CCT_uv + new_CCT_uv_delta;
