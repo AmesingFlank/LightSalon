@@ -138,14 +138,13 @@ fn uv_to_xy(uv: vec2<f32>) -> vec2<f32> {
   return vec2(x, y);
 }
 
-
-fn xy_to_CCT_Duv(xy: vec2<f32>) -> vec2<f32> {
-  let uv = xy_to_uv(xy);
+fn uv_to_Duv(uv: vec2<f32>) -> f32 {
   let u = uv.x;
   let v = uv.y;
 
   // https://www.waveformlighting.com/tech/calculate-duv-from-cie-1931-xy-coordinates/ 
-  /*
+  // https://cormusa.org/wp-content/uploads/2018/04/CORM_2011_Calculation_of_CCT_and_Duv_and_Practical_Conversion_Formulae.pdf
+
   let k6 = -0.00616793;
   let k5 = 0.0893944;
   let k4 = -0.5179722;
@@ -157,7 +156,12 @@ fn xy_to_CCT_Duv(xy: vec2<f32>) -> vec2<f32> {
   let a = acos((u - 0.292) / Lfp);
   let Lbb = k6 * pow(a, 6.0) + k5 * pow(a, 5.0) + k4 * pow(a, 4.0) + k3 * pow(a, 3.0) + k2 * pow(a, 2.0) + k1 * a + k0;
   let Duv = Lfp - Lbb;
-  */
+
+  return Duv;
+}
+
+fn xy_to_CCT_Duv(xy: vec2<f32>) -> vec2<f32> {
+  let uv = xy_to_uv(xy);
 
   // https://www.waveformlighting.com/tech/calculate-color-temperature-cct-from-cie-1931-xy-coordinates
   // let n = (xy.x - 0.3320) / (0.1858 - xy.y);
@@ -172,6 +176,9 @@ fn xy_to_CCT_Duv(xy: vec2<f32>) -> vec2<f32> {
     CCT = 36284.48953 + 0.00228 * exp(-n / 0.07861) +  5.4535e-36 * exp(-n / 0.01543);
   }
 
+  CCT = min(CCT, 25000.0);
+
+  // we can also use uv_to_Duv here, but probably better to just compute Duv from distance to the locus
   let u0_v0 = T_planckian_to_uv(CCT);
   let Duv = length(u0_v0 - uv);
 
@@ -181,10 +188,51 @@ fn xy_to_CCT_Duv(xy: vec2<f32>) -> vec2<f32> {
 // https://en.wikipedia.org/wiki/Planckian_locus
 // https://google.github.io/filament/Filament.md.html
 // Krystek's algorithm
-fn T_planckian_to_uv(T: f32) -> vec2<f32> {
+// valid for 1000K < T < 15000K
+fn T_planckian_to_uv_krystek(T: f32) -> vec2<f32> {
   let u = (0.860117757 + 1.54118254e-4 * T + 1.28641212e-7 * T * T) / (1.0 + 8.42420235e-4 * T + 7.08145163e-7 * T * T);
   let v = (0.317398726 + 4.22806245e-5 * T + 4.20481691e-8 * T * T) / (1.0 - 2.89741816e-5 * T + 1.61456053e-7 * T * T);
   return vec2(u, v); 
+}
+
+fn T_planckian_to_uv_kim(T: f32) -> vec2<f32> {
+  return xy_to_uv(T_planckian_to_xy_kim(T)); 
+}
+
+fn T_planckian_to_uv(T: f32) -> vec2<f32> {
+  if(T < 15000.0){
+    return T_planckian_to_uv_krystek(T);
+  }
+  else{
+    return T_planckian_to_uv_kim(T);
+  }
+}
+
+// https://en.wikipedia.org/wiki/Planckian_locus
+// larger range than T_planckian_to_uv
+// https://github.com/ddennedy/movit/blob/0b1705581552217b0e387bd687d65e4e3410ab91/white_balance_effect.cpp#L21 which implements the same formula
+fn T_planckian_to_xy_kim(T: f32) -> vec2<f32> {
+  let T_clamped = min(T, 25000.0);
+	let invT = 1e3 / T_clamped;
+  
+  var x = 0.0;
+  var y = 0.0;
+
+	if (T <= 4000.0f) {
+		x = ((-0.2661239 * invT - 0.2343589) * invT + 0.8776956) * invT + 0.179910;
+	} else {
+		x = ((-3.0258469 * invT + 2.1070379) * invT + 0.2226347) * invT + 0.240390;
+	}
+
+	if (T <= 2222.0f) {
+		y = ((-1.1063814 * x - 1.34811020) * x + 2.18555832) * x - 0.20219683;
+	} else if (T <= 4000.0f) {
+		y = ((-0.9549476 * x - 1.37418593) * x + 2.09137015) * x - 0.16748867;
+	} else {
+		y = (( 3.0817580 * x - 5.87338670) * x + 3.75112997) * x - 0.37001483;
+	}
+
+  return vec2(x,y);
 }
 
 fn CCT_Duv_to_xy(CCT_Duv: vec2<f32>) -> vec2<f32> {
@@ -192,7 +240,7 @@ fn CCT_Duv_to_xy(CCT_Duv: vec2<f32>) -> vec2<f32> {
   let CCT = CCT_Duv.x;
   let Duv = CCT_Duv.y;
   let u0_v0 = T_planckian_to_uv(CCT);
-  let u1_v1 = T_planckian_to_uv(CCT + 0.01);
+  let u1_v1 = T_planckian_to_uv(CCT + 1.0);
   let u0 = u0_v0.x;
   let v0 = u0_v0.y;
   let u1 = u1_v1.x;
