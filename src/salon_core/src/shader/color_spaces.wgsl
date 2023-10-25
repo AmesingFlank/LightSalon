@@ -140,10 +140,12 @@ fn uv_to_xy(uv: vec2<f32>) -> vec2<f32> {
 
 
 fn xy_to_CCT_Duv(xy: vec2<f32>) -> vec2<f32> {
-  // https://www.waveformlighting.com/tech/calculate-duv-from-cie-1931-xy-coordinates/ 
   let uv = xy_to_uv(xy);
   let u = uv.x;
   let v = uv.y;
+
+  // https://www.waveformlighting.com/tech/calculate-duv-from-cie-1931-xy-coordinates/ 
+  /*
   let k6 = -0.00616793;
   let k5 = 0.0893944;
   let k4 = -0.5179722;
@@ -155,6 +157,7 @@ fn xy_to_CCT_Duv(xy: vec2<f32>) -> vec2<f32> {
   let a = acos((u - 0.292) / Lfp);
   let Lbb = k6 * pow(a, 6.0) + k5 * pow(a, 5.0) + k4 * pow(a, 4.0) + k3 * pow(a, 3.0) + k2 * pow(a, 2.0) + k1 * a + k0;
   let Duv = Lfp - Lbb;
+  */
 
   // https://www.waveformlighting.com/tech/calculate-color-temperature-cct-from-cie-1931-xy-coordinates
   // let n = (xy.x - 0.3320) / (0.1858 - xy.y);
@@ -168,6 +171,9 @@ fn xy_to_CCT_Duv(xy: vec2<f32>) -> vec2<f32> {
     n =  (xy.x - 0.3356) / (xy.y - 0.1691);
     CCT = 36284.48953 + 0.00228 * exp(-n / 0.07861) +  5.4535e-36 * exp(-n / 0.01543);
   }
+
+  let u0_v0 = T_planckian_to_uv(CCT);
+  let Duv = length(u0_v0 - uv);
 
   return vec2(CCT, Duv);
 }
@@ -194,7 +200,7 @@ fn CCT_Duv_to_xy(CCT_Duv: vec2<f32>) -> vec2<f32> {
   let du = u0 - u1;
   let dv = v0 - v1;
   let sin_theta = dv / sqrt(du * du + dv * dv);
-  let cos_theta = dv / sqrt(du * du + dv * dv);
+  let cos_theta = du / sqrt(du * du + dv * dv);
   let u = u0 - Duv * sin_theta;
   let v = v0 + Duv * cos_theta;
   return uv_to_xy(vec2(u, v));
