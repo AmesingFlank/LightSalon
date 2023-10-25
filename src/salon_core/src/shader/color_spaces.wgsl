@@ -58,7 +58,7 @@ fn srgb_to_linear(srgb: vec3<f32>) -> vec3<f32> {
 }
 
 // sRGB to CIE XYZ 1931
-fn srgb_to_xyz(srgb: vec3<f32>) -> vec3<f32> {
+fn srgb_to_XYZ(srgb: vec3<f32>) -> vec3<f32> {
   let column0 = vec3(
     0.4124564,
     0.2126729,
@@ -79,7 +79,7 @@ fn srgb_to_xyz(srgb: vec3<f32>) -> vec3<f32> {
 }
 
 // CIE XYZ 1931 to sRGB
-fn xyz_to_srgb(xyz: vec3<f32>) -> vec3<f32> {
+fn XYZ_to_srgb(XYZ: vec3<f32>) -> vec3<f32> {
   let column0 = vec3(
     3.2404542,
     -0.9692660,
@@ -96,5 +96,95 @@ fn xyz_to_srgb(xyz: vec3<f32>) -> vec3<f32> {
     1.0572252
   );
   let m = mat3x3(column0, column1, column2);
-  return linear_to_srgb(m * xyz);
+  return linear_to_srgb(m * XYZ);
+}
+
+fn XYZ_to_xyY(XYZ: vec3<f32>) -> vec3<f32> {
+  let X = XYZ.x;
+  let Y = XYZ.y;
+  let Z = XYZ.z;
+
+  let x = X / (X + Y + Z);
+  let y = Y / (X + Y + Z);
+  return vec3(x, y, Y);
+}
+
+fn xyY_to_XYZ(xyY: vec3<f32>) -> vec3<f32> {
+  let x = xyY.x;
+  let y = xyY.y;
+  let Y = xyY.z;
+
+  let X = (Y / y) * x;
+  let Z = (Y / y) * (1.0 - x - y);
+}
+
+// https://google.github.io/filament/Filament.md.html
+// https://cormusa.org/wp-content/uploads/2018/04/CORM_2011_Calculation_of_CCT_and_Duv_and_Practical_Conversion_Formulae.pdf
+
+fn xy_to_uv(xy: vec2<f32>) -> vec2<f32> {
+  let x = xy.x;
+  let y = xy.y;
+  let u = 4.0 * x / (-2.0 * x + 12.0 * y + 3.0);
+  let v = 6.0 * y / (-2.0 * x + 12.0 * y + 3.0);
+  return vec2(u, v);
+}
+
+fn uv_to_xy(uv: vec2<f32>) -> vec2<f32> {
+  let u = uv.x;
+  let v = uv.y;
+  let x = 3.0 * u / (2.0 * u - 8.0 * v + 4.0);
+  let y = 2.0 * v / (2.0 * u - 8.0 * v + 4.0);
+  return vec2(x, y);
+}
+
+
+fn xy_to_CCT_Duv(xy: vec2<f32>) -> vec2<f32> {
+  // https://www.waveformlighting.com/tech/calculate-duv-from-cie-1931-xy-coordinates/ 
+  let uv = xy_to_uv(xy);
+  let u = uv.x;
+  let v = uv.y;
+  let k6 = -0.00616793;
+  let k5 = 0.0893944;
+  let k4 = -0.5179722;
+  let k3 = 1.5317403;
+  let k2 = -2.4243787;
+  let k1 = 1.925865;
+  let k0 = -0.471106;
+  let Lfp = sqrt((u - 0.292) * (u - 0.292) + (v - 0.24) * (v - 0.24));
+  let a = acos((u - 0.292) / Lfp);
+  let Lbb = k6 * pow(a, 6.0) + k5 * pow(a, 5.0) + k4 * pow(a, 4.0) + k3 * pow(a, 3.0) + k2 * pow(a, 2.0) + k1 * a + k0;
+  let Duv = Lfp - Lbb;
+
+  // https://www.waveformlighting.com/tech/calculate-color-temperature-cct-from-cie-1931-xy-coordinates
+  let n = (xy.x - 0.3320) / (0.1858 - xy.y);
+  let CCT = 437.0 * n * n * n + 3601.0 * n * n + 6861.0 * n + 5517.0;
+  return vec2(CCT, Duv);
+}
+
+// https://en.wikipedia.org/wiki/Planckian_locus
+// https://google.github.io/filament/Filament.md.html
+// Krystek's algorithm
+fn T_planckian_to_uv(T: f32) -> vec2<f32> {
+  let u = (0.860117757 + 1.54118254e-4 * T + 1.28641212e-7 * T * T) / (1.0 + 8.42420235e-4 * T + 7.08145163e-7 * T * T);
+  let v = (0.317398726 + 4.22806245e-5 * T + 4.20481691e-8 * T * T) / (1.0 - 2.89741816e-5 * T + 1.61456053e-7 * T * T);
+  return vec2(u, v); 
+}
+
+fn CCT_Duv_to_xy(CCT_Duv: vec2<f32>) -> vec2<f32> {
+  // https://cormusa.org/wp-content/uploads/2018/04/CORM_2011_Calculation_of_CCT_and_Duv_and_Practical_Conversion_Formulae.pdf
+  let CCT = CCT_Duv.x;
+  let Duv = CCT_Duv.y;
+  let u0_v0 = T_planckian_to_uv(CCT);
+  let u1_v1 = T_planckian_to_uv(CCT + 0.01);
+  let u0 = u0_v0.x;
+  let v0 = u0_v0.y;
+  let u1 = u1_v1.x;
+  let v1 = u1_v1.y;
+  let du = u0 - u1;
+  let dv = v0 - v1;
+  let sin_theta = dv / sqrt(du * du + dv * dv);
+  let cos_theta = dv / sqrt(du * du + dv * dv);
+  let u = u0 - Duv * sin_theta;
+  let v = v0 + Duv * cos_theta;
+  return uv_to_xy(vec2(u, v));
 }
