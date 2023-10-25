@@ -157,8 +157,13 @@ fn xy_to_CCT_Duv(xy: vec2<f32>) -> vec2<f32> {
   let Duv = Lfp - Lbb;
 
   // https://www.waveformlighting.com/tech/calculate-color-temperature-cct-from-cie-1931-xy-coordinates
-  let n = (xy.x - 0.3320) / (0.1858 - xy.y);
-  let CCT = 437.0 * n * n * n + 3601.0 * n * n + 6861.0 * n + 5517.0;
+  // let n = (xy.x - 0.3320) / (0.1858 - xy.y);
+  // let CCT = 437.0 * n * n * n + 3601.0 * n * n + 6861.0 * n + 5517.0;
+
+  // https://github.com/darktable-org/darktable/blob/99e1d8c3ba804474501c0fc8fdd26f722a492f6c/src/common/illuminants.h#L121
+  let n = (xy.x - 0.3366) / (xy.y - 0.1735);
+  let CCT = (-949.86315 + 6253.80338 * exp(-n / 0.92159) + 28.70599f * exp(-n / 0.20039)  + 0.00004 * exp(-n / 0.07125));
+
   return vec2(CCT, Duv);
 }
 
