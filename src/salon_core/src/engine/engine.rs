@@ -14,8 +14,11 @@ use super::{
         collect_statistics::CollectStatisticsImpl,
         contrast::AdjustContrastImpl,
         exposure::AdjustExposureImpl,
+        highlights::AdjustHighlightsImpl,
         histogram::{self, ComputeHistogramImpl},
-        saturation::{self, AdjustSaturationImpl}, highlights::AdjustHighlightsImpl, shadows::AdjustShadowsImpl, vibrance::AdjustVibranceImpl,
+        saturation::{self, AdjustSaturationImpl},
+        shadows::AdjustShadowsImpl,
+        vibrance::AdjustVibranceImpl, temperature_tint::AdjustTemperatureAndTintImpl,
     },
     result::ProcessResult,
     value_store::ValueStore,
@@ -117,6 +120,13 @@ impl Engine {
                         &mut self.value_store,
                     );
                 }
+                Op::AdjustTemperatureAndTint(ref op) => {
+                    self.op_impls.temperature_tint.as_mut().unwrap().encode_commands(
+                        &mut encoder,
+                        op,
+                        &mut self.value_store,
+                    );
+                }
                 Op::AdjustVibrance(ref op) => {
                     self.op_impls.vibrance.as_mut().unwrap().encode_commands(
                         &mut encoder,
@@ -132,11 +142,11 @@ impl Engine {
                     );
                 }
                 Op::ComputeBasicStatistics(ref op) => {
-                    self.op_impls.basic_statistics.as_mut().unwrap().encode_commands(
-                        &mut encoder,
-                        op,
-                        &mut self.value_store,
-                    );
+                    self.op_impls
+                        .basic_statistics
+                        .as_mut()
+                        .unwrap()
+                        .encode_commands(&mut encoder, op, &mut self.value_store);
                 }
                 Op::ComputeHistogram(ref op) => {
                     self.op_impls.histogram.as_mut().unwrap().encode_commands(
@@ -187,7 +197,8 @@ impl Engine {
                 }
                 Op::AdjustHighlights(_) => {
                     if self.op_impls.highlights.is_none() {
-                        self.op_impls.highlights = Some(AdjustHighlightsImpl::new(self.runtime.clone()))
+                        self.op_impls.highlights =
+                            Some(AdjustHighlightsImpl::new(self.runtime.clone()))
                     }
                     self.op_impls.highlights.as_mut().unwrap().reset();
                 }
@@ -197,10 +208,16 @@ impl Engine {
                     }
                     self.op_impls.shadows.as_mut().unwrap().reset();
                 }
+                Op::AdjustTemperatureAndTint(_) => {
+                    if self.op_impls.temperature_tint.is_none() {
+                        self.op_impls.temperature_tint =
+                            Some(AdjustTemperatureAndTintImpl::new(self.runtime.clone()))
+                    }
+                    self.op_impls.temperature_tint.as_mut().unwrap().reset();
+                }
                 Op::AdjustVibrance(_) => {
                     if self.op_impls.vibrance.is_none() {
-                        self.op_impls.vibrance =
-                            Some(AdjustVibranceImpl::new(self.runtime.clone()))
+                        self.op_impls.vibrance = Some(AdjustVibranceImpl::new(self.runtime.clone()))
                     }
                     self.op_impls.vibrance.as_mut().unwrap().reset();
                 }

@@ -57,8 +57,8 @@ fn srgb_to_linear(srgb: vec3<f32>) -> vec3<f32> {
   return rgb;
 }
 
-// sRGB to CIE XYZ 1931
-fn srgb_to_XYZ(srgb: vec3<f32>) -> vec3<f32> {
+// rgb (from sRGB) to CIE XYZ 1931
+fn rgb_to_XYZ(rgb: vec3<f32>) -> vec3<f32> {
   let column0 = vec3(
     0.4124564,
     0.2126729,
@@ -75,11 +75,11 @@ fn srgb_to_XYZ(srgb: vec3<f32>) -> vec3<f32> {
     0.9503041
   );
   let m = mat3x3(column0, column1, column2);
-  return m * srgb_to_linear(srgb);
+  return m * rgb;
 }
 
-// CIE XYZ 1931 to sRGB
-fn XYZ_to_srgb(XYZ: vec3<f32>) -> vec3<f32> {
+// CIE XYZ 1931 to rgb (from sRGB)
+fn XYZ_to_rgb(XYZ: vec3<f32>) -> vec3<f32> {
   let column0 = vec3(
     3.2404542,
     -0.9692660,
@@ -96,7 +96,7 @@ fn XYZ_to_srgb(XYZ: vec3<f32>) -> vec3<f32> {
     1.0572252
   );
   let m = mat3x3(column0, column1, column2);
-  return linear_to_srgb(m * XYZ);
+  return (m * XYZ);
 }
 
 fn XYZ_to_xyY(XYZ: vec3<f32>) -> vec3<f32> {
@@ -116,6 +116,7 @@ fn xyY_to_XYZ(xyY: vec3<f32>) -> vec3<f32> {
 
   let X = (Y / y) * x;
   let Z = (Y / y) * (1.0 - x - y);
+  return vec3(X, Y, Z);
 }
 
 // https://google.github.io/filament/Filament.md.html

@@ -7,6 +7,7 @@ pub enum Op {
     AdjustContrast(AdjustContrastOp),
     AdjustHighlights(AdjustHighlightsOp),
     AdjustShadows(AdjustShadowsOp),
+    AdjustTemperatureAndTint(AdjustTemperatureAndTintOp),
     AdjustVibrance(AdjustVibranceOp),
     AdjustSaturation(AdjustSaturationOp),
     ComputeBasicStatistics(ComputeBasicStatisticsOp),
@@ -46,6 +47,15 @@ pub struct AdjustShadowsOp {
     pub result: Id,
     pub arg: Id,
     pub shadows: f32,
+}
+
+// grouping temp and tint together, because they are heavy and shares a lot of common work
+#[derive(Clone)]
+pub struct AdjustTemperatureAndTintOp {
+    pub result: Id,
+    pub arg: Id,
+    pub temperature: f32,
+    pub tint: f32,
 }
 
 #[derive(Clone)]

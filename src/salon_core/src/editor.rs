@@ -1,6 +1,6 @@
 use crate::ir::{
     AdjustContrastOp, AdjustExposureOp, AdjustSaturationOp, ComputeBasicStatisticsOp, Id, Module,
-    Op, AdjustHighlightsOp, AdjustShadowsOp, AdjustVibranceOp,
+    Op, AdjustHighlightsOp, AdjustShadowsOp, AdjustVibranceOp, AdjustTemperatureAndTintOp,
 };
 
 pub struct Editor {
@@ -25,6 +25,8 @@ pub struct EditorState {
     pub contrast_val: f32,
     pub highlights_val: f32,
     pub shadows_val: f32,
+    pub temperature_val: f32,
+    pub tint_val: f32,
     pub vibrance_val: f32,
     pub saturation_val: f32,
 }
@@ -36,6 +38,8 @@ impl EditorState {
             contrast_val: 0.0,
             highlights_val: 0.0,
             shadows_val: 0.0,
+            temperature_val: 0.0,
+            tint_val: 0.0,
             vibrance_val: 0.0,
             saturation_val: 0.0,
         }
@@ -49,6 +53,7 @@ impl EditorState {
         self.maybe_add_contrast(&mut module, &mut current_output_id);
         self.maybe_add_highlights(&mut module, &mut current_output_id);
         self.maybe_add_shadows(&mut module, &mut current_output_id);
+        self.maybe_add_temperature_tint(&mut module, &mut current_output_id);
         self.maybe_add_vibrance(&mut module, &mut current_output_id);
         self.maybe_add_saturation(&mut module, &mut current_output_id);
 
@@ -113,6 +118,20 @@ impl EditorState {
             }));
             module.set_output_id(shadows_adjusted_image_id);
             *current_output_id = shadows_adjusted_image_id;
+        }
+    }
+
+    fn maybe_add_temperature_tint(&self, module: &mut Module, current_output_id: &mut Id) {
+        if self.temperature_val != 0.0 ||  self.tint_val != 0.0{
+            let temperature_tint_adjusted_image_id = module.alloc_id();
+            module.push_op(Op::AdjustTemperatureAndTint(AdjustTemperatureAndTintOp {
+                result: temperature_tint_adjusted_image_id,
+                arg: *current_output_id,
+                temperature: self.temperature_val,
+                tint: self.tint_val,
+            }));
+            module.set_output_id(temperature_tint_adjusted_image_id);
+            *current_output_id = temperature_tint_adjusted_image_id;
         }
     }
 

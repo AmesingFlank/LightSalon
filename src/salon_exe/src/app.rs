@@ -284,6 +284,14 @@ impl App {
             .show(ui, |ui| {
                 ui.spacing_mut().slider_width = ui.available_width() * 0.6;
                 ui.add(
+                    egui::Slider::new(&mut editor_state.temperature_val, -100.0..=100.0)
+                        .text("Temperature"),
+                );
+                ui.add(
+                    egui::Slider::new(&mut editor_state.tint_val, -100.0..=100.0)
+                        .text("Tint"),
+                );
+                ui.add(
                     egui::Slider::new(&mut editor_state.vibrance_val, -100.0..=100.0)
                         .text("Vibrance"),
                 );
