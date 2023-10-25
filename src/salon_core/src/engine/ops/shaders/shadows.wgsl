@@ -25,16 +25,16 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
     let base = 0.2;
     let scale = 1.0 / base;
-    let highlights = params.value * 0.01;
+    let shadows = params.value * 0.01;
     var l = hsl.z;
 
     if(l < base) {
         l = l * scale;
-        if(highlights < 0.0) {
-            l = pow(l,  1.0 - highlights);
+        if(shadows < 0.0) {
+            l = pow(l,  1.0 - shadows);
         }
         else {
-            l = pow(l, 1.0 / (1.0 + highlights));
+            l = pow(l, 1.0 / (1.0 + shadows));
         }
         l = l / scale; 
     }
