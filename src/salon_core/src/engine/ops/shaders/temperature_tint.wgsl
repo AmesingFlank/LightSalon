@@ -28,12 +28,12 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     var xy = xyY.xy;
     var CCT_Duv = xy_to_CCT_Duv(xy);
 
-    if (params.temperature == 100000.0) {
+    if (params.temperature != 0.0) {
         CCT_Duv.x += params.temperature * 10.0;
     }
 
-    if (params.tint == 10000.0) {
-        CCT_Duv.y += params.tint / 3000.0;
+    if (params.tint != 0.0) {
+        CCT_Duv.y -= params.tint / 3000.0;
     }
 
     xy = CCT_Duv_to_xy(CCT_Duv);

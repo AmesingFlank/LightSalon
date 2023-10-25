@@ -179,7 +179,7 @@ fn xy_to_CCT_Duv(xy: vec2<f32>) -> vec2<f32> {
   CCT = min(CCT, 25000.0);
 
   // we can also use uv_to_Duv here, but probably better to just compute Duv from distance to the locus
-  let u0_v0 = T_planckian_to_uv(CCT);
+  let u0_v0 = T_planckian_to_uv_krystek(CCT);
   let Duv = length(u0_v0 - uv);
 
   return vec2(CCT, Duv);
@@ -199,12 +199,12 @@ fn T_planckian_to_uv_kim(T: f32) -> vec2<f32> {
   return xy_to_uv(T_planckian_to_xy_kim(T)); 
 }
 
-fn T_planckian_to_uv(T: f32) -> vec2<f32> {
+fn T_planckian_to_uv_combined(T: f32) -> vec2<f32> {
   if(T < 15000.0){
     return T_planckian_to_uv_krystek(T);
   }
   else{
-    return T_planckian_to_uv_kim(T);
+   return T_planckian_to_uv_kim(T);
   }
 }
 
@@ -239,8 +239,8 @@ fn CCT_Duv_to_xy(CCT_Duv: vec2<f32>) -> vec2<f32> {
   // https://cormusa.org/wp-content/uploads/2018/04/CORM_2011_Calculation_of_CCT_and_Duv_and_Practical_Conversion_Formulae.pdf
   let CCT = CCT_Duv.x;
   let Duv = CCT_Duv.y;
-  let u0_v0 = T_planckian_to_uv(CCT);
-  let u1_v1 = T_planckian_to_uv(CCT + 1.0);
+  let u0_v0 = T_planckian_to_uv_krystek(CCT);
+  let u1_v1 = T_planckian_to_uv_krystek(CCT + 1.0);
   let u0 = u0_v0.x;
   let v0 = u0_v0.y;
   let u1 = u1_v1.x;
