@@ -29,6 +29,8 @@ pub struct EditorState {
     pub tint_val: f32,
     pub vibrance_val: f32,
     pub saturation_val: f32,
+
+    pub curve_control_points: Vec<(f32, f32)>,
 }
 
 impl EditorState {
@@ -42,6 +44,7 @@ impl EditorState {
             tint_val: 0.0,
             vibrance_val: 0.0,
             saturation_val: 0.0,
+            curve_control_points:  EditorState::initial_control_points(),
         }
     }
     pub fn to_ir_module(&self) -> Module {
@@ -159,5 +162,9 @@ impl EditorState {
             module.set_output_id(saturation_adjusted_image_id);
             *current_output_id = saturation_adjusted_image_id;
         }
+    }
+
+    fn initial_control_points() -> Vec<(f32, f32)> {
+        vec![(0.0, 0.0), (1.0, 1.0)]
     }
 }
