@@ -1,4 +1,4 @@
-use crate::ui::{self, main_image::MainImageRenderResources, thumbnail::ThumbnailRenderResources};
+use crate::ui::{self, AppUiState, MainImageRenderResources, ThumbnailRenderResources};
 use eframe::{
     egui::{self, accesskit::Vec2, CollapsingHeader, Ui, Visuals},
     emath::remap,
@@ -96,75 +96,6 @@ impl App {
                 None => {}
             };
         }
-    }
-
-    fn main_image(&mut self, _ctx: &egui::Context, _frame: &mut eframe::Frame, ui: &mut Ui) {
-        if let Some(ref result) = self.session.current_process_result {
-            let max_x = ui.available_width();
-            let max_y = ui.available_height();
-            let ui_aspect_ratio = max_y / max_x;
-
-            if let Some(ref image) = result.final_image.clone() {
-                let image_aspect_ratio = image.aspect_ratio();
-
-                let size = if image_aspect_ratio >= ui_aspect_ratio {
-                    egui::Vec2 {
-                        x: max_y / image_aspect_ratio,
-                        y: max_y,
-                    }
-                } else {
-                    egui::Vec2 {
-                        x: max_x,
-                        y: max_x * image_aspect_ratio,
-                    }
-                };
-
-                ui.centered_and_justified(|ui| {
-                    let (rect, response) = ui.allocate_exact_size(size, egui::Sense::drag());
-                    ui.painter().add(egui_wgpu::Callback::new_paint_callback(
-                        rect,
-                        ui::main_image::MainImageCallback {
-                            image: image.clone(),
-                        },
-                    ));
-                });
-            }
-        }
-    }
-
-    fn image_library(&mut self, ui: &mut Ui) {
-        let mut table = TableBuilder::new(ui).column(Column::auto()).cell_layout(
-            egui::Layout::centered_and_justified(egui::Direction::TopDown),
-        );
-        let row_height = self.ui_state.last_frame_size.unwrap().1 * 0.1;
-        let image_height = row_height * 0.8;
-        table.body(|mut body| {
-            body.rows(
-                row_height,
-                self.session.library.num_images() as usize,
-                |row_index, mut row| {
-                    row.col(|ui| {
-                        let image = self.session.library.get_image(row_index);
-                        let aspect_ratio = image.aspect_ratio();
-                        let image_width = image_height / aspect_ratio;
-                        let size = egui::Vec2 {
-                            x: image_width,
-                            y: image_height,
-                        };
-                        let (rect, response) = ui.allocate_exact_size(size, egui::Sense::click());
-                        ui.centered_and_justified(|ui| {
-                            ui.painter().add(egui_wgpu::Callback::new_paint_callback(
-                                rect,
-                                ui::thumbnail::ThumbnailCallback { image: image },
-                            ));
-                        });
-                        if response.clicked() {
-                            self.session.set_current_image(row_index);
-                        }
-                    });
-                },
-            );
-        });
     }
 
     fn histogram(&mut self, ui: &mut Ui) {
@@ -313,7 +244,7 @@ impl App {
                             if let Some(selected) =
                                 self.ui_state.selected_curve_control_point_index.as_ref()
                             {
-                                println!("{:?}",delta);
+                                println!("{:?}", delta);
                                 editor_state.curve_control_points[*selected].1 += delta;
                             }
                         }
@@ -438,7 +369,7 @@ impl eframe::App for App {
             .resizable(true)
             .show(ctx, |ui| {
                 // ui.set_width(ui.available_width());
-                self.image_library(ui);
+                ui::image_library(ui, &mut self.session, &mut self.ui_state);
             });
         egui::SidePanel::right("editor_panel")
             .default_width(last_frame_size.x * 0.2)
@@ -448,21 +379,7 @@ impl eframe::App for App {
                 self.editor(ui);
             });
         egui::CentralPanel::default().show(ctx, |ui| {
-            self.main_image(ctx, frame, ui);
+            ui::main_image(ui, &mut self.session);
         });
-    }
-}
-
-struct AppUiState {
-    last_frame_size: Option<(f32, f32)>,
-    selected_curve_control_point_index: Option<usize>,
-}
-
-impl AppUiState {
-    fn new() -> Self {
-        AppUiState {
-            last_frame_size: None,
-            selected_curve_control_point_index: None,
-        }
     }
 }
