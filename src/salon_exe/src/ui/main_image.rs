@@ -51,7 +51,7 @@ pub struct MainImageRenderResources {
 
 impl MainImageRenderResources {
     pub fn new(runtime: Arc<Runtime>, target_format: wgpu::TextureFormat) -> Self {
-        let shader_code = Shader::from_code(include_str!("./main_image.wgsl"))
+        let shader_code = Shader::from_code(include_str!("./shaders/main_image.wgsl"))
             .with_library(ShaderLibraryModule::ColorSpaces)
             .full_code();
 

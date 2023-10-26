@@ -51,7 +51,7 @@ pub struct ThumbnailRenderResources {
 
 impl ThumbnailRenderResources {
     pub fn new(runtime: Arc<Runtime>, target_format: wgpu::TextureFormat) -> Self {
-        let shader_code = Shader::from_code(include_str!("./thumbnail.wgsl"))
+        let shader_code = Shader::from_code(include_str!("./shaders/thumbnail.wgsl"))
             .with_library(ShaderLibraryModule::ColorSpaces)
             .full_code();
 
