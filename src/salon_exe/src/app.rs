@@ -209,7 +209,7 @@ impl App {
                         y_top = y_top.min(10.0 * num_pixels as f32 / hist.num_bins as f32);
 
                         let plot = Plot::new("histogram")
-                            .height(self.ui_state.last_frame_size.unwrap().1 * 0.2)
+                            .height(self.ui_state.last_frame_size.unwrap().1 * 0.1)
                             .show_x(false)
                             .show_y(false)
                             .allow_zoom(false)
@@ -229,25 +229,47 @@ impl App {
                             plot_ui.line(luma_line);
                         });
                     }
-                    // let n = 100;
-                    // let mut sin_values: Vec<_> = (0..=n)
-                    //     .map(|i| remap(i as f64, 0.0..=n as f64, -TAU..=TAU))
-                    //     .map(|i| [i, i.sin()])
-                    //     .collect();
+                }
+            });
+    }
 
-                    // let line = Line::new(sin_values.split_off(n / 2)).fill(-1.5);
-                    // let points = Points::new(sin_values).stems(-1.5).radius(1.0);
-
-                    // let plot = Plot::new("items_demo")
-                    //     .show_grid(false)
-                    //     .show_x(false)
-                    //     .show_y(false)
-                    //     .height(self.ui_state.last_frame_size.unwrap().1 * 0.2)
-                    //     .data_aspect(1.0);
-                    // plot.show(ui, |plot_ui| {
-                    //     plot_ui.line(line.name("Line with fill"));
-                    //     plot_ui.points(points.name("Points with stems"));
-                    // });
+    fn curve(&mut self, ui: &mut Ui, editor_state: &mut EditorState) {
+        CollapsingHeader::new("Curve")
+            .default_open(true)
+            .show(ui, |ui| {
+                if let Some(ref result) = self.session.current_process_result {
+                    if let Some(ref stats) = result.statistics {
+                        let margin = 0.02;
+                        let plot = Plot::new("curve")
+                            .height(self.ui_state.last_frame_size.unwrap().1 * 0.2)
+                            .show_x(false)
+                            .show_y(false)
+                            .allow_zoom(false)
+                            .allow_scroll(false)
+                            .allow_double_click_reset(false)
+                            .allow_drag(false)
+                            .include_x(0.0 - margin)
+                            .include_x(1.0 + margin)
+                            .include_y(0.0 - margin)
+                            .include_y(1.0 + margin)
+                            .show_axes([false, false])
+                            .show_grid([false, false]);
+                        let mut control_points: Vec<[f64; 2]> = Vec::new();
+                        for p in editor_state.curve_control_points.iter() {
+                            control_points.push([p.0 as f64, p.1 as f64]);
+                        }
+                        let control_points = Points::new(control_points)
+                            .shape(MarkerShape::Circle)
+                            .radius(self.ui_state.last_frame_size.unwrap().1 * 0.003)
+                            .filled(false)
+                            .color(Color32::from_gray(255));
+                        let response = plot.show(ui, |plot_ui| {
+                            plot_ui.points(control_points);
+                        });
+                        if response.response.clicked() {
+                            println!("clicked");
+                        }
+                    }
                 }
             });
     }
@@ -287,10 +309,7 @@ impl App {
                     egui::Slider::new(&mut editor_state.temperature_val, -100.0..=100.0)
                         .text("Temperature"),
                 );
-                ui.add(
-                    egui::Slider::new(&mut editor_state.tint_val, -100.0..=100.0)
-                        .text("Tint"),
-                );
+                ui.add(egui::Slider::new(&mut editor_state.tint_val, -100.0..=100.0).text("Tint"));
                 ui.add(
                     egui::Slider::new(&mut editor_state.vibrance_val, -100.0..=100.0)
                         .text("Vibrance"),
@@ -307,6 +326,7 @@ impl App {
         self.histogram(ui);
         self.light_adjust(ui, &mut editor_state);
         self.color_adjust(ui, &mut editor_state);
+        self.curve(ui, &mut editor_state);
 
         if self.session.current_image_index.is_none() {
             return;
