@@ -241,7 +241,8 @@ impl App {
                     if let Some(ref stats) = result.statistics {
                         let margin = 0.02;
                         let plot = Plot::new("curve")
-                            .height(self.ui_state.last_frame_size.unwrap().1 * 0.2)
+                            .data_aspect(1.0)
+                            .view_aspect(1.0)
                             .show_x(false)
                             .show_y(false)
                             .allow_zoom(false)
@@ -254,20 +255,55 @@ impl App {
                             .include_y(1.0 + margin)
                             .show_axes([false, false])
                             .show_grid([false, false]);
-                        let mut control_points: Vec<[f64; 2]> = Vec::new();
-                        for p in editor_state.curve_control_points.iter() {
-                            control_points.push([p.0 as f64, p.1 as f64]);
-                        }
-                        let control_points = Points::new(control_points)
-                            .shape(MarkerShape::Circle)
-                            .radius(self.ui_state.last_frame_size.unwrap().1 * 0.003)
-                            .filled(false)
-                            .color(Color32::from_gray(255));
+
                         let response = plot.show(ui, |plot_ui| {
-                            plot_ui.points(control_points);
+                            let ptr_coords = plot_ui.pointer_coordinate();
+
+                            let mut control_points_non_selected: Vec<[f64; 2]> = Vec::new();
+                            let mut selected_point_index = None;
+
+                            for i in 0..editor_state.curve_control_points.len() {
+                                let p = editor_state.curve_control_points[i];
+                                let p = [p.0 as f64, p.1 as f64];
+                                let mut selected = false;
+                                if let Some(coords) = ptr_coords.as_ref() {
+                                    if (p[0] - coords.x).abs() < 0.05 {
+                                        selected = true;
+                                        selected_point_index = Some(i);
+                                    }
+                                }
+                                if !selected {
+                                    control_points_non_selected.push(p);
+                                }
+                            }
+                            let control_points_non_selected =
+                                Points::new(control_points_non_selected)
+                                    .shape(MarkerShape::Circle)
+                                    .radius(self.ui_state.last_frame_size.unwrap().1 * 0.003)
+                                    .filled(false)
+                                    .color(Color32::from_gray(200));
+
+                            plot_ui.points(control_points_non_selected);
+
+                            if let Some(selected) = selected_point_index {
+                                let p = editor_state.curve_control_points[selected];
+                                let p = [p.0 as f64, p.1 as f64];
+                                let control_points_selected = Points::new(vec![p])
+                                    .shape(MarkerShape::Circle)
+                                    .radius(self.ui_state.last_frame_size.unwrap().1 * 0.003)
+                                    .filled(true)
+                                    .color(Color32::from_gray(255));
+                                plot_ui.points(control_points_selected);
+                            }
+                            ptr_coords
                         });
                         if response.response.clicked() {
-                            println!("clicked");
+                            if let Some(coords) = response.inner {
+                                println!("clicked {:?}", coords);
+                            }
+                        }
+                        if response.response.dragged() {
+                            
                         }
                     }
                 }
