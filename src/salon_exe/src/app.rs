@@ -1,4 +1,4 @@
-use crate::ui::{self, AppUiState, MainImageRenderResources, ThumbnailRenderResources};
+use crate::ui::{self, AppUiState, MainImageRenderResources, ThumbnailRenderResources, file_menu};
 use eframe::{
     egui::{self, accesskit::Vec2, CollapsingHeader, Ui, Visuals},
     emath::remap,
@@ -83,20 +83,7 @@ impl App {
 }
 
 impl App {
-    fn file_dialogue_import_image(&mut self) {
-        if let Some(path) = rfd::FileDialog::new().pick_file() {
-            let add_result = self.session.library.as_mut().add(path.to_str().unwrap());
-            let selected_image: Option<usize> = match add_result {
-                AddImageResult::AddedNewImage(i) => Some(i),
-                AddImageResult::ImageAlreadyExists(i) => Some(i),
-                AddImageResult::Error(_) => None,
-            };
-            match selected_image {
-                Some(i) => self.session.set_current_image(i),
-                None => {}
-            };
-        }
-    }
+
 
     fn histogram(&mut self, ui: &mut Ui) {
         CollapsingHeader::new("Histogram")
@@ -356,12 +343,7 @@ impl eframe::App for App {
 
         egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
             ui.horizontal_wrapped(|ui| {
-                ui.menu_button("File", |ui| {
-                    if ui.button("Import Image").clicked() {
-                        ui.close_menu();
-                        self.file_dialogue_import_image();
-                    }
-                });
+                file_menu(ui, &mut self.session);
             });
         });
         egui::SidePanel::left("library_panel")
