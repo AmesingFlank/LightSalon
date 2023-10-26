@@ -118,7 +118,7 @@ impl App {
                         y: max_x * image_aspect_ratio,
                     }
                 };
-                
+
                 ui.centered_and_justified(|ui| {
                     let (rect, response) = ui.allocate_exact_size(size, egui::Sense::drag());
                     ui.painter().add(egui_wgpu::Callback::new_paint_callback(
@@ -257,16 +257,22 @@ impl App {
                             let ptr_coords = plot_ui.pointer_coordinate();
 
                             let mut control_points_non_selected: Vec<[f64; 2]> = Vec::new();
-                            let mut selected_point_index = None;
 
                             for i in 0..editor_state.curve_control_points.len() {
                                 let p = editor_state.curve_control_points[i];
                                 let p = [p.0 as f64, p.1 as f64];
                                 let mut selected = false;
-                                if let Some(coords) = ptr_coords.as_ref() {
-                                    if (p[0] - coords.x).abs() < 0.05 {
-                                        selected = true;
-                                        selected_point_index = Some(i);
+                                if let Some(existing_selection) =
+                                    self.ui_state.selected_curve_control_point_index.as_ref()
+                                {
+                                    selected = *existing_selection == i;
+                                } else {
+                                    if let Some(coords) = ptr_coords.as_ref() {
+                                        if (p[0] - coords.x).abs() < 0.05 {
+                                            selected = true;
+                                            self.ui_state.selected_curve_control_point_index =
+                                                Some(i);
+                                        }
                                     }
                                 }
                                 if !selected {
@@ -282,8 +288,10 @@ impl App {
 
                             plot_ui.points(control_points_non_selected);
 
-                            if let Some(selected) = selected_point_index {
-                                let p = editor_state.curve_control_points[selected];
+                            if let Some(selected) =
+                                self.ui_state.selected_curve_control_point_index.as_ref()
+                            {
+                                let p = editor_state.curve_control_points[*selected];
                                 let p = [p.0 as f64, p.1 as f64];
                                 let control_points_selected = Points::new(vec![p])
                                     .shape(MarkerShape::Circle)
@@ -300,7 +308,14 @@ impl App {
                             }
                         }
                         if response.response.dragged() {
-
+                            let delta = response.response.drag_delta().y;
+                            let delta = delta * -1.0 / ui.available_height();
+                            if let Some(selected) =
+                                self.ui_state.selected_curve_control_point_index.as_ref()
+                            {
+                                println!("{:?}",delta);
+                                editor_state.curve_control_points[*selected].1 += delta;
+                            }
                         }
                     }
                 }
@@ -440,12 +455,14 @@ impl eframe::App for App {
 
 struct AppUiState {
     last_frame_size: Option<(f32, f32)>,
+    selected_curve_control_point_index: Option<usize>,
 }
 
 impl AppUiState {
     fn new() -> Self {
         AppUiState {
             last_frame_size: None,
+            selected_curve_control_point_index: None,
         }
     }
 }
