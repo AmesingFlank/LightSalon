@@ -131,8 +131,8 @@ impl ComputeHistogramImpl {
             compute_pass.set_pipeline(&self.pipeline_compute);
             compute_pass.set_bind_group(0, &bind_group_compute, &[]);
 
-            let num_workgroups_x = div_up(input_img.properties.dimensions.0, 8);
-            let num_workgroups_y = div_up(input_img.properties.dimensions.1, 8);
+            let num_workgroups_x = div_up(input_img.properties.dimensions.0, 16);
+            let num_workgroups_y = div_up(input_img.properties.dimensions.1, 16);
 
             compute_pass.dispatch_workgroups(num_workgroups_x, num_workgroups_y, 1);
         }

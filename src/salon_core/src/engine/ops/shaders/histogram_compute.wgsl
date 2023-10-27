@@ -28,7 +28,7 @@ fn val_to_bin(v: f32) -> u32 {
 }
 
 @compute
-@workgroup_size(8, 8)
+@workgroup_size(16, 16)
 fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>, @builtin(local_invocation_id) local_id: vec3<u32>) {
     let input_size = textureDimensions(input);
     if(global_id.x >= input_size.x || global_id.y >= input_size.y){
@@ -51,12 +51,12 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>, @builtin(local_i
 
     workgroupBarrier();
 
-    var write_index = local_id.x * 8u + local_id.y;
+    var write_index = local_id.x * 16u + local_id.y;
     while (write_index < max_bins){
         atomicAdd(&buffer.r[write_index], buffer_local.r[write_index]);
         atomicAdd(&buffer.g[write_index], buffer_local.g[write_index]);
         atomicAdd(&buffer.b[write_index], buffer_local.b[write_index]);
         atomicAdd(&buffer.luma[write_index], buffer_local.luma[write_index]);
-        write_index = write_index + 8u * 8u;
+        write_index = write_index + 16u * 16u;
     }
 }
