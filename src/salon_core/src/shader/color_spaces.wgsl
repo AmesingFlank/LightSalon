@@ -47,14 +47,39 @@ fn hsl_to_rgb(hsl: vec3<f32>) -> vec3<f32> {
 const COLOR_SPACE_LINEAR: u32 = 0u;
 const COLOR_SPACE_SRGB: u32 = 1u;
 
+fn linear_to_srgb_channel(C: f32) -> f32 {
+  if (C <= 0.0031308) {
+    return C * 12.92;
+  }
+  else{
+    return 1.055 * pow(C, 1.0 / 2.4) - 0.055;
+  }
+}
+
+fn srgb_to_linear_channel(C: f32) -> f32 {
+  if (C <= 0.04045) {
+    return C / 12.92;
+  }
+  else{
+    return pow((C + 0.055) / 1.055, 2.4);
+  }
+}
+
 fn linear_to_srgb(rgb: vec3<f32>) -> vec3<f32> {
   let srgb = pow(rgb, vec3(1.0 / 2.2));
-  return srgb;
+  return vec3(
+    linear_to_srgb_channel(rgb.r),
+    linear_to_srgb_channel(rgb.g),
+    linear_to_srgb_channel(rgb.b)
+  );
 }
 
 fn srgb_to_linear(srgb: vec3<f32>) -> vec3<f32> {
-  let rgb = pow(srgb, vec3(2.2));
-  return rgb;
+  return vec3(
+    srgb_to_linear_channel(srgb.r),
+    srgb_to_linear_channel(srgb.g),
+    srgb_to_linear_channel(srgb.b)
+  );
 }
 
 // rgb (from sRGB) to CIE XYZ 1931
