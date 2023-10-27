@@ -12,7 +12,7 @@ pub enum Op {
     AdjustSaturation(AdjustSaturationOp),
     ComputeBasicStatistics(ComputeBasicStatisticsOp),
     ComputeHistogram(ComputeHistogramOp),
-    CollectStatistics(CollectStatisticsOp),
+    CollectDataForEditor(CollectDataForEditorOp),
 }
 
 #[derive(Clone)]
@@ -86,7 +86,7 @@ pub struct ComputeHistogramOp {
 }
 
 #[derive(Clone)]
-pub struct CollectStatisticsOp {
+pub struct CollectDataForEditorOp {
     pub result: Id,
-    pub histogram: Id,
+    pub histogram_final: Id,
 }

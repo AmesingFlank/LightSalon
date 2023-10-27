@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::{id::IdTag, CollectStatisticsOp, ComputeHistogramOp, Id, InputOp, Op};
+use super::{id::IdTag, CollectDataForEditorOp, ComputeHistogramOp, Id, InputOp, Op};
 
 #[derive(Clone)]
 pub struct Module {
@@ -59,9 +59,9 @@ impl Module {
         }));
 
         let statistics_id = self.alloc_id();
-        self.push_op(Op::CollectStatistics(CollectStatisticsOp {
+        self.push_op(Op::CollectDataForEditor(CollectDataForEditorOp {
             result: statistics_id,
-            histogram: histogram_id,
+            histogram_final: histogram_id,
         }));
 
         self.set_tagged_id(IdTag::Statistics, statistics_id)

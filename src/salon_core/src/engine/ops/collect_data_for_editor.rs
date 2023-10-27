@@ -4,7 +4,7 @@ use crate::{
     buffer::{Buffer, BufferProperties, RingBuffer},
     engine::value_store::ValueStore,
     image::ColorSpace,
-    ir::{CollectStatisticsOp, Id},
+    ir::{CollectDataForEditorOp, Id},
     runtime::{
         BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager,
         BindingResource, Runtime,
@@ -12,26 +12,26 @@ use crate::{
     shader::{Shader, ShaderLibraryModule},
 };
 
-pub struct CollectStatisticsImpl {
+pub struct CollectDataForEditorImpl {
     runtime: Arc<Runtime>,
 }
-impl CollectStatisticsImpl {
+impl CollectDataForEditorImpl {
     pub fn new(runtime: Arc<Runtime>) -> Self {
-        CollectStatisticsImpl { runtime }
+        CollectDataForEditorImpl { runtime }
     }
 }
-impl CollectStatisticsImpl {
+impl CollectDataForEditorImpl {
     pub fn reset(&mut self) {}
 
     pub fn encode_commands(
         &self,
         encoder: &mut wgpu::CommandEncoder,
-        op: &CollectStatisticsOp,
+        op: &CollectDataForEditorOp,
         value_store: &mut ValueStore,
     ) {
         let histogram_buffer = value_store
             .map
-            .get(&op.histogram)
+            .get(&op.histogram_final)
             .unwrap()
             .as_buffer()
             .clone();

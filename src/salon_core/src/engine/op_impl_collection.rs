@@ -1,4 +1,4 @@
-use super::ops::{exposure::AdjustExposureImpl, saturation::AdjustSaturationImpl, histogram::ComputeHistogramImpl, collect_statistics::CollectStatisticsImpl, contrast::AdjustContrastImpl, basic_statistics::ComputeBasicStatisticsImpl, highlights::AdjustHighlightsImpl, shadows::AdjustShadowsImpl, vibrance::AdjustVibranceImpl, temperature_tint::AdjustTemperatureAndTintImpl};
+use super::ops::{exposure::AdjustExposureImpl, saturation::AdjustSaturationImpl, histogram::ComputeHistogramImpl, collect_data_for_editor::CollectDataForEditorImpl, contrast::AdjustContrastImpl, basic_statistics::ComputeBasicStatisticsImpl, highlights::AdjustHighlightsImpl, shadows::AdjustShadowsImpl, vibrance::AdjustVibranceImpl, temperature_tint::AdjustTemperatureAndTintImpl};
 
 #[derive(Default)]
 pub struct OpImplCollection {
@@ -11,7 +11,7 @@ pub struct OpImplCollection {
     pub saturation: Option<AdjustSaturationImpl>,
     pub basic_statistics: Option<ComputeBasicStatisticsImpl>,
     pub histogram: Option<ComputeHistogramImpl>,
-    pub collect_statistics: Option<CollectStatisticsImpl>,
+    pub collect_data_for_editor: Option<CollectDataForEditorImpl>,
 }
 
 impl OpImplCollection {

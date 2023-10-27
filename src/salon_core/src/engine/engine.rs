@@ -11,7 +11,7 @@ use super::{
     op_impl_collection::OpImplCollection,
     ops::{
         basic_statistics::ComputeBasicStatisticsImpl,
-        collect_statistics::CollectStatisticsImpl,
+        collect_data_for_editor::CollectDataForEditorImpl,
         contrast::AdjustContrastImpl,
         exposure::AdjustExposureImpl,
         highlights::AdjustHighlightsImpl,
@@ -155,9 +155,9 @@ impl Engine {
                         &mut self.value_store,
                     );
                 }
-                Op::CollectStatistics(ref op) => {
+                Op::CollectDataForEditor(ref op) => {
                     self.op_impls
-                        .collect_statistics
+                        .collect_data_for_editor
                         .as_mut()
                         .unwrap()
                         .encode_commands(&mut encoder, op, &mut self.value_store);
@@ -242,12 +242,12 @@ impl Engine {
                     }
                     self.op_impls.histogram.as_mut().unwrap().reset();
                 }
-                Op::CollectStatistics(_) => {
-                    if self.op_impls.collect_statistics.is_none() {
-                        self.op_impls.collect_statistics =
-                            Some(CollectStatisticsImpl::new(self.runtime.clone()))
+                Op::CollectDataForEditor(_) => {
+                    if self.op_impls.collect_data_for_editor.is_none() {
+                        self.op_impls.collect_data_for_editor =
+                            Some(CollectDataForEditorImpl::new(self.runtime.clone()))
                     }
-                    self.op_impls.collect_statistics.as_mut().unwrap().reset();
+                    self.op_impls.collect_data_for_editor.as_mut().unwrap().reset();
                 }
             }
         }
