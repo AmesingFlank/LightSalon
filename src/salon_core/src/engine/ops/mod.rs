@@ -1,7 +1,6 @@
 pub mod exposure;
 pub mod contrast;
-pub mod highlights;
-pub mod shadows;
+pub mod highlights_shadows;
 pub mod temperature_tint;
 pub mod vibrance;
 pub mod saturation;

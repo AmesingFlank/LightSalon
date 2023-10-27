@@ -7,7 +7,8 @@ var input: texture_2d<f32>;
 var output: texture_storage_2d<rgba16float, write>;
 
 struct Params {
-    value: f32,
+    highlights: f32,
+    shadows: f32,
 };
 
 @group(0) @binding(2)
@@ -23,20 +24,36 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     var rgb = textureLoad(input, global_id.xy, 0).rgb;
     var hsl = rgb_to_hsl(rgb);
 
-    let base = 0.6;
-    let scale = 1.0 / (1.0 - base);
-    let highlights = params.value * 0.01;
     var l = hsl.z;
 
-    if(l > base) {
-        l = (l - base) * scale;
+    let highlights = params.highlights * 0.01;
+    let shadows = params.shadows * 0.01;
+
+    let highlights_threshold = 0.6;
+    let shadows_threashold = 0.2;
+
+    if(l > highlights_threshold && highlights != 0.0) {
+        let scale = 1.0 / (1.0 - highlights_threshold);
+        l = (l - highlights_threshold) * scale;
         if(highlights < 0.0) {
             l = pow(l,  1.0 - highlights * 2.0);
         }
         else {
             l = pow(l, 1.0 / (1.0 + highlights * 2.0));
         }
-        l = l / scale + base; 
+        l = l / scale + highlights_threshold; 
+    }
+
+    if(l < shadows_threashold && shadows != 0.0) {
+        let scale = 1.0 / shadows_threashold;
+        l = l * scale;
+        if(shadows < 0.0) {
+            l = pow(l,  1.0 - shadows);
+        }
+        else {
+            l = pow(l, 1.0 / (1.0 + shadows));
+        }
+        l = l / scale; 
     }
 
     hsl.z = l;

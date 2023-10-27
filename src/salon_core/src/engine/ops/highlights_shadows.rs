@@ -4,7 +4,7 @@ use crate::{
     buffer::{Buffer, BufferProperties, RingBuffer},
     engine::value_store::ValueStore,
     image::ColorSpace,
-    ir::{AdjustShadowsOp, Id},
+    ir::{AdjustHighlightsAndShadowsOp, Id},
     runtime::{
         BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager,
         BindingResource, Runtime,
@@ -12,15 +12,15 @@ use crate::{
     shader::{Shader, ShaderLibraryModule}, utils::math::div_up,
 };
 
-pub struct AdjustShadowsImpl {
+pub struct AdjustHighlightsAndShadowsImpl {
     runtime: Arc<Runtime>,
     pipeline: wgpu::ComputePipeline,
     bind_group_manager: BindGroupManager,
     ring_buffer: RingBuffer,
 }
-impl AdjustShadowsImpl {
+impl AdjustHighlightsAndShadowsImpl {
     pub fn new(runtime: Arc<Runtime>) -> Self {
-        let shader_code = Shader::from_code(include_str!("shaders/shadows.wgsl"))
+        let shader_code = Shader::from_code(include_str!("shaders/highlights_shadows.wgsl"))
             .with_library(ShaderLibraryModule::ColorSpaces)
             .full_code();
 
@@ -31,12 +31,12 @@ impl AdjustShadowsImpl {
         let ring_buffer = RingBuffer::new(
             runtime.clone(),
             BufferProperties {
-                size: size_of::<f32>(),
+                size: 2* size_of::<f32>(),
                 host_readable: false,
             },
         );
 
-        AdjustShadowsImpl {
+        AdjustHighlightsAndShadowsImpl {
             runtime,
             pipeline,
             bind_group_manager,
@@ -44,7 +44,7 @@ impl AdjustShadowsImpl {
         }
     }
 }
-impl AdjustShadowsImpl {
+impl AdjustHighlightsAndShadowsImpl {
     pub fn reset(&mut self) {
         self.ring_buffer.mark_all_available();
     }
@@ -52,7 +52,7 @@ impl AdjustShadowsImpl {
     pub fn encode_commands(
         &mut self,
         encoder: &mut wgpu::CommandEncoder,
-        op: &AdjustShadowsOp,
+        op: &AdjustHighlightsAndShadowsOp,
         value_store: &mut ValueStore,
     ) {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
@@ -66,7 +66,7 @@ impl AdjustShadowsImpl {
 
         self.runtime
             .queue
-            .write_buffer(&buffer.buffer, 0, bytemuck::cast_slice(&[op.shadows]));
+            .write_buffer(&buffer.buffer, 0, bytemuck::cast_slice(&[op.highlights, op.shadows]));
 
         let bind_group = self.bind_group_manager.get_or_create(BindGroupDescriptor {
             entries: vec![

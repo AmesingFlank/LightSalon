@@ -5,8 +5,7 @@ pub enum Op {
     Input(InputOp),
     AdjustExposure(AdjustExposureOp),
     AdjustContrast(AdjustContrastOp),
-    AdjustHighlights(AdjustHighlightsOp),
-    AdjustShadows(AdjustShadowsOp),
+    AdjustHighlightsAndShadows(AdjustHighlightsAndShadowsOp),
     AdjustTemperatureAndTint(AdjustTemperatureAndTintOp),
     AdjustVibrance(AdjustVibranceOp),
     AdjustSaturation(AdjustSaturationOp),
@@ -36,16 +35,10 @@ pub struct AdjustContrastOp {
 }
 
 #[derive(Clone)]
-pub struct AdjustHighlightsOp {
+pub struct AdjustHighlightsAndShadowsOp {
     pub result: Id,
     pub arg: Id,
     pub highlights: f32,
-}
-
-#[derive(Clone)]
-pub struct AdjustShadowsOp {
-    pub result: Id,
-    pub arg: Id,
     pub shadows: f32,
 }
 

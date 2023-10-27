@@ -14,10 +14,9 @@ use super::{
         collect_data_for_editor::CollectDataForEditorImpl,
         contrast::AdjustContrastImpl,
         exposure::AdjustExposureImpl,
-        highlights::AdjustHighlightsImpl,
+        highlights_shadows::AdjustHighlightsAndShadowsImpl,
         histogram::{self, ComputeHistogramImpl},
         saturation::{self, AdjustSaturationImpl},
-        shadows::AdjustShadowsImpl,
         vibrance::AdjustVibranceImpl, temperature_tint::AdjustTemperatureAndTintImpl,
     },
     result::ProcessResult,
@@ -106,15 +105,8 @@ impl Engine {
                         &mut self.value_store,
                     );
                 }
-                Op::AdjustHighlights(ref op) => {
-                    self.op_impls.highlights.as_mut().unwrap().encode_commands(
-                        &mut encoder,
-                        op,
-                        &mut self.value_store,
-                    );
-                }
-                Op::AdjustShadows(ref op) => {
-                    self.op_impls.shadows.as_mut().unwrap().encode_commands(
+                Op::AdjustHighlightsAndShadows(ref op) => {
+                    self.op_impls.highlights_shadows.as_mut().unwrap().encode_commands(
                         &mut encoder,
                         op,
                         &mut self.value_store,
@@ -195,18 +187,12 @@ impl Engine {
                     }
                     self.op_impls.contrast.as_mut().unwrap().reset();
                 }
-                Op::AdjustHighlights(_) => {
-                    if self.op_impls.highlights.is_none() {
-                        self.op_impls.highlights =
-                            Some(AdjustHighlightsImpl::new(self.runtime.clone()))
+                Op::AdjustHighlightsAndShadows(_) => {
+                    if self.op_impls.highlights_shadows.is_none() {
+                        self.op_impls.highlights_shadows =
+                            Some(AdjustHighlightsAndShadowsImpl::new(self.runtime.clone()))
                     }
-                    self.op_impls.highlights.as_mut().unwrap().reset();
-                }
-                Op::AdjustShadows(_) => {
-                    if self.op_impls.shadows.is_none() {
-                        self.op_impls.shadows = Some(AdjustShadowsImpl::new(self.runtime.clone()))
-                    }
-                    self.op_impls.shadows.as_mut().unwrap().reset();
+                    self.op_impls.highlights_shadows.as_mut().unwrap().reset();
                 }
                 Op::AdjustTemperatureAndTint(_) => {
                     if self.op_impls.temperature_tint.is_none() {

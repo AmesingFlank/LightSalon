@@ -1,6 +1,6 @@
 use crate::ir::{
     AdjustContrastOp, AdjustExposureOp, AdjustSaturationOp, ComputeBasicStatisticsOp, Id, Module,
-    Op, AdjustHighlightsOp, AdjustShadowsOp, AdjustVibranceOp, AdjustTemperatureAndTintOp,
+    Op, AdjustHighlightsAndShadowsOp, AdjustVibranceOp, AdjustTemperatureAndTintOp,
 };
 
 pub struct Editor {
@@ -54,8 +54,7 @@ impl EditorState {
 
         self.maybe_add_exposure(&mut module, &mut current_output_id);
         self.maybe_add_contrast(&mut module, &mut current_output_id);
-        self.maybe_add_highlights(&mut module, &mut current_output_id);
-        self.maybe_add_shadows(&mut module, &mut current_output_id);
+        self.maybe_add_highlights_shadows(&mut module, &mut current_output_id);
         self.maybe_add_temperature_tint(&mut module, &mut current_output_id);
         self.maybe_add_vibrance(&mut module, &mut current_output_id);
         self.maybe_add_saturation(&mut module, &mut current_output_id);
@@ -98,29 +97,17 @@ impl EditorState {
         }
     }
 
-    fn maybe_add_highlights(&self, module: &mut Module, current_output_id: &mut Id) {
-        if self.highlights_val != 0.0 {
-            let highlights_adjusted_image_id = module.alloc_id();
-            module.push_op(Op::AdjustHighlights(AdjustHighlightsOp {
-                result: highlights_adjusted_image_id,
+    fn maybe_add_highlights_shadows(&self, module: &mut Module, current_output_id: &mut Id) {
+        if self.highlights_val != 0.0 || self.shadows_val != 0.0 {
+            let adjusted_image_id = module.alloc_id();
+            module.push_op(Op::AdjustHighlightsAndShadows(AdjustHighlightsAndShadowsOp {
+                result: adjusted_image_id,
                 arg: *current_output_id,
                 highlights: self.highlights_val,
+                shadows: self.shadows_val
             }));
-            module.set_output_id(highlights_adjusted_image_id);
-            *current_output_id = highlights_adjusted_image_id;
-        }
-    }
-
-    fn maybe_add_shadows(&self, module: &mut Module, current_output_id: &mut Id) {
-        if self.shadows_val != 0.0 {
-            let shadows_adjusted_image_id = module.alloc_id();
-            module.push_op(Op::AdjustShadows(AdjustShadowsOp {
-                result: shadows_adjusted_image_id,
-                arg: *current_output_id,
-                shadows: self.shadows_val,
-            }));
-            module.set_output_id(shadows_adjusted_image_id);
-            *current_output_id = shadows_adjusted_image_id;
+            module.set_output_id(adjusted_image_id);
+            *current_output_id = adjusted_image_id;
         }
     }
 
