@@ -83,22 +83,8 @@ pub fn curve(
                         }
                         ptr_coords
                     });
-                    if response.response.clicked() {
-                        if ui_state.selected_curve_control_point_index.is_none() {
-                            if let Some(ref coords) = response.inner {
-                                let new_point = (coords.x as f32, coords.y as f32);
-                                for i in 0..editor_state.curve_control_points.len() - 1 {
-                                    let this_p = editor_state.curve_control_points[i];
-                                    let next_p = editor_state.curve_control_points[i + 1];
-                                    if this_p.0 < new_point.0 && new_point.0 < next_p.0 {
-                                        editor_state.curve_control_points.insert(i + 1, new_point);
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    if response.response.dragged() {
+                    
+                    if response.response.dragged() || response.response.drag_started() {
                         if ui_state.selected_curve_control_point_index.is_none() {
                             if let Some(ref coords) = response.inner {
                                 for i in 0..editor_state.curve_control_points.len() {
@@ -118,6 +104,32 @@ pub fn curve(
                             p.1 += delta;
                             p.1 = p.1.min(1.0).max(0.0);
                             editor_state.curve_control_points[*selected] = p;
+                        }
+                    }
+
+                    if response.response.clicked()
+                        || (response.response.drag_started()
+                            && ui_state.selected_curve_control_point_index.is_none())
+                    {
+                        if ui_state.selected_curve_control_point_index.is_none() {
+                            if let Some(ref coords) = response.inner {
+                                let new_point = (coords.x as f32, coords.y as f32);
+                                for i in 0..editor_state.curve_control_points.len() - 1 {
+                                    let this_p = editor_state.curve_control_points[i];
+                                    let next_p = editor_state.curve_control_points[i + 1];
+                                    if this_p.0 < new_point.0 && new_point.0 < next_p.0 {
+                                        let new_point_idx = i + 1;
+                                        editor_state
+                                            .curve_control_points
+                                            .insert(new_point_idx, new_point);
+                                        if response.response.drag_started() {
+                                            ui_state.selected_curve_control_point_index =
+                                                Some(new_point_idx);
+                                        }
+                                        break;
+                                    }
+                                }
+                            }
                         }
                     }
                     if response.response.drag_released() {
