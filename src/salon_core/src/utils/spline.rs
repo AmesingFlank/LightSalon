@@ -39,7 +39,7 @@ impl EvaluatedSpline {
         interpolated_points.push(p_N);
 
         let mut curr_p0 = 1usize;
-        let mut curr_p0_curve_points = Vec::with_capacity(1001);
+        let mut curr_p0_curve_points = Vec::new();
 
         let mut result = EvaluatedSpline { y_vals: Vec::new() };
         for i in 0..=1000 {
