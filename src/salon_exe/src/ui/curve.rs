@@ -17,7 +17,7 @@ pub fn curve(
         .default_open(true)
         .show(ui, |ui| {
             if let Some(ref result) = session.current_process_result {
-                if let Some(ref stats) = result.statistics {
+                if let Some(ref stats) = result.data_for_editor {
                     let margin = 0.02;
                     let plot = Plot::new("curve")
                         .data_aspect(1.0)

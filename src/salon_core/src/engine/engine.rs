@@ -22,7 +22,7 @@ use super::{
     },
     result::ProcessResult,
     value_store::ValueStore,
-    ImageStatistics,
+    DataForEditor,
 };
 
 pub struct Engine {
@@ -60,7 +60,7 @@ impl Engine {
                 .get(&statistics_id)
                 .expect("cannot find stats")
                 .as_buffer();
-            let stats = ImageStatistics::from_buffer(&statistics_buffer, &self.runtime);
+            let stats = DataForEditor::from_buffer(&statistics_buffer, &self.runtime);
             // println!("");
             // let mut sum = 0u32;
             // for i in 0..stats.histogram_final.num_bins as usize {
@@ -71,7 +71,7 @@ impl Engine {
             // println!("num_bins={num_bins}",num_bins=stats.histogram_final.num_bins);
             // println!("sum={sum}",sum=sum);
             // println!("");
-            result.statistics = Some(stats)
+            result.data_for_editor = Some(stats)
         }
 
         result.final_image = Some(output_image);

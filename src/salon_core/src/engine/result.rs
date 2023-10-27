@@ -36,11 +36,11 @@ impl ImageHistogram {
     }
 }
 
-pub struct ImageStatistics {
+pub struct DataForEditor {
     pub histogram_final: ImageHistogram,
 }
 
-impl ImageStatistics {
+impl DataForEditor {
     pub fn from_buffer(buffer: &Buffer, runtime: &Runtime) -> Self {
         let buffer_ints: Vec<u32> = runtime.read_buffer(buffer);
 
@@ -66,20 +66,20 @@ impl ImageStatistics {
             luma,
             num_bins,
         };
-        ImageStatistics { histogram_final }
+        DataForEditor { histogram_final }
     }
 }
 
 pub struct ProcessResult {
     pub final_image: Option<Arc<Image>>,
-    pub statistics: Option<ImageStatistics>,
+    pub data_for_editor: Option<DataForEditor>,
 }
 
 impl ProcessResult {
     pub fn new_empty() -> Self {
         ProcessResult {
             final_image: None,
-            statistics: None,
+            data_for_editor: None,
         }
     }
 }

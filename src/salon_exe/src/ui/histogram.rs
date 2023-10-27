@@ -9,7 +9,7 @@ pub fn histogram(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) 
         .default_open(true)
         .show(ui, |ui| {
             if let Some(ref result) = session.current_process_result {
-                if let Some(ref stats) = result.statistics {
+                if let Some(ref stats) = result.data_for_editor {
                     let hist = &stats.histogram_final;
 
                     let get_line_data = |v: &Vec<u32>| {
