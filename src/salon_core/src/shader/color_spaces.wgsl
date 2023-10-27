@@ -82,7 +82,7 @@ fn srgb_to_linear(srgb: vec3<f32>) -> vec3<f32> {
   );
 }
 
-// rgb (from sRGB) to CIE XYZ 1931
+// rgb (linearized sRGB) to CIE XYZ 1931
 fn rgb_to_XYZ(rgb: vec3<f32>) -> vec3<f32> {
   let column0 = vec3(
     0.4124564,
@@ -103,7 +103,7 @@ fn rgb_to_XYZ(rgb: vec3<f32>) -> vec3<f32> {
   return m * rgb;
 }
 
-// CIE XYZ 1931 to rgb (from sRGB)
+// CIE XYZ 1931 to rgb (linearized sRGB)
 fn XYZ_to_rgb(XYZ: vec3<f32>) -> vec3<f32> {
   let column0 = vec3(
     3.2404542,
