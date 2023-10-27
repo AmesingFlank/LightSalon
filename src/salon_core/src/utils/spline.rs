@@ -43,7 +43,7 @@ impl EvaluatedSpline {
 
         let mut result = EvaluatedSpline { y_vals: Vec::new() };
         for i in 0..=1000 {
-            let x = 1.0 / i as f32;
+            let x = i as f32 / 1000.0;
             let mut y = 0.0;
             if x <= control_points[0].0 {
                 y = control_points[0].1;
@@ -72,6 +72,7 @@ impl EvaluatedSpline {
                 }
                 let q0 = curr_p0_curve_points[curr_p0_curve_points.len()-2];
                 let q1 = curr_p0_curve_points[curr_p0_curve_points.len()-1];
+
                 let s = (x-q0.x) / (q1.x - q0.x);
                 y = q0.y + (q1.y - q0.y) * s;
             }

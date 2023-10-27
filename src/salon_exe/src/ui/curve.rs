@@ -3,7 +3,7 @@ use eframe::{
     epaint::Color32,
 };
 use egui_plot::{Line, MarkerShape, Plot, Points};
-use salon_core::{editor::EditorState, session::Session};
+use salon_core::{editor::EditorState, session::Session, utils::spline::EvaluatedSpline};
 
 use super::AppUiState;
 
@@ -81,6 +81,18 @@ pub fn curve(
                                 .color(Color32::from_gray(255));
                             plot_ui.points(control_points_highlighted);
                         }
+
+                        let evaluated = EvaluatedSpline::from_control_points(
+                            &editor_state.curve_control_points,
+                        );
+                        let mut curve = Vec::with_capacity(evaluated.y_vals.len());
+
+                        for i in 0..evaluated.y_vals.len() {
+                            let x = i as f64 / (evaluated.y_vals.len() - 1) as f64;
+                            curve.push([x, evaluated.y_vals[i] as f64]);
+                        }
+                        let curve = Line::new(curve).color(Color32::from_rgb(200, 200, 200));
+                        plot_ui.line(curve);
                         ptr_coords
                     });
 
