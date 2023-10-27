@@ -49,7 +49,7 @@ impl Module {
         module
     }
 
-    pub fn add_statistics_ops(&mut self) {
+    pub fn add_data_for_editor_ops(&mut self) {
         let curr_output_id = self.get_output_id().unwrap();
 
         let histogram_id = self.alloc_id();
@@ -58,12 +58,12 @@ impl Module {
             arg: curr_output_id,
         }));
 
-        let statistics_id = self.alloc_id();
+        let data_for_editor_id = self.alloc_id();
         self.push_op(Op::CollectDataForEditor(CollectDataForEditorOp {
-            result: statistics_id,
+            result: data_for_editor_id,
             histogram_final: histogram_id,
         }));
 
-        self.set_tagged_id(IdTag::Statistics, statistics_id)
+        self.set_tagged_id(IdTag::DataForEditor, data_for_editor_id)
     }
 }

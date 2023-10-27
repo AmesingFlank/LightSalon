@@ -53,14 +53,14 @@ impl Engine {
             .expect("cannot find output");
         let output_image = output_value.as_image().clone();
 
-        if let Some(statistics_id) = module.get_tagged_id(IdTag::Statistics) {
-            let statistics_buffer = self
+        if let Some(editor_data_id) = module.get_tagged_id(IdTag::DataForEditor) {
+            let editor_data_buffer = self
                 .value_store
                 .map
-                .get(&statistics_id)
+                .get(&editor_data_id)
                 .expect("cannot find stats")
                 .as_buffer();
-            let stats = DataForEditor::from_buffer(&statistics_buffer, &self.runtime);
+            let data_for_editor = DataForEditor::from_buffer(&editor_data_buffer, &self.runtime);
             // println!("");
             // let mut sum = 0u32;
             // for i in 0..stats.histogram_final.num_bins as usize {
@@ -71,7 +71,7 @@ impl Engine {
             // println!("num_bins={num_bins}",num_bins=stats.histogram_final.num_bins);
             // println!("sum={sum}",sum=sum);
             // println!("");
-            result.data_for_editor = Some(stats)
+            result.data_for_editor = Some(data_for_editor)
         }
 
         result.final_image = Some(output_image);

@@ -60,7 +60,7 @@ impl EditorState {
         self.maybe_add_vibrance(&mut module, &mut current_output_id);
         self.maybe_add_saturation(&mut module, &mut current_output_id);
 
-        module.add_statistics_ops();
+        module.add_data_for_editor_ops();
 
         module
     }

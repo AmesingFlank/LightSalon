@@ -44,7 +44,7 @@ impl Session {
         self.editor.reset_state();
 
         let mut module = Module::new_trivial();
-        module.add_statistics_ops();
+        module.add_data_for_editor_ops();
 
         let result = self.engine.execute_module(&module, img);
 
