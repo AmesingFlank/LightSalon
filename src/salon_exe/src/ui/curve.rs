@@ -83,7 +83,7 @@ pub fn curve(
                         }
                         ptr_coords
                     });
-                    
+
                     if response.response.dragged() || response.response.drag_started() {
                         if ui_state.selected_curve_control_point_index.is_none() {
                             if let Some(ref coords) = response.inner {
@@ -96,13 +96,27 @@ pub fn curve(
                                 }
                             }
                         }
-                        let delta = response.response.drag_delta().y;
-                        let delta = delta * -1.0 / ui.available_height();
-                        if let Some(selected) = ui_state.selected_curve_control_point_index.as_ref()
-                        {
+                        let mut dx = response.response.drag_delta().x;
+                        let mut dy = response.response.drag_delta().y;
+                        dx = dx * 1.0 / ui.available_height();
+                        dy = dy * -1.0 / ui.available_height();
+                        if let Some(ref selected) = ui_state.selected_curve_control_point_index {
                             let mut p = editor_state.curve_control_points[*selected];
-                            p.1 += delta;
+
+                            p.1 += dy;
                             p.1 = p.1.min(1.0).max(0.0);
+
+                            p.0 += dx;
+                            p.0 = p.0.min(1.0).max(0.0);
+                            if *selected > 0 {
+                                let prev = editor_state.curve_control_points[*selected - 1];
+                                p.0 = p.0.max(prev.0 + 0.05);
+                            }
+                            if *selected < editor_state.curve_control_points.len() - 1 {
+                                let next = editor_state.curve_control_points[*selected + 1];
+                                p.0 = p.0.min(next.0 - 0.05);
+                            }
+
                             editor_state.curve_control_points[*selected] = p;
                         }
                     }
