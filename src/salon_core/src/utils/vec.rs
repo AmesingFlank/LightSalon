@@ -4,12 +4,12 @@ use std::ops::{Add, Div, Mul, Sub};
 // these are deliberately similar to WGSL
 #[derive(Clone, Copy)]
 pub struct Vec2<T: Num> {
-    x: T,
-    y: T,
+    pub x: T,
+    pub y: T,
 }
 
-pub fn vec2<T: Num>(x: T, y: T) -> Vec2<T> {
-    Vec2 { x, y }
+pub fn vec2<T: Num>(xy: (T, T)) -> Vec2<T> {
+    Vec2 { x: xy.0, y: xy.1 }
 }
 
 // ... your existing Vec2, Vec3, and Vec4 definitions ...
@@ -82,13 +82,17 @@ impl<T: Num + Copy> Div<T> for Vec2<T> {
 
 #[derive(Clone, Copy)]
 pub struct Vec3<T: Num> {
-    x: T,
-    y: T,
-    z: T,
+    pub x: T,
+    pub y: T,
+    pub z: T,
 }
 
-pub fn vec3<T: Num>(x: T, y: T, z: T) -> Vec3<T> {
-    Vec3 { x, y, z }
+pub fn vec3<T: Num>(xyz: (T, T, T)) -> Vec3<T> {
+    Vec3 {
+        x: xyz.0,
+        y: xyz.1,
+        z: xyz.2,
+    }
 }
 
 impl<T: Num + Copy> Add for Vec3<T> {
@@ -165,14 +169,19 @@ impl<T: Num + Copy> Div<T> for Vec3<T> {
 
 #[derive(Clone, Copy)]
 pub struct Vec4<T: Num> {
-    x: T,
-    y: T,
-    z: T,
-    w: T,
+    pub x: T,
+    pub y: T,
+    pub z: T,
+    pub w: T,
 }
 
-pub fn vec4<T: Num>(x: T, y: T, z: T, w: T) -> Vec4<T> {
-    Vec4 { x, y, z, w }
+pub fn vec4<T: Num>(xyzw: (T, T, T, T)) -> Vec4<T> {
+    Vec4 {
+        x: xyzw.0,
+        y: xyzw.1,
+        z: xyzw.2,
+        w: xyzw.3,
+    }
 }
 
 // ... your existing Vec2 and Vec3 definitions ...
