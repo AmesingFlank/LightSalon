@@ -10,7 +10,7 @@ fn catmull_rom_spline(
 ) -> Vec2<f32> {
     let t2 = t * t;
     let t3 = t2 * t;
-    let ts = vec4((t3, t3, t2, 1.0));
+    let ts = vec4((t3, t2, t, 1.0));
     let b_minus_1 = dot_vec4(ts, vec4((-1.0, 2.0, -1.0, 0.0)));
     let b_0 = dot_vec4(ts, vec4((3.0, -5.0, 0.0, 2.0)));
     let b_1 = dot_vec4(ts, vec4((-3.0, 4.0, 1.0, 0.0)));
