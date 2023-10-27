@@ -4,7 +4,7 @@ use crate::{
     buffer::{Buffer, BufferProperties, RingBuffer},
     engine::value_store::ValueStore,
     image::ColorSpace,
-    ir::{AdjustVibranceOp, Id},
+    ir::{AdjustVibranceAndSaturationOp, Id},
     runtime::{
         BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager,
         BindingResource, Runtime,
@@ -13,15 +13,15 @@ use crate::{
     utils::math::div_up,
 };
 
-pub struct AdjustVibranceImpl {
+pub struct AdjustVibranceAndSaturationImpl {
     runtime: Arc<Runtime>,
     pipeline: wgpu::ComputePipeline,
     bind_group_manager: BindGroupManager,
     ring_buffer: RingBuffer,
 }
-impl AdjustVibranceImpl {
+impl AdjustVibranceAndSaturationImpl {
     pub fn new(runtime: Arc<Runtime>) -> Self {
-        let shader_code = Shader::from_code(include_str!("shaders/vibrance.wgsl"))
+        let shader_code = Shader::from_code(include_str!("shaders/vibrance_saturation.wgsl"))
             .with_library(ShaderLibraryModule::ColorSpaces)
             .full_code();
 
@@ -32,12 +32,12 @@ impl AdjustVibranceImpl {
         let ring_buffer = RingBuffer::new(
             runtime.clone(),
             BufferProperties {
-                size: size_of::<f32>(),
+                size: 2 * size_of::<f32>(),
                 host_readable: false,
             },
         );
 
-        AdjustVibranceImpl {
+        AdjustVibranceAndSaturationImpl {
             runtime,
             pipeline,
             bind_group_manager,
@@ -45,7 +45,7 @@ impl AdjustVibranceImpl {
         }
     }
 }
-impl AdjustVibranceImpl {
+impl AdjustVibranceAndSaturationImpl {
     pub fn reset(&mut self) {
         self.ring_buffer.mark_all_available();
     }
@@ -53,7 +53,7 @@ impl AdjustVibranceImpl {
     pub fn encode_commands(
         &mut self,
         encoder: &mut wgpu::CommandEncoder,
-        op: &AdjustVibranceOp,
+        op: &AdjustVibranceAndSaturationOp,
         value_store: &mut ValueStore,
     ) {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
@@ -65,9 +65,11 @@ impl AdjustVibranceImpl {
 
         let buffer = self.ring_buffer.get();
 
-        self.runtime
-            .queue
-            .write_buffer(&buffer.buffer, 0, bytemuck::cast_slice(&[op.vibrance]));
+        self.runtime.queue.write_buffer(
+            &buffer.buffer,
+            0,
+            bytemuck::cast_slice(&[op.vibrance, op.saturation]),
+        );
 
         let bind_group = self.bind_group_manager.get_or_create(BindGroupDescriptor {
             entries: vec![

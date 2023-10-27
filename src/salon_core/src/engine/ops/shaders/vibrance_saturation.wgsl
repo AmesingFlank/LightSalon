@@ -7,7 +7,8 @@ var input: texture_2d<f32>;
 var output: texture_storage_2d<rgba16float, write>;
 
 struct Params {
-    value: f32,
+    vibrance: f32,
+    saturation: f32,
 };
 
 @group(0) @binding(2)
@@ -24,7 +25,9 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     var rgb = textureLoad(input, global_id.xy, 0).rgb;
     var hsl = rgb_to_hsl(rgb);
     
-    hsl.y *= (1.0 + params.value * 0.01);
+    hsl.y *= (1.0 + params.vibrance * 0.01 * (1.0 - hsl.y) * 2.0);
+    hsl.y *= (1.0 + params.saturation * 0.01);
+
     hsl.y = clamp(hsl.y, 0.0, 1.0);
     
     rgb = hsl_to_rgb(hsl);

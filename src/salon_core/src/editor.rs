@@ -1,6 +1,6 @@
 use crate::ir::{
-    AdjustContrastOp, AdjustExposureOp, AdjustSaturationOp, ComputeBasicStatisticsOp, Id, Module,
-    Op, AdjustHighlightsAndShadowsOp, AdjustVibranceOp, AdjustTemperatureAndTintOp,
+    AdjustContrastOp, AdjustExposureOp, AdjustHighlightsAndShadowsOp, AdjustTemperatureAndTintOp,
+    AdjustVibranceAndSaturationOp, ComputeBasicStatisticsOp, Id, Module, Op,
 };
 
 pub struct Editor {
@@ -44,7 +44,7 @@ impl EditorState {
             tint_val: 0.0,
             vibrance_val: 0.0,
             saturation_val: 0.0,
-            curve_control_points:  EditorState::initial_control_points(),
+            curve_control_points: EditorState::initial_control_points(),
         }
     }
     pub fn to_ir_module(&self) -> Module {
@@ -57,7 +57,6 @@ impl EditorState {
         self.maybe_add_highlights_shadows(&mut module, &mut current_output_id);
         self.maybe_add_temperature_tint(&mut module, &mut current_output_id);
         self.maybe_add_vibrance(&mut module, &mut current_output_id);
-        self.maybe_add_saturation(&mut module, &mut current_output_id);
 
         module.add_data_for_editor_ops();
 
@@ -100,19 +99,21 @@ impl EditorState {
     fn maybe_add_highlights_shadows(&self, module: &mut Module, current_output_id: &mut Id) {
         if self.highlights_val != 0.0 || self.shadows_val != 0.0 {
             let adjusted_image_id = module.alloc_id();
-            module.push_op(Op::AdjustHighlightsAndShadows(AdjustHighlightsAndShadowsOp {
-                result: adjusted_image_id,
-                arg: *current_output_id,
-                highlights: self.highlights_val,
-                shadows: self.shadows_val
-            }));
+            module.push_op(Op::AdjustHighlightsAndShadows(
+                AdjustHighlightsAndShadowsOp {
+                    result: adjusted_image_id,
+                    arg: *current_output_id,
+                    highlights: self.highlights_val,
+                    shadows: self.shadows_val,
+                },
+            ));
             module.set_output_id(adjusted_image_id);
             *current_output_id = adjusted_image_id;
         }
     }
 
     fn maybe_add_temperature_tint(&self, module: &mut Module, current_output_id: &mut Id) {
-        if self.temperature_val != 0.0 ||  self.tint_val != 0.0{
+        if self.temperature_val != 0.0 || self.tint_val != 0.0 {
             let temperature_tint_adjusted_image_id = module.alloc_id();
             module.push_op(Op::AdjustTemperatureAndTint(AdjustTemperatureAndTintOp {
                 result: temperature_tint_adjusted_image_id,
@@ -126,28 +127,18 @@ impl EditorState {
     }
 
     fn maybe_add_vibrance(&self, module: &mut Module, current_output_id: &mut Id) {
-        if self.vibrance_val != 0.0 {
-            let vibrance_adjusted_image_id = module.alloc_id();
-            module.push_op(Op::AdjustVibrance(AdjustVibranceOp {
-                result: vibrance_adjusted_image_id,
-                arg: *current_output_id,
-                vibrance: self.vibrance_val,
-            }));
-            module.set_output_id(vibrance_adjusted_image_id);
-            *current_output_id = vibrance_adjusted_image_id;
-        }
-    }
-
-    fn maybe_add_saturation(&self, module: &mut Module, current_output_id: &mut Id) {
-        if self.saturation_val != 0.0 {
-            let saturation_adjusted_image_id = module.alloc_id();
-            module.push_op(Op::AdjustSaturation(AdjustSaturationOp {
-                result: saturation_adjusted_image_id,
-                arg: *current_output_id,
-                saturation: self.saturation_val,
-            }));
-            module.set_output_id(saturation_adjusted_image_id);
-            *current_output_id = saturation_adjusted_image_id;
+        if self.vibrance_val != 0.0 || self.saturation_val != 0.0 {
+            let adjusted_image_id = module.alloc_id();
+            module.push_op(Op::AdjustVibranceAndSaturation(
+                AdjustVibranceAndSaturationOp {
+                    result: adjusted_image_id,
+                    arg: *current_output_id,
+                    vibrance: self.vibrance_val,
+                    saturation: self.saturation_val,
+                },
+            ));
+            module.set_output_id(adjusted_image_id);
+            *current_output_id = adjusted_image_id;
         }
     }
 

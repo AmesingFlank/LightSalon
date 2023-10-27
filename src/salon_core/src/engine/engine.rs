@@ -16,8 +16,7 @@ use super::{
         exposure::AdjustExposureImpl,
         highlights_shadows::AdjustHighlightsAndShadowsImpl,
         histogram::{self, ComputeHistogramImpl},
-        saturation::{self, AdjustSaturationImpl},
-        vibrance::AdjustVibranceImpl, temperature_tint::AdjustTemperatureAndTintImpl,
+        vibrance_saturation::AdjustVibranceAndSaturationImpl, temperature_tint::AdjustTemperatureAndTintImpl,
     },
     result::ProcessResult,
     value_store::ValueStore,
@@ -119,15 +118,8 @@ impl Engine {
                         &mut self.value_store,
                     );
                 }
-                Op::AdjustVibrance(ref op) => {
-                    self.op_impls.vibrance.as_mut().unwrap().encode_commands(
-                        &mut encoder,
-                        op,
-                        &mut self.value_store,
-                    );
-                }
-                Op::AdjustSaturation(ref op) => {
-                    self.op_impls.saturation.as_mut().unwrap().encode_commands(
+                Op::AdjustVibranceAndSaturation(ref op) => {
+                    self.op_impls.vibrance_saturation.as_mut().unwrap().encode_commands(
                         &mut encoder,
                         op,
                         &mut self.value_store,
@@ -201,18 +193,11 @@ impl Engine {
                     }
                     self.op_impls.temperature_tint.as_mut().unwrap().reset();
                 }
-                Op::AdjustVibrance(_) => {
-                    if self.op_impls.vibrance.is_none() {
-                        self.op_impls.vibrance = Some(AdjustVibranceImpl::new(self.runtime.clone()))
+                Op::AdjustVibranceAndSaturation(_) => {
+                    if self.op_impls.vibrance_saturation.is_none() {
+                        self.op_impls.vibrance_saturation = Some(AdjustVibranceAndSaturationImpl::new(self.runtime.clone()))
                     }
-                    self.op_impls.vibrance.as_mut().unwrap().reset();
-                }
-                Op::AdjustSaturation(_) => {
-                    if self.op_impls.saturation.is_none() {
-                        self.op_impls.saturation =
-                            Some(AdjustSaturationImpl::new(self.runtime.clone()))
-                    }
-                    self.op_impls.saturation.as_mut().unwrap().reset();
+                    self.op_impls.vibrance_saturation.as_mut().unwrap().reset();
                 }
                 Op::ComputeBasicStatistics(_) => {
                     if self.op_impls.basic_statistics.is_none() {
