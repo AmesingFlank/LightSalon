@@ -1,6 +1,7 @@
 
 pub struct AppUiState {
     pub last_frame_size: Option<(f32, f32)>,
+
     pub selected_curve_control_point_index: Option<usize>,
 }
 
