@@ -120,6 +120,9 @@ impl eframe::App for App {
                 file_menu(ui, &mut self.session);
             });
         });
+        egui::TopBottomPanel::bottom("bottom_bar").show(ctx, |ui| {
+            ui::bottom_bar(ui, &mut self.session, &mut self.ui_state);
+        });
         egui::SidePanel::left("library_panel")
             .default_width(last_frame_size.x * 0.2)
             .resizable(true)
@@ -137,5 +140,6 @@ impl eframe::App for App {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui::main_image(ui, &mut self.session);
         });
+        egui::Context::request_repaint(ctx);
     }
 }
