@@ -19,12 +19,20 @@ fn catmull_rom_spline(
     return (p_minus_1 * b_minus_1 + p_0 * b_0 + p_1 * b_1 + p_2 * b_2) * 0.5;
 }
 
+
+// Evaluate the y values of a spline where x is in [0, x_max]
 pub struct EvaluatedSpline {
     pub y_vals: Vec<f32>,
+    pub x_max: f32,
+    pub num_steps: u32,
 }
 
 impl EvaluatedSpline {
-    pub fn from_control_points(control_points: &Vec<(f32, f32)>) -> EvaluatedSpline {
+    pub fn from_control_points(
+        control_points: &Vec<(f32, f32)>,
+        x_max: f32,
+        num_steps: u32,
+    ) -> EvaluatedSpline {
         let n = control_points.len();
         let p_minus_1 =
             vec2(control_points[0]) + (vec2(control_points[0]) - vec2(control_points[1]));
@@ -41,9 +49,13 @@ impl EvaluatedSpline {
         let mut curr_p0 = 1usize;
         let mut curr_p0_curve_points = Vec::new();
 
-        let mut result = EvaluatedSpline { y_vals: Vec::new() };
-        for i in 0..=1000 {
-            let x = i as f32 / 1000.0;
+        let mut result = EvaluatedSpline {
+            num_steps,
+            x_max,
+            y_vals: Vec::new(),
+        };
+        for i in 0..=num_steps {
+            let x = i as f32 / num_steps as f32;
             let mut y = 0.0;
             if x <= control_points[0].0 {
                 y = control_points[0].1;
@@ -60,20 +72,20 @@ impl EvaluatedSpline {
                 let p_0 = interpolated_points[curr_p0];
                 let p_1 = interpolated_points[curr_p0 + 1];
                 let p_2 = interpolated_points[curr_p0 + 2];
-                let num_steps = (p_1.x - p_0.x) / 0.0005;
-                let step = 1.0 / num_steps as f32;
+                let num_t_steps = 2.0 * num_steps as f32 * (p_1.x - p_0.x) / x_max;
+                let t_step = 1.0 / num_t_steps;
                 if curr_p0_curve_points.len() < 2 {
                     curr_p0_curve_points.push(catmull_rom_spline(p_minus_1, p_0, p_1, p_2, 0.0));
-                    curr_p0_curve_points.push(catmull_rom_spline(p_minus_1, p_0, p_1, p_2, step));
+                    curr_p0_curve_points.push(catmull_rom_spline(p_minus_1, p_0, p_1, p_2, t_step));
                 }
                 while x >= curr_p0_curve_points.last().unwrap().x {
-                    let next_t = curr_p0_curve_points.len() as f32 * step;
+                    let next_t = curr_p0_curve_points.len() as f32 * t_step;
                     curr_p0_curve_points.push(catmull_rom_spline(p_minus_1, p_0, p_1, p_2, next_t));
                 }
-                let q0 = curr_p0_curve_points[curr_p0_curve_points.len()-2];
-                let q1 = curr_p0_curve_points[curr_p0_curve_points.len()-1];
+                let q0 = curr_p0_curve_points[curr_p0_curve_points.len() - 2];
+                let q1 = curr_p0_curve_points[curr_p0_curve_points.len() - 1];
 
-                let s = (x-q0.x) / (q1.x - q0.x);
+                let s = (x - q0.x) / (q1.x - q0.x);
                 y = q0.y + (q1.y - q0.y) * s;
             }
             y = y.max(0.0).min(1.0);

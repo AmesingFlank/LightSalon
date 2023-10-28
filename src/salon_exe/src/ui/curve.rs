@@ -84,6 +84,8 @@ pub fn curve(
 
                         let evaluated = EvaluatedSpline::from_control_points(
                             &editor_state.curve_control_points,
+                            1.0,
+                            100
                         );
                         let mut curve = Vec::with_capacity(evaluated.y_vals.len());
 
