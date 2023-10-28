@@ -9,7 +9,8 @@ use crate::{
         BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager,
         BindingResource, Runtime,
     },
-    shader::{Shader, ShaderLibraryModule}, utils::{math::div_up, spline::EvaluatedSpline},
+    shader::{Shader, ShaderLibraryModule},
+    utils::{math::div_up, spline::EvaluatedSpline},
 };
 
 pub struct ApplyCurveImpl {
@@ -67,9 +68,9 @@ impl ApplyCurveImpl {
 
         let buffer = self.ring_buffer.get();
 
-        let evaluated = EvaluatedSpline::from_control_points(&op.control_points, 1.0, 200);
+        let evaluated =
+            EvaluatedSpline::from_control_points(&op.control_points, 1.0, NUM_STEPS as u32);
         evaluated.write_to_buffer(&self.runtime, buffer);
-        
 
         let bind_group = self.bind_group_manager.get_or_create(BindGroupDescriptor {
             entries: vec![

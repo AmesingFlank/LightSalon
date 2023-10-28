@@ -27,11 +27,11 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     var srgb = linear_to_srgb(rgb);
     var luma = dot(srgb, vec3(0.2126, 0.7152, 0.0722));
 
-    let index = u32(luma * (params.x_max / f32(NUM_STEPS)));
+    let index = u32(luma / (params.x_max / f32(NUM_STEPS)));
     var new_luma = params.y_val[index];
 
     srgb *= new_luma / luma;
 
     rgb = srgb_to_linear(srgb);
-    textureStore(output, global_id.xy, vec4<f32>(srgb, 1.0));
+    textureStore(output, global_id.xy, vec4<f32>(rgb, 1.0));
 }
