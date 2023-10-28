@@ -8,6 +8,7 @@ pub enum Op {
     AdjustHighlightsAndShadows(AdjustHighlightsAndShadowsOp),
     AdjustTemperatureAndTint(AdjustTemperatureAndTintOp),
     AdjustVibranceAndSaturation(AdjustVibranceAndSaturationOp),
+    ApplyCurve(ApplyCurveOp),
     ComputeBasicStatistics(ComputeBasicStatisticsOp),
     ComputeHistogram(ComputeHistogramOp),
     CollectDataForEditor(CollectDataForEditorOp),
@@ -57,6 +58,14 @@ pub struct AdjustVibranceAndSaturationOp {
     pub vibrance: f32,
     pub saturation: f32,
 }
+
+#[derive(Clone)]
+pub struct ApplyCurveOp {
+    pub result: Id,
+    pub arg: Id,
+    pub control_points: Vec<(f32, f32)>,
+}
+
 
 #[derive(Clone)]
 pub struct ComputeBasicStatisticsOp {

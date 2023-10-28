@@ -6,3 +6,4 @@ pub mod vibrance_saturation;
 pub mod basic_statistics;
 pub mod histogram;
 pub mod collect_data_for_editor;
+pub mod curve;

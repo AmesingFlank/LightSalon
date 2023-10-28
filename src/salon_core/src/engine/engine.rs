@@ -16,7 +16,7 @@ use super::{
         exposure::AdjustExposureImpl,
         highlights_shadows::AdjustHighlightsAndShadowsImpl,
         histogram::{self, ComputeHistogramImpl},
-        vibrance_saturation::AdjustVibranceAndSaturationImpl, temperature_tint::AdjustTemperatureAndTintImpl,
+        vibrance_saturation::AdjustVibranceAndSaturationImpl, temperature_tint::AdjustTemperatureAndTintImpl, curve::ApplyCurveImpl,
     },
     result::ProcessResult,
     value_store::ValueStore,
@@ -125,6 +125,13 @@ impl Engine {
                         &mut self.value_store,
                     );
                 }
+                Op::ApplyCurve(ref op) => {
+                    self.op_impls.curve.as_mut().unwrap().encode_commands(
+                        &mut encoder,
+                        op,
+                        &mut self.value_store,
+                    );
+                }
                 Op::ComputeBasicStatistics(ref op) => {
                     self.op_impls
                         .basic_statistics
@@ -198,6 +205,12 @@ impl Engine {
                         self.op_impls.vibrance_saturation = Some(AdjustVibranceAndSaturationImpl::new(self.runtime.clone()))
                     }
                     self.op_impls.vibrance_saturation.as_mut().unwrap().reset();
+                }
+                Op::ApplyCurve(_) => {
+                    if self.op_impls.curve.is_none() {
+                        self.op_impls.curve = Some(ApplyCurveImpl::new(self.runtime.clone()))
+                    }
+                    self.op_impls.curve.as_mut().unwrap().reset();
                 }
                 Op::ComputeBasicStatistics(_) => {
                     if self.op_impls.basic_statistics.is_none() {

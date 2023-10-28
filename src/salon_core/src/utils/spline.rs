@@ -1,3 +1,7 @@
+use std::mem::size_of;
+
+use crate::{buffer::Buffer, runtime::Runtime};
+
 use super::vec::{dot_vec4, vec2, vec4, Vec2};
 
 // https://github.com/AmesingFlank/OxfordCSNotes/blob/master/GMOD18-19/Lecture9_GMod%20Drawing%20splines%3B%20degree%20elevation%2C%20sculptured%20surface%20patches.pdf
@@ -19,12 +23,10 @@ fn catmull_rom_spline(
     return (p_minus_1 * b_minus_1 + p_0 * b_0 + p_1 * b_1 + p_2 * b_2) * 0.5;
 }
 
-
 // Evaluate the y values of a spline where x is in [0, x_max]
 pub struct EvaluatedSpline {
     pub y_vals: Vec<f32>,
     pub x_max: f32,
-    pub num_steps: u32,
 }
 
 impl EvaluatedSpline {
@@ -50,7 +52,6 @@ impl EvaluatedSpline {
         let mut curr_p0_curve_points = Vec::new();
 
         let mut result = EvaluatedSpline {
-            num_steps,
             x_max,
             y_vals: Vec::new(),
         };
@@ -92,5 +93,20 @@ impl EvaluatedSpline {
             result.y_vals.push(y);
         }
         result
+    }
+
+    pub fn write_to_buffer(&self, runtime: &Runtime, buffer: &Buffer) {
+        let mut offset = 0;
+        runtime.queue.write_buffer(
+            &buffer.buffer,
+            offset as u64,
+            bytemuck::cast_slice(self.y_vals.as_slice()),
+        );
+        offset += self.y_vals.len() * size_of::<f32>();
+        runtime.queue.write_buffer(
+            &buffer.buffer,
+            offset as u64,
+            bytemuck::cast_slice(&[self.x_max]),
+        );
     }
 }
