@@ -5,7 +5,7 @@ use eframe::{
 use egui_plot::{Line, MarkerShape, Plot, Points};
 use salon_core::{editor::EditorState, session::Session, utils::spline::EvaluatedSpline};
 
-use super::{AppUiState, CurveScope};
+use super::{AppUiState, CurveScope, ColoredRadioButton};
 
 pub fn curve(
     ui: &mut Ui,
@@ -17,10 +17,26 @@ pub fn curve(
         .default_open(true)
         .show(ui, |ui| {
             ui.horizontal(|ui| {
-                for scope in [CurveScope::RGB, CurveScope::R, CurveScope::G, CurveScope::B] {
-                    let response = ui.add(egui::RadioButton::new(
+                let scopes = [CurveScope::RGB, CurveScope::R, CurveScope::G, CurveScope::B];
+                let base_colors = [
+                    Color32::from_rgb(100, 100, 100),
+                    Color32::from_rgb(100, 20, 20),
+                    Color32::from_rgb(20, 100, 20),
+                    Color32::from_rgb(20, 20, 128),
+                ];
+                let checked_colors = [
+                    Color32::from_rgb(200, 200, 200),
+                    Color32::from_rgb(250, 20, 20),
+                    Color32::from_rgb(20, 250, 20),
+                    Color32::from_rgb(50, 80, 255),
+                ];
+                for i in 0..4usize  {
+                    let scope = scopes[i];
+                    let response = ui.add(ColoredRadioButton::new(
                         ui_state.curve_scope == scope,
                         scope.to_string(),
+                        base_colors[i],
+                        checked_colors[i]
                     ));
                     if response.clicked() {
                         ui_state.curve_scope = scope;
