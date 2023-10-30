@@ -27,7 +27,6 @@ pub struct ComputeHistogramImpl {
 impl ComputeHistogramImpl {
     pub fn new(runtime: Arc<Runtime>) -> Self {
         let shader_clear = Shader::from_code(include_str!("shaders/histogram_clear.wgsl"))
-            .with_library(ShaderLibraryModule::ColorSpaces)
             .full_code();
         let (pipeline_clear, bind_group_layout_clear) =
             runtime.create_compute_pipeline(shader_clear.as_str());
@@ -36,6 +35,7 @@ impl ComputeHistogramImpl {
 
         let shader_compute = Shader::from_code(include_str!("shaders/histogram_compute.wgsl"))
             .with_library(ShaderLibraryModule::ColorSpaces)
+            .with_library(ShaderLibraryModule::Random)
             .full_code();
         let (pipeline_compute, bind_group_layout_compute) =
             runtime.create_compute_pipeline(shader_compute.as_str());

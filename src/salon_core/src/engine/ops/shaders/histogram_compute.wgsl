@@ -24,7 +24,7 @@ var<storage, read_write> buffer: Buffer;
 var<workgroup> buffer_local: Buffer;
 
 fn val_to_bin(v: f32) -> u32 {
-    return u32(v * (f32(uniforms.num_bins) - 1.00001));
+    return u32(v * (f32(uniforms.num_bins) - 1.0));
 }
 
 @compute
@@ -40,10 +40,15 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>, @builtin(local_i
     var c = textureLoad(input, global_id.xy, 0).rgb;
     c = linear_to_srgb(c);
     c = clamp(c, vec3(0.0), vec3(1.0));
-    let r_bin = val_to_bin(dot(c, vec3(0.8, 0.1, 0.1)));
-    let g_bin = val_to_bin(dot(c, vec3(0.1, 0.8, 0.1)));
-    let b_bin = val_to_bin(dot(c, vec3(0.1, 0.1, 0.8)));
-    let luma_bin = val_to_bin(dot(c, vec3(0.2126, 0.7152, 0.0722)));
+
+    let jitter_seed = global_id.x * input_size.y + global_id.y;
+    let jitter = (rand_f32_from_u32(jitter_seed) - 0.5) * (1.0 / 255.5);
+
+    let r_bin = val_to_bin(c.r + jitter);
+    let g_bin = val_to_bin(c.g + jitter);
+    let b_bin = val_to_bin(c.b + jitter);
+    let luma_bin = val_to_bin(dot(c, vec3(0.2126, 0.7152, 0.0722)) + jitter);
+
     atomicAdd(&buffer_local.r[r_bin], 1u);
     atomicAdd(&buffer_local.g[g_bin], 1u);
     atomicAdd(&buffer_local.b[b_bin], 1u);

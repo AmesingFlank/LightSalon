@@ -25,13 +25,13 @@ pub fn histogram(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) 
                     let luma_line_data = get_line_data(&hist.luma);
 
                     let r_line = Line::new(r_line_data)
-                        .color(Color32::from_rgb(205, 25, 25))
+                        .color(Color32::from_rgb(200, 50, 25))
                         .fill(0.0);
                     let g_line = Line::new(g_line_data)
-                        .color(Color32::from_rgb(25, 205, 25))
+                        .color(Color32::from_rgb(50, 205, 25))
                         .fill(0.0);
                     let b_line = Line::new(b_line_data)
-                        .color(Color32::from_rgb(25, 25, 205))
+                        .color(Color32::from_rgb(50, 50, 250))
                         .fill(0.0);
                     let luma_line = Line::new(luma_line_data)
                         .color(Color32::from_rgb(200, 200, 200))

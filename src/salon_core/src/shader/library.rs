@@ -1,6 +1,7 @@
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub enum ShaderLibraryModule {
-    ColorSpaces
+    ColorSpaces,
+    Random,
 }
 
 pub struct ShaderLibrary {
@@ -12,6 +13,9 @@ impl ShaderLibrary {
         match functions {
             ShaderLibraryModule::ColorSpaces => {
                 include_str!("./color_spaces.wgsl")
+            }
+            ShaderLibraryModule::Random => {
+                include_str!("./random.wgsl")
             }
         }
     }
