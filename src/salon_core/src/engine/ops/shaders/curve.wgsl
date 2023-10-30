@@ -42,6 +42,7 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         return;
     }
     var rgb = textureLoad(input, global_id.xy, 0).rgb;
+    rgb = clamp(rgb, vec3(0.0), vec3(1.0));
 
     var srgb = linear_to_srgb(rgb);
     
