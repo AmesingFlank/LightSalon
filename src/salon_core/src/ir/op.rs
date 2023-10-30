@@ -64,6 +64,9 @@ pub struct ApplyCurveOp {
     pub result: Id,
     pub arg: Id,
     pub control_points: Vec<(f32, f32)>,
+    pub apply_r: bool,
+    pub apply_g: bool,
+    pub apply_b: bool,
 }
 
 

@@ -17,7 +17,8 @@ pub struct ApplyCurveImpl {
     runtime: Arc<Runtime>,
     pipeline: wgpu::ComputePipeline,
     bind_group_manager: BindGroupManager,
-    ring_buffer: RingBuffer,
+    ring_buffer_curve: RingBuffer,
+    ring_buffer_params: RingBuffer,
 }
 
 const NUM_STEPS: usize = 255;
@@ -32,10 +33,18 @@ impl ApplyCurveImpl {
 
         let bind_group_manager = BindGroupManager::new(runtime.clone(), bind_group_layout);
 
-        let ring_buffer = RingBuffer::new(
+        let ring_buffer_curve = RingBuffer::new(
             runtime.clone(),
             BufferProperties {
                 size: size_of::<f32>() * (NUM_STEPS + 1) + size_of::<f32>(),
+                host_readable: false,
+            },
+        );
+
+        let ring_buffer_params = RingBuffer::new(
+            runtime.clone(),
+            BufferProperties {
+                size: size_of::<u32>() * 3,
                 host_readable: false,
             },
         );
@@ -44,13 +53,15 @@ impl ApplyCurveImpl {
             runtime,
             pipeline,
             bind_group_manager,
-            ring_buffer,
+            ring_buffer_curve,
+            ring_buffer_params,
         }
     }
 }
 impl ApplyCurveImpl {
     pub fn reset(&mut self) {
-        self.ring_buffer.mark_all_available();
+        self.ring_buffer_curve.mark_all_available();
+        self.ring_buffer_params.mark_all_available();
     }
 
     pub fn encode_commands(
@@ -66,11 +77,18 @@ impl ApplyCurveImpl {
             &input_img.properties,
         );
 
-        let buffer = self.ring_buffer.get();
+        let buffer_curve = self.ring_buffer_curve.get();
 
         let evaluated =
             EvaluatedSpline::from_control_points(&op.control_points, 1.0, NUM_STEPS as u32);
-        evaluated.write_to_buffer(&self.runtime, buffer);
+        evaluated.write_to_buffer(&self.runtime, buffer_curve);
+
+        let buffer_params = self.ring_buffer_params.get();
+        self.runtime.queue.write_buffer(
+            &buffer_params.buffer,
+            0,
+            bytemuck::cast_slice(&[op.apply_r as u32, op.apply_g as u32, op.apply_b as u32]),
+        );
 
         let bind_group = self.bind_group_manager.get_or_create(BindGroupDescriptor {
             entries: vec![
@@ -84,7 +102,11 @@ impl ApplyCurveImpl {
                 },
                 BindGroupEntry {
                     binding: 2,
-                    resource: BindingResource::Buffer(buffer),
+                    resource: BindingResource::Buffer(buffer_curve),
+                },
+                BindGroupEntry {
+                    binding: 3,
+                    resource: BindingResource::Buffer(buffer_params),
                 },
             ],
         });

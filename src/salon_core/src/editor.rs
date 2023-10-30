@@ -1,6 +1,6 @@
 use crate::ir::{
     AdjustContrastOp, AdjustExposureOp, AdjustHighlightsAndShadowsOp, AdjustTemperatureAndTintOp,
-    AdjustVibranceAndSaturationOp, ComputeBasicStatisticsOp, Id, Module, Op, ApplyCurveOp,
+    AdjustVibranceAndSaturationOp, ApplyCurveOp, ComputeBasicStatisticsOp, Id, Module, Op,
 };
 
 pub struct Editor {
@@ -30,7 +30,10 @@ pub struct EditorState {
     pub vibrance_val: f32,
     pub saturation_val: f32,
 
-    pub curve_control_points: Vec<(f32, f32)>,
+    pub curve_control_points_all: Vec<(f32, f32)>,
+    pub curve_control_points_r: Vec<(f32, f32)>,
+    pub curve_control_points_g: Vec<(f32, f32)>,
+    pub curve_control_points_b: Vec<(f32, f32)>,
 }
 
 impl EditorState {
@@ -44,7 +47,10 @@ impl EditorState {
             tint_val: 0.0,
             vibrance_val: 0.0,
             saturation_val: 0.0,
-            curve_control_points: EditorState::initial_control_points(),
+            curve_control_points_all: EditorState::initial_control_points(),
+            curve_control_points_r: EditorState::initial_control_points(),
+            curve_control_points_g: EditorState::initial_control_points(),
+            curve_control_points_b: EditorState::initial_control_points(),
         }
     }
     pub fn to_ir_module(&self) -> Module {
@@ -57,7 +63,7 @@ impl EditorState {
         self.maybe_add_highlights_shadows(&mut module, &mut current_output_id);
         self.maybe_add_temperature_tint(&mut module, &mut current_output_id);
         self.maybe_add_vibrance_saturation(&mut module, &mut current_output_id);
-        self.maybe_add_curve(&mut module, &mut current_output_id);
+        self.maybe_add_curves(&mut module, &mut current_output_id);
 
         module.add_data_for_editor_ops();
 
@@ -143,19 +149,26 @@ impl EditorState {
         }
     }
 
-    fn maybe_add_curve(&self, module: &mut Module, current_output_id: &mut Id) {
-        if self.curve_control_points != Self::initial_control_points() {
-            let adjusted_image_id = module.alloc_id();
-            module.push_op(Op::ApplyCurve(
-                ApplyCurveOp {
+    fn maybe_add_curves(&self, module: &mut Module, current_output_id: &mut Id) {
+        let mut maybe_add_curve = |control: &Vec<(f32, f32)>, r: bool, g: bool, b: bool| {
+            if *control != Self::initial_control_points() {
+                let adjusted_image_id = module.alloc_id();
+                module.push_op(Op::ApplyCurve(ApplyCurveOp {
                     result: adjusted_image_id,
                     arg: *current_output_id,
-                    control_points: self.curve_control_points.clone(),
-                },
-            ));
-            module.set_output_id(adjusted_image_id);
-            *current_output_id = adjusted_image_id;
-        }
+                    control_points: control.clone(),
+                    apply_r: r,
+                    apply_g: g,
+                    apply_b: b,
+                }));
+                module.set_output_id(adjusted_image_id);
+                *current_output_id = adjusted_image_id;
+            }
+        };
+        maybe_add_curve(&self.curve_control_points_all, true, true, true);
+        maybe_add_curve(&self.curve_control_points_r, true, false, false);
+        maybe_add_curve(&self.curve_control_points_g, false, true, false);
+        maybe_add_curve(&self.curve_control_points_b, false, true, false);
     }
 
     fn initial_control_points() -> Vec<(f32, f32)> {

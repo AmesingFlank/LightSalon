@@ -35,6 +35,8 @@ pub fn curve(
                         .show_axes([false, false])
                         .show_grid([false, false]);
 
+                    let control_points = &mut editor_state.curve_control_points_all;
+
                     let response = plot.show(ui, |plot_ui| {
                         let ptr_coords = plot_ui.pointer_coordinate();
 
@@ -44,8 +46,8 @@ pub fn curve(
                         if let Some(ref selected) = ui_state.selected_curve_control_point_index {
                             highlighted_point_index = Some(*selected);
                         } else {
-                            for i in 0..editor_state.curve_control_points.len() {
-                                let p = editor_state.curve_control_points[i];
+                            for i in 0..control_points.len() {
+                                let p = control_points[i];
                                 if let Some(ref coords) = ptr_coords {
                                     if (p.0 - coords.x as f32).abs() < 0.05 {
                                         highlighted_point_index = Some(i);
@@ -55,9 +57,9 @@ pub fn curve(
                             }
                         }
 
-                        for i in 0..editor_state.curve_control_points.len() {
+                        for i in 0..control_points.len() {
                             if Some(i) != highlighted_point_index {
-                                let p = editor_state.curve_control_points[i];
+                                let p = control_points[i];
                                 let p = [p.0 as f64, p.1 as f64];
                                 control_points_non_highlighted.push(p);
                             }
@@ -72,7 +74,7 @@ pub fn curve(
                         plot_ui.points(control_points_non_highlighted);
 
                         if let Some(ref i) = highlighted_point_index {
-                            let p = editor_state.curve_control_points[*i];
+                            let p = control_points[*i];
                             let p = [p.0 as f64, p.1 as f64];
                             let control_points_highlighted = Points::new(vec![p])
                                 .shape(MarkerShape::Circle)
@@ -82,11 +84,8 @@ pub fn curve(
                             plot_ui.points(control_points_highlighted);
                         }
 
-                        let evaluated = EvaluatedSpline::from_control_points(
-                            &editor_state.curve_control_points,
-                            1.0,
-                            100
-                        );
+                        let evaluated =
+                            EvaluatedSpline::from_control_points(&control_points, 1.0, 100);
                         let mut curve = Vec::with_capacity(evaluated.y_vals.len());
 
                         for i in 0..evaluated.y_vals.len() {
@@ -101,8 +100,8 @@ pub fn curve(
                     if response.response.dragged() || response.response.drag_started() {
                         if ui_state.selected_curve_control_point_index.is_none() {
                             if let Some(ref coords) = response.inner {
-                                for i in 0..editor_state.curve_control_points.len() {
-                                    let p = editor_state.curve_control_points[i];
+                                for i in 0..control_points.len() {
+                                    let p = control_points[i];
                                     if (p.0 - coords.x as f32).abs() < 0.05 {
                                         ui_state.selected_curve_control_point_index = Some(i);
                                         break;
@@ -115,7 +114,7 @@ pub fn curve(
                         dx = dx * 1.0 / ui.available_height();
                         dy = dy * -1.0 / ui.available_height();
                         if let Some(ref selected) = ui_state.selected_curve_control_point_index {
-                            let mut p = editor_state.curve_control_points[*selected];
+                            let mut p = control_points[*selected];
 
                             p.1 += dy;
                             p.1 = p.1.min(1.0).max(0.0);
@@ -123,15 +122,15 @@ pub fn curve(
                             p.0 += dx;
                             p.0 = p.0.min(1.0).max(0.0);
                             if *selected > 0 {
-                                let prev = editor_state.curve_control_points[*selected - 1];
+                                let prev = control_points[*selected - 1];
                                 p.0 = p.0.max(prev.0 + 0.05);
                             }
-                            if *selected < editor_state.curve_control_points.len() - 1 {
-                                let next = editor_state.curve_control_points[*selected + 1];
+                            if *selected < control_points.len() - 1 {
+                                let next = control_points[*selected + 1];
                                 p.0 = p.0.min(next.0 - 0.05);
                             }
 
-                            editor_state.curve_control_points[*selected] = p;
+                            control_points[*selected] = p;
                         }
                     }
 
@@ -142,14 +141,12 @@ pub fn curve(
                         if ui_state.selected_curve_control_point_index.is_none() {
                             if let Some(ref coords) = response.inner {
                                 let new_point = (coords.x as f32, coords.y as f32);
-                                for i in 0..editor_state.curve_control_points.len() - 1 {
-                                    let this_p = editor_state.curve_control_points[i];
-                                    let next_p = editor_state.curve_control_points[i + 1];
+                                for i in 0..control_points.len() - 1 {
+                                    let this_p = control_points[i];
+                                    let next_p = control_points[i + 1];
                                     if this_p.0 < new_point.0 && new_point.0 < next_p.0 {
                                         let new_point_idx = i + 1;
-                                        editor_state
-                                            .curve_control_points
-                                            .insert(new_point_idx, new_point);
+                                        control_points.insert(new_point_idx, new_point);
                                         if response.response.drag_started() {
                                             ui_state.selected_curve_control_point_index =
                                                 Some(new_point_idx);
