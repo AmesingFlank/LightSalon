@@ -15,6 +15,11 @@ struct Params {
 @group(0) @binding(2)
 var<storage, read> params: Params;
 
+fn apply(f: f32) -> f32 {
+    let index = u32(f / (params.x_max / f32(NUM_STEPS)));
+    return params.y_val[index];
+}
+
 @compute
 @workgroup_size(16, 16)
 fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
@@ -25,12 +30,10 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     var rgb = textureLoad(input, global_id.xy, 0).rgb;
 
     var srgb = linear_to_srgb(rgb);
-    var luma = dot(srgb, vec3(0.2126, 0.7152, 0.0722));
-
-    let index = u32(luma / (params.x_max / f32(NUM_STEPS)));
-    var new_luma = params.y_val[index];
-
-    srgb *= new_luma / luma;
+    
+    srgb.r = apply(srgb.r);
+    srgb.g = apply(srgb.g);
+    srgb.b = apply(srgb.b);
 
     rgb = srgb_to_linear(srgb);
     textureStore(output, global_id.xy, vec4<f32>(rgb, 1.0));
