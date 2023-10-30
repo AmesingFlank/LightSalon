@@ -1,9 +1,11 @@
-use std::time::SystemTime;
+use std::{fmt, time::SystemTime};
 
 pub struct AppUiState {
     pub last_frame_size: Option<(f32, f32)>,
     pub fps_counter: FpsCounterState,
+
     pub selected_curve_control_point_index: Option<usize>,
+    pub curve_scope: CurveScope,
 }
 
 impl AppUiState {
@@ -12,6 +14,7 @@ impl AppUiState {
             last_frame_size: None,
             fps_counter: FpsCounterState::new(),
             selected_curve_control_point_index: None,
+            curve_scope: CurveScope::RGB,
         }
     }
 }
@@ -29,5 +32,21 @@ impl FpsCounterState {
             last_fps_record_time: SystemTime::now(),
             frames_since_last_fps_record: 0u32,
         }
+    }
+}
+
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+pub enum CurveScope {
+    RGB,
+    R,
+    G,
+    B,
+}
+
+impl fmt::Display for CurveScope {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+        // or, alternatively:
+        // fmt::Debug::fmt(self, f)
     }
 }

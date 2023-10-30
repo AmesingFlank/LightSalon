@@ -168,7 +168,7 @@ impl EditorState {
         maybe_add_curve(&self.curve_control_points_all, true, true, true);
         maybe_add_curve(&self.curve_control_points_r, true, false, false);
         maybe_add_curve(&self.curve_control_points_g, false, true, false);
-        maybe_add_curve(&self.curve_control_points_b, false, true, false);
+        maybe_add_curve(&self.curve_control_points_b, false, false, true);
     }
 
     fn initial_control_points() -> Vec<(f32, f32)> {
