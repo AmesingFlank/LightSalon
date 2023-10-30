@@ -25,8 +25,13 @@ struct Params {
 var<storage, read> params: Params;
 
 fn apply(f: f32) -> f32 {
-    let index = u32(f / (curve.x_max / f32(NUM_STEPS)));
-    return curve.y_val[index];
+    let index_f = f / (curve.x_max / f32(NUM_STEPS));
+    let index_0 = u32(floor(index_f));
+    let index_1 = u32(ceil(index_f));
+    let val_0 = curve.y_val[index_0];
+    let val_1 = curve.y_val[index_1];
+    let t = f32(index_1) - index_f;
+    return t * val_0 + (1.0 - t) * val_1; 
 }
 
 @compute
