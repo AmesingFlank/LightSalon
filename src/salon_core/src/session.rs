@@ -13,7 +13,6 @@ pub struct Session {
     pub editor: Editor,
 
     pub current_image_index: Option<usize>,
-    pub current_process_result: Option<ProcessResult>,
 }
 
 impl Session {
@@ -25,7 +24,6 @@ impl Session {
             library: Box::new(library),
             editor: Editor::new(),
             current_image_index: None,
-            current_process_result: None,
         }
     }
 
@@ -42,12 +40,13 @@ impl Session {
         let img = self.library.as_mut().get_image(index);
 
         self.editor.reset_state();
+        self.execute_edit();
+    }
 
-        let mut module = Module::new_trivial();
-        module.add_data_for_editor_ops();
-
-        let result = self.engine.execute_module(&module, img);
-
-        self.current_process_result = Some(result);
+    pub fn execute_edit(&mut self) {
+        if let Some(ref i) = self.current_image_index {
+            let img = self.library.as_mut().get_image(*i);
+            self.editor.execute(&mut self.engine, img);
+        }
     }
 }

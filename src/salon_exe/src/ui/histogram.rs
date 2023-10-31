@@ -8,7 +8,7 @@ pub fn histogram(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) 
     CollapsingHeader::new("Histogram")
         .default_open(true)
         .show(ui, |ui| {
-            if let Some(ref result) = session.current_process_result {
+            if let Some(ref result) = session.editor.current_result {
                 if let Some(ref stats) = result.data_for_editor {
                     let hist = &stats.histogram_final;
 

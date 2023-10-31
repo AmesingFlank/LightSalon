@@ -1,21 +1,38 @@
-use crate::ir::{
-    AdjustContrastOp, AdjustExposureOp, AdjustHighlightsAndShadowsOp, AdjustTemperatureAndTintOp,
-    AdjustVibranceAndSaturationOp, ApplyCurveOp, ComputeBasicStatisticsOp, Id, Module, Op,
+use std::sync::Arc;
+
+use crate::{
+    engine::{Engine, ProcessResult},
+    image::Image,
+    ir::{
+        AdjustContrastOp, AdjustExposureOp, AdjustHighlightsAndShadowsOp,
+        AdjustTemperatureAndTintOp, AdjustVibranceAndSaturationOp, ApplyCurveOp,
+        ComputeBasicStatisticsOp, Id, Module, Op,
+    },
 };
 
 pub struct Editor {
     pub current_state: EditorState,
+    pub current_result: Option<ProcessResult>,
 }
 
 impl Editor {
     pub fn new() -> Self {
         Editor {
             current_state: EditorState::new(),
+            current_result: None,
         }
     }
 
     pub fn reset_state(&mut self) {
         self.current_state = EditorState::new();
+    }
+
+    pub fn execute(&mut self, engine: &mut Engine, img: Arc<Image>) {
+        let mut module = self.current_state.to_ir_module();
+
+        let result = engine.execute_module(&module, img);
+
+        self.current_result = Some(result);
     }
 }
 
@@ -53,6 +70,7 @@ impl EditorState {
             curve_control_points_b: EditorState::initial_control_points(),
         }
     }
+
     pub fn to_ir_module(&self) -> Module {
         let mut module = Module::new_trivial();
 

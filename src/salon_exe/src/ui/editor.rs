@@ -19,10 +19,6 @@ pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
     }
     if session.editor.current_state != editor_state {
         session.editor.current_state = editor_state;
-        let module = session.editor.current_state.to_ir_module();
-        let input_image_index = session.current_image_index.unwrap();
-        let input_image = session.library.get_image(input_image_index);
-        let result = session.engine.execute_module(&module, input_image);
-        session.current_process_result = Some(result)
+        session.execute_edit();
     }
 }

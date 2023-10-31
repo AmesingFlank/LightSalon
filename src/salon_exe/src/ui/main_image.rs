@@ -15,7 +15,7 @@ use salon_core::session::Session;
 use salon_core::shader::{Shader, ShaderLibraryModule};
 
 pub fn main_image(ui: &mut Ui, session: &mut Session) {
-    if let Some(ref result) = session.current_process_result {
+    if let Some(ref result) = session.editor.current_result {
         let max_x = ui.available_width();
         let max_y = ui.available_height();
         let ui_aspect_ratio = max_y / max_x;
