@@ -14,7 +14,7 @@ pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
     color_adjust(ui, session, ui_state, &mut editor_state);
     curve(ui, session, ui_state, &mut editor_state);
 
-    if session.current_image_index.is_none() {
+    if session.state.current_image_index.is_none() {
         return;
     }
     if session.editor.current_state != editor_state {
