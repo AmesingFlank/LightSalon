@@ -19,6 +19,6 @@ pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
     }
     if session.editor.current_state != editor_state {
         session.editor.current_state = editor_state;
-        session.execute_edit();
+        session.editor.execute_edit(&mut session.engine);
     }
 }

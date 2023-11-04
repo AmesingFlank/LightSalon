@@ -38,14 +38,8 @@ impl Session {
         self.state.current_image_index = Some(index);
 
         self.editor.reset_state();
-        self.execute_edit();
-    }
-
-    pub fn execute_edit(&mut self) {
-        if let Some(ref i) = self.state.current_image_index {
-            let img = self.library.as_mut().get_image(*i);
-            self.editor.execute(&mut self.engine, img);
-        }
+        self.editor.current_input_image = Some(self.library.as_mut().get_image(index));
+        self.editor.execute_edit(&mut self.engine);
     }
 }
 

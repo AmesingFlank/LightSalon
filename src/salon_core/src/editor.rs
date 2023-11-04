@@ -12,6 +12,7 @@ use crate::{
 
 pub struct Editor {
     pub current_state: EditorState,
+    pub current_input_image: Option<Arc<Image>>,
     pub current_result: Option<ProcessResult>,
 }
 
@@ -19,6 +20,7 @@ impl Editor {
     pub fn new() -> Self {
         Editor {
             current_state: EditorState::new(),
+            current_input_image: None,
             current_result: None,
         }
     }
@@ -27,12 +29,12 @@ impl Editor {
         self.current_state = EditorState::new();
     }
 
-    pub fn execute(&mut self, engine: &mut Engine, img: Arc<Image>) {
-        let mut module = self.current_state.to_ir_module();
-
-        let result = engine.execute_module(&module, img);
-
-        self.current_result = Some(result);
+    pub fn execute_edit(&mut self, engine: &mut Engine) {
+        if let Some(ref img) = self.current_input_image {
+            let module = self.current_state.to_ir_module();
+            let result = engine.execute_module(&module, img.clone());
+            self.current_result = Some(result);
+        }
     }
 }
 
