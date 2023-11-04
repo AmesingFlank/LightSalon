@@ -1,2 +1,3 @@
 # LightSalon
-Programmatically-Extendable Photo Editor
+
+GPU-Powered Photo Editor
