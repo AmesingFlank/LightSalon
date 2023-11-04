@@ -62,15 +62,16 @@ pub struct GlobalEdit {
     pub contrast_val: f32,
     pub highlights_val: f32,
     pub shadows_val: f32,
-    pub temperature_val: f32,
-    pub tint_val: f32,
-    pub vibrance_val: f32,
-    pub saturation_val: f32,
 
     pub curve_control_points_all: Vec<(f32, f32)>,
     pub curve_control_points_r: Vec<(f32, f32)>,
     pub curve_control_points_g: Vec<(f32, f32)>,
     pub curve_control_points_b: Vec<(f32, f32)>,
+
+    pub temperature_val: f32,
+    pub tint_val: f32,
+    pub vibrance_val: f32,
+    pub saturation_val: f32,
 }
 
 impl GlobalEdit {
@@ -80,14 +81,16 @@ impl GlobalEdit {
             contrast_val: 0.0,
             highlights_val: 0.0,
             shadows_val: 0.0,
-            temperature_val: 0.0,
-            tint_val: 0.0,
-            vibrance_val: 0.0,
-            saturation_val: 0.0,
+
             curve_control_points_all: GlobalEdit::initial_control_points(),
             curve_control_points_r: GlobalEdit::initial_control_points(),
             curve_control_points_g: GlobalEdit::initial_control_points(),
             curve_control_points_b: GlobalEdit::initial_control_points(),
+
+            temperature_val: 0.0,
+            tint_val: 0.0,
+            vibrance_val: 0.0,
+            saturation_val: 0.0,
         }
     }
 
@@ -99,10 +102,12 @@ impl GlobalEdit {
         self.maybe_add_exposure(&mut module, &mut current_output_id);
         self.maybe_add_contrast(&mut module, &mut current_output_id);
         self.maybe_add_highlights_shadows(&mut module, &mut current_output_id);
-        self.maybe_add_temperature_tint(&mut module, &mut current_output_id);
-        self.maybe_add_vibrance_saturation(&mut module, &mut current_output_id);
+
         self.maybe_add_curves(&mut module, &mut current_output_id);
 
+        self.maybe_add_temperature_tint(&mut module, &mut current_output_id);
+        self.maybe_add_vibrance_saturation(&mut module, &mut current_output_id);
+        
         self.add_collect_data_for_editor(&mut module, &mut current_output_id);
 
         module

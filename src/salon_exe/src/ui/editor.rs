@@ -11,8 +11,8 @@ pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
     let mut edit = session.editor.current_edit.clone();
     histogram(ui, session, ui_state);
     light_adjust(ui, session, ui_state, &mut edit.global);
-    color_adjust(ui, session, ui_state, &mut edit.global);
     curve(ui, session, ui_state, &mut edit.global);
+    color_adjust(ui, session, ui_state, &mut edit.global);
 
     if session.state.current_image_index.is_none() {
         return;
