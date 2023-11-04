@@ -6,7 +6,7 @@ use crate::{
     ir::{
         AdjustContrastOp, AdjustExposureOp, AdjustHighlightsAndShadowsOp,
         AdjustTemperatureAndTintOp, AdjustVibranceAndSaturationOp, ApplyCurveOp,
-        ComputeBasicStatisticsOp, Id, Module, Op,
+        ComputeBasicStatisticsOp, Id, Module, Op, ComputeHistogramOp, CollectDataForEditorOp, IdTag,
     },
 };
 
@@ -85,9 +85,26 @@ impl EditorState {
         self.maybe_add_vibrance_saturation(&mut module, &mut current_output_id);
         self.maybe_add_curves(&mut module, &mut current_output_id);
 
-        module.add_data_for_editor_ops();
+        self.add_collect_data_for_editor(&mut module, &mut current_output_id);
 
         module
+    }
+
+    pub fn add_collect_data_for_editor(&self, module: &mut Module, current_output_id: &mut Id) {
+
+        let histogram_id = module.alloc_id();
+        module.push_op(Op::ComputeHistogram(ComputeHistogramOp {
+            result: histogram_id,
+            arg: *current_output_id,
+        }));
+
+        let data_for_editor_id = module.alloc_id();
+        module.push_op(Op::CollectDataForEditor(CollectDataForEditorOp {
+            result: data_for_editor_id,
+            histogram_final: histogram_id,
+        }));
+
+        module.set_tagged_id(IdTag::DataForEditor, data_for_editor_id)
     }
 
     fn maybe_add_exposure(&self, module: &mut Module, current_output_id: &mut Id) {
