@@ -3,7 +3,7 @@ use eframe::{
     epaint::Color32,
 };
 use egui_plot::{Line, MarkerShape, Plot, Points};
-use salon_core::{editor::EditorState, session::Session};
+use salon_core::{editor::GlobalEdit, session::Session};
 
 use super::AppUiState;
 
@@ -11,7 +11,7 @@ pub fn light_adjust(
     ui: &mut Ui,
     session: &mut Session,
     ui_state: &mut AppUiState,
-    editor_state: &mut EditorState,
+    editor_state: &mut GlobalEdit,
 ) {
     CollapsingHeader::new("Light")
         .default_open(true)

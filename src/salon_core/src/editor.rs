@@ -11,7 +11,7 @@ use crate::{
 };
 
 pub struct Editor {
-    pub current_state: EditorState,
+    pub current_edit: Edit,
     pub current_input_image: Option<Arc<Image>>,
     pub current_result: Option<ProcessResult>,
 }
@@ -19,19 +19,19 @@ pub struct Editor {
 impl Editor {
     pub fn new() -> Self {
         Editor {
-            current_state: EditorState::new(),
+            current_edit: Edit::new(),
             current_input_image: None,
             current_result: None,
         }
     }
 
     pub fn reset_state(&mut self) {
-        self.current_state = EditorState::new();
+        self.current_edit = Edit::new();
     }
 
     pub fn execute_edit(&mut self, engine: &mut Engine) {
         if let Some(ref img) = self.current_input_image {
-            let module = self.current_state.to_ir_module();
+            let module = self.current_edit.to_ir_module();
             let result = engine.execute_module(&module, img.clone());
             self.current_result = Some(result);
         }
@@ -39,7 +39,25 @@ impl Editor {
 }
 
 #[derive(Clone, PartialEq)]
-pub struct EditorState {
+pub struct Edit {
+    pub global: GlobalEdit,
+    // TODO: masks
+}
+
+impl Edit {
+    pub fn new() -> Self {
+        Self {
+            global: GlobalEdit::new()
+        }
+    }
+
+    pub fn to_ir_module(&self) -> Module { 
+        self.global.to_ir_module()
+    }
+}
+
+#[derive(Clone, PartialEq)]
+pub struct GlobalEdit {
     pub exposure_val: f32,
     pub contrast_val: f32,
     pub highlights_val: f32,
@@ -55,9 +73,9 @@ pub struct EditorState {
     pub curve_control_points_b: Vec<(f32, f32)>,
 }
 
-impl EditorState {
+impl GlobalEdit {
     pub fn new() -> Self {
-        EditorState {
+        GlobalEdit {
             exposure_val: 0.0,
             contrast_val: 0.0,
             highlights_val: 0.0,
@@ -66,10 +84,10 @@ impl EditorState {
             tint_val: 0.0,
             vibrance_val: 0.0,
             saturation_val: 0.0,
-            curve_control_points_all: EditorState::initial_control_points(),
-            curve_control_points_r: EditorState::initial_control_points(),
-            curve_control_points_g: EditorState::initial_control_points(),
-            curve_control_points_b: EditorState::initial_control_points(),
+            curve_control_points_all: GlobalEdit::initial_control_points(),
+            curve_control_points_r: GlobalEdit::initial_control_points(),
+            curve_control_points_g: GlobalEdit::initial_control_points(),
+            curve_control_points_b: GlobalEdit::initial_control_points(),
         }
     }
 

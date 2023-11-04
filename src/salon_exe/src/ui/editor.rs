@@ -3,22 +3,22 @@ use eframe::{
     epaint::Color32,
 };
 use egui_plot::{Line, MarkerShape, Plot, Points};
-use salon_core::{editor::EditorState, session::Session};
+use salon_core::{editor::GlobalEdit, session::Session};
 
 use super::{color_adjust, curve, histogram, light_adjust, AppUiState};
 
 pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
-    let mut editor_state = session.editor.current_state.clone();
+    let mut edit = session.editor.current_edit.clone();
     histogram(ui, session, ui_state);
-    light_adjust(ui, session, ui_state, &mut editor_state);
-    color_adjust(ui, session, ui_state, &mut editor_state);
-    curve(ui, session, ui_state, &mut editor_state);
+    light_adjust(ui, session, ui_state, &mut edit.global);
+    color_adjust(ui, session, ui_state, &mut edit.global);
+    curve(ui, session, ui_state, &mut edit.global);
 
     if session.state.current_image_index.is_none() {
         return;
     }
-    if session.editor.current_state != editor_state {
-        session.editor.current_state = editor_state;
+    if session.editor.current_edit != edit {
+        session.editor.current_edit = edit;
         session.editor.execute_edit(&mut session.engine);
     }
 }

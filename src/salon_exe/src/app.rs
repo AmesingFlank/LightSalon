@@ -6,7 +6,7 @@ use eframe::{
 };
 use egui_extras::{Column, TableBuilder};
 use salon_core::{
-    editor::EditorState,
+    editor::GlobalEdit,
     engine::{Engine, ImageHistogram},
     image::Image,
     ir::{AdjustExposureOp, Module, Op},
