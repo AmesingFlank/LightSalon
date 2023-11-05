@@ -1,4 +1,4 @@
-use crate::ui::{self, file_menu, AppUiState, MainImageRenderResources, ThumbnailRenderResources};
+use crate::ui::{self, file_menu, AppUiState, widgets::{MainImageRenderResources, ThumbnailRenderResources}};
 use eframe::{
     egui::{self, accesskit::Vec2, CollapsingHeader, Ui, Visuals},
     emath::remap,

@@ -2,7 +2,7 @@ use eframe::{egui::{Ui, self}, egui_wgpu};
 use egui_extras::{Column, TableBuilder};
 use salon_core::session::Session;
 
-use super::{AppUiState, ThumbnailCallback};
+use super::{AppUiState, widgets::ThumbnailCallback};
 
 
 pub fn image_library(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {

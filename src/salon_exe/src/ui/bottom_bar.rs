@@ -2,7 +2,7 @@ use eframe::{egui::{Ui, self}, egui_wgpu};
 use egui_extras::{Column, TableBuilder};
 use salon_core::session::Session;
 
-use super::{AppUiState, ThumbnailCallback};
+use super::{AppUiState};
 
 use std::time::{SystemTime, UNIX_EPOCH};
 

@@ -14,7 +14,7 @@ use salon_core::sampler::Sampler;
 use salon_core::session::Session;
 use salon_core::shader::{Shader, ShaderLibraryModule};
 
-use super::MainImageCallback;
+use super::widgets::MainImageCallback;
 
 pub fn main_image(ui: &mut Ui, session: &mut Session) {
     if let Some(ref result) = session.editor.current_result {

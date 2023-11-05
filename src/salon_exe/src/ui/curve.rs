@@ -5,7 +5,7 @@ use eframe::{
 use egui_plot::{Line, MarkerShape, Plot, Points};
 use salon_core::{editor::GlobalEdit, session::Session, utils::spline::EvaluatedSpline};
 
-use super::{AppUiState, CurveScope, ColoredRadioButton};
+use super::{AppUiState, CurveScope, widgets::ColoredRadioButton};
 
 pub fn curve(
     ui: &mut Ui,

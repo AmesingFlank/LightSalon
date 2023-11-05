@@ -8,7 +8,8 @@ mod color_adjust;
 mod light_adjust;
 mod editor;
 mod bottom_bar;
-mod widgets;
+
+pub mod widgets;
 
 pub use main_image::*;
 pub use image_library::*;
@@ -20,4 +21,3 @@ pub use color_adjust::*;
 pub use editor::*;
 pub use light_adjust::*;
 pub use bottom_bar::*;
-pub use widgets::*;
