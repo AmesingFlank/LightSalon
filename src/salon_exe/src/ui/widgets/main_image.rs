@@ -2,6 +2,7 @@ use std::mem::size_of;
 use std::sync::Arc;
 use std::{collections::HashMap, num::NonZeroU64};
 
+use eframe::egui::Ui;
 use eframe::{egui, egui_wgpu};
 use salon_core::buffer::{Buffer, BufferProperties, RingBuffer};
 use salon_core::image::Image;
@@ -11,13 +12,12 @@ use salon_core::runtime::{
 };
 use salon_core::sampler::Sampler;
 use salon_core::shader::{Shader, ShaderLibraryModule};
-use wgpu::util::DeviceExt;
 
-pub struct ThumbnailCallback {
+pub struct MainImageCallback {
     pub image: Arc<Image>,
 }
 
-impl egui_wgpu::CallbackTrait for ThumbnailCallback {
+impl egui_wgpu::CallbackTrait for MainImageCallback {
     fn prepare(
         &self,
         device: &wgpu::Device,
@@ -25,7 +25,7 @@ impl egui_wgpu::CallbackTrait for ThumbnailCallback {
         _egui_encoder: &mut wgpu::CommandEncoder,
         resources: &mut egui_wgpu::CallbackResources,
     ) -> Vec<wgpu::CommandBuffer> {
-        let mut resources: &mut ThumbnailRenderResources = resources.get_mut().unwrap();
+        let mut resources: &mut MainImageRenderResources = resources.get_mut().unwrap();
         resources.prepare(device, queue, self.image.as_ref());
         Vec::new()
     }
@@ -36,12 +36,12 @@ impl egui_wgpu::CallbackTrait for ThumbnailCallback {
         render_pass: &mut wgpu::RenderPass<'a>,
         resources: &'a egui_wgpu::CallbackResources,
     ) {
-        let resources: &ThumbnailRenderResources = resources.get().unwrap();
+        let resources: &MainImageRenderResources = resources.get().unwrap();
         resources.paint(render_pass, self.image.as_ref());
     }
 }
 
-pub struct ThumbnailRenderResources {
+pub struct MainImageRenderResources {
     pipeline: wgpu::RenderPipeline,
     bind_group_manager: BindGroupManager,
     bind_group_key_cache: HashMap<u32, BindGroupDescriptorKey>, // image uuid -> key
@@ -49,9 +49,9 @@ pub struct ThumbnailRenderResources {
     texture_sampler: Sampler,
 }
 
-impl ThumbnailRenderResources {
+impl MainImageRenderResources {
     pub fn new(runtime: Arc<Runtime>, target_format: wgpu::TextureFormat) -> Self {
-        let shader_code = Shader::from_code(include_str!("./shaders/thumbnail.wgsl"))
+        let shader_code = Shader::from_code(include_str!("../shaders/main_image.wgsl"))
             .with_library(ShaderLibraryModule::ColorSpaces)
             .full_code();
 
@@ -78,7 +78,7 @@ impl ThumbnailRenderResources {
             ..Default::default()
         });
 
-        ThumbnailRenderResources {
+        MainImageRenderResources {
             pipeline,
             bind_group_manager,
             bind_group_key_cache: HashMap::new(),
