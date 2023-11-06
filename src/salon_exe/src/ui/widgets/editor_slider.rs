@@ -77,7 +77,7 @@ pub enum SliderOrientation {
 ///
 /// The default [`Slider`] size is set by [`crate::style::Spacing::slider_width`].
 #[must_use = "You should put this widget in an ui with `ui.add(widget);`"]
-pub struct ColoredSlider<'a> {
+pub struct EditorSlider<'a> {
     get_set_value: GetSetValue<'a>,
     range: RangeInclusive<f64>,
     spec: SliderSpec,
@@ -101,7 +101,7 @@ pub struct ColoredSlider<'a> {
     color_override: Option<([f32; 3], [f32; 3])>,
 }
 
-impl<'a> ColoredSlider<'a> {
+impl<'a> EditorSlider<'a> {
     /// Creates a new horizontal slider.
     pub fn new<Num: emath::Numeric>(value: &'a mut Num, range: RangeInclusive<Num>) -> Self {
         let range_f64 = range.start().to_f64()..=range.end().to_f64();
@@ -555,7 +555,7 @@ impl<'a> ColoredSlider<'a> {
     }
 }
 
-impl<'a> ColoredSlider<'a> {
+impl<'a> EditorSlider<'a> {
     /// Just the slider, no text
     fn allocate_slider_space(&self, ui: &mut Ui, thickness: f32) -> Response {
         let desired_size = match self.orientation {
@@ -655,7 +655,7 @@ impl<'a> ColoredSlider<'a> {
             if let Some(ref color) = self.color_override {
                 ui.painter().add(egui_wgpu::Callback::new_paint_callback(
                     rail_rect,
-                    ColoredSliderRectCallback {
+                    EditorSliderRectCallback {
                         left_color: color.0,
                         right_color: color.1,
                         rect_id: response.id,
@@ -872,7 +872,7 @@ impl<'a> ColoredSlider<'a> {
     }
 }
 
-impl<'a> Widget for ColoredSlider<'a> {
+impl<'a> Widget for EditorSlider<'a> {
     fn ui(mut self, ui: &mut Ui) -> Response {
         let inner_response = match self.orientation {
             SliderOrientation::Horizontal => ui.horizontal(|ui| self.add_contents(ui)),
@@ -891,7 +891,7 @@ impl<'a> Widget for ColoredSlider<'a> {
 
 use std::f64::INFINITY;
 
-use super::ColoredSliderRectCallback;
+use super::EditorSliderRectCallback;
 
 /// When the user asks for an infinitely large range (e.g. logarithmic from zero),
 /// give a scale that this many orders of magnitude in size.

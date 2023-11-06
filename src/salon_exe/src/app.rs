@@ -1,7 +1,7 @@
 use crate::ui::{
     self, file_menu,
     widgets::{
-        ColoredSliderRectRenderResources, MainImageRenderResources, ThumbnailRenderResources,
+        EditorSliderRectRenderResources, MainImageRenderResources, ThumbnailRenderResources,
     },
     AppUiState,
 };
@@ -69,23 +69,17 @@ impl App {
 
         let mut renderer = wgpu_render_state.renderer.write();
 
-        let main_image_render_resources =
+        let resources =
             MainImageRenderResources::new(runtime.clone(), wgpu_render_state.target_format);
-        renderer
-            .callback_resources
-            .insert(main_image_render_resources);
+        renderer.callback_resources.insert(resources);
 
-        let thumbnail_render_resources =
+        let resources =
             ThumbnailRenderResources::new(runtime.clone(), wgpu_render_state.target_format);
-        renderer
-            .callback_resources
-            .insert(thumbnail_render_resources);
+        renderer.callback_resources.insert(resources);
 
-        let colored_slider_rect_resources =
-            ColoredSliderRectRenderResources::new(runtime.clone(), wgpu_render_state.target_format);
-        renderer
-            .callback_resources
-            .insert(colored_slider_rect_resources);
+        let resources =
+            EditorSliderRectRenderResources::new(runtime.clone(), wgpu_render_state.target_format);
+        renderer.callback_resources.insert(resources);
 
         Self {
             session,
@@ -118,17 +112,17 @@ impl eframe::App for App {
         {
             let mut renderer = frame.wgpu_render_state().unwrap().renderer.write();
 
-            let main_image_resources: &mut MainImageRenderResources =
+            let resources: &mut MainImageRenderResources =
                 renderer.callback_resources.get_mut().unwrap();
-            main_image_resources.reset();
+            resources.reset();
 
-            let thumbnail_resources: &mut ThumbnailRenderResources =
+            let resources: &mut ThumbnailRenderResources =
                 renderer.callback_resources.get_mut().unwrap();
-            thumbnail_resources.reset();
+            resources.reset();
 
-            let colored_rect_resources: &mut ColoredSliderRectRenderResources =
+            let resources: &mut EditorSliderRectRenderResources =
                 renderer.callback_resources.get_mut().unwrap();
-            colored_rect_resources.reset();
+            resources.reset();
         }
 
         egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {

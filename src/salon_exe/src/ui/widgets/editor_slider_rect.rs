@@ -13,13 +13,13 @@ use salon_core::sampler::Sampler;
 use salon_core::shader::{Shader, ShaderLibraryModule};
 use wgpu::util::DeviceExt;
 
-pub struct ColoredSliderRectCallback {
+pub struct EditorSliderRectCallback {
     pub left_color: [f32; 3],
     pub right_color: [f32; 3],
     pub rect_id: egui::Id,
 }
 
-impl egui_wgpu::CallbackTrait for ColoredSliderRectCallback {
+impl egui_wgpu::CallbackTrait for EditorSliderRectCallback {
     fn prepare(
         &self,
         device: &wgpu::Device,
@@ -27,7 +27,7 @@ impl egui_wgpu::CallbackTrait for ColoredSliderRectCallback {
         _egui_encoder: &mut wgpu::CommandEncoder,
         resources: &mut egui_wgpu::CallbackResources,
     ) -> Vec<wgpu::CommandBuffer> {
-        let mut resources: &mut ColoredSliderRectRenderResources = resources.get_mut().unwrap();
+        let mut resources: &mut EditorSliderRectRenderResources = resources.get_mut().unwrap();
         resources.prepare(
             device,
             queue,
@@ -44,21 +44,21 @@ impl egui_wgpu::CallbackTrait for ColoredSliderRectCallback {
         render_pass: &mut wgpu::RenderPass<'a>,
         resources: &'a egui_wgpu::CallbackResources,
     ) {
-        let resources: &ColoredSliderRectRenderResources = resources.get().unwrap();
+        let resources: &EditorSliderRectRenderResources = resources.get().unwrap();
         resources.paint(render_pass, self.rect_id);
     }
 }
 
-pub struct ColoredSliderRectRenderResources {
+pub struct EditorSliderRectRenderResources {
     pipeline: wgpu::RenderPipeline,
     bind_group_manager: BindGroupManager,
     bind_group_key_cache: HashMap<egui::Id, BindGroupDescriptorKey>, // ring buffer uuid -> key
     ring_buffer: RingBuffer,
 }
 
-impl ColoredSliderRectRenderResources {
+impl EditorSliderRectRenderResources {
     pub fn new(runtime: Arc<Runtime>, target_format: wgpu::TextureFormat) -> Self {
-        let shader_code = Shader::from_code(include_str!("../shaders/colored_slider_rect.wgsl"))
+        let shader_code = Shader::from_code(include_str!("../shaders/editor_slider_rect.wgsl"))
             .with_library(ShaderLibraryModule::ColorSpaces)
             .full_code();
 
@@ -75,7 +75,7 @@ impl ColoredSliderRectRenderResources {
             },
         );
 
-        ColoredSliderRectRenderResources {
+        EditorSliderRectRenderResources {
             pipeline,
             bind_group_manager,
             bind_group_key_cache: HashMap::new(),
