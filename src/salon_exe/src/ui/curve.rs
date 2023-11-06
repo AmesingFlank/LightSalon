@@ -11,7 +11,7 @@ pub fn curve(
     ui: &mut Ui,
     session: &mut Session,
     ui_state: &mut AppUiState,
-    editor_state: &mut GlobalEdit,
+    edit: &mut GlobalEdit,
 ) {
     CollapsingHeader::new("Curve")
         .default_open(true)
@@ -48,10 +48,10 @@ pub fn curve(
             });
 
             let control_points = match ui_state.curve_scope {
-                CurveScope::RGB => &mut editor_state.curve_control_points_all,
-                CurveScope::R => &mut editor_state.curve_control_points_r,
-                CurveScope::G => &mut editor_state.curve_control_points_g,
-                CurveScope::B => &mut editor_state.curve_control_points_b,
+                CurveScope::RGB => &mut edit.curve_control_points_all,
+                CurveScope::R => &mut edit.curve_control_points_r,
+                CurveScope::G => &mut edit.curve_control_points_g,
+                CurveScope::B => &mut edit.curve_control_points_b,
             };
 
             let margin = 0.02;
