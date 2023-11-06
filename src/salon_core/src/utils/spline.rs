@@ -2,7 +2,7 @@ use std::mem::size_of;
 
 use crate::{buffer::Buffer, runtime::Runtime};
 
-use super::vec::{dot_vec4, vec2, vec4, Vec2};
+use super::{vec::{vec2, vec4, Vec2}, math::dot_vec4};
 
 // https://github.com/AmesingFlank/OxfordCSNotes/blob/master/GMOD18-19/Lecture9_GMod%20Drawing%20splines%3B%20degree%20elevation%2C%20sculptured%20surface%20patches.pdf
 fn catmull_rom_spline(

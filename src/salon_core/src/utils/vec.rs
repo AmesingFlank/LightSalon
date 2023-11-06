@@ -263,7 +263,3 @@ impl<T: Num + Copy> Div<T> for Vec4<T> {
         }
     }
 }
-
-pub fn dot_vec4<T: Num>(a: Vec4<T>, b: Vec4<T>) -> T {
-    a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w
-}
