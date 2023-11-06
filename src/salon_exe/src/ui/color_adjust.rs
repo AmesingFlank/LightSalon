@@ -19,9 +19,14 @@ pub fn color_adjust(
             ui.spacing_mut().slider_width = ui.available_width() * 0.6;
             ui.add(
                 EditorSlider::new(&mut editor_state.temperature_val, -100.0..=100.0)
+                    .color_override([0.2, 0.5, 0.9], [1.0, 0.9, 0.2])
                     .text("Temperature"),
             );
-            ui.add(EditorSlider::new(&mut editor_state.tint_val, -100.0..=100.0).text("Tint"));
+            ui.add(
+                EditorSlider::new(&mut editor_state.tint_val, -100.0..=100.0)
+                    .color_override([0.3, 0.9, 0.1], [0.6, 0.0, 0.9])
+                    .text("Tint"),
+            );
             ui.add(
                 EditorSlider::new(&mut editor_state.vibrance_val, -100.0..=100.0).text("Vibrance"),
             );
