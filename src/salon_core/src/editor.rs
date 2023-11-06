@@ -6,8 +6,8 @@ use crate::{
     ir::{
         AdjustContrastOp, AdjustExposureOp, AdjustHighlightsAndShadowsOp,
         AdjustTemperatureAndTintOp, AdjustVibranceAndSaturationOp, ApplyCurveOp,
-        CollectDataForEditorOp, ComputeBasicStatisticsOp, ComputeHistogramOp, Id, IdTag, Module,
-        Op,
+        CollectDataForEditorOp, ColorMixGroup, ColorMixOp, ComputeBasicStatisticsOp,
+        ComputeHistogramOp, Id, IdTag, Module, Op,
     },
 };
 
@@ -130,6 +130,8 @@ impl GlobalEdit {
         self.maybe_add_temperature_tint(&mut module, &mut current_output_id);
         self.maybe_add_vibrance_saturation(&mut module, &mut current_output_id);
 
+        self.maybe_add_color_mix(&mut module, &mut current_output_id);
+
         self.add_collect_data_for_editor(&mut module, &mut current_output_id);
 
         module
@@ -247,6 +249,29 @@ impl GlobalEdit {
                     saturation: self.saturation,
                 },
             ));
+            module.set_output_id(adjusted_image_id);
+            *current_output_id = adjusted_image_id;
+        }
+    }
+
+    fn maybe_add_color_mix(&self, module: &mut Module, current_output_id: &mut Id) {
+        if self.color_mixer_edits != [ColorMixerEdit::new(); 8] {
+            let mut groups = [ColorMixGroup {
+                hue: 0.0,
+                saturation: 0.0,
+                lightness: 0.0,
+            }; 8];
+            for i in 0..8usize {
+                groups[i].hue = self.color_mixer_edits[i].hue;
+                groups[i].saturation = self.color_mixer_edits[i].saturation;
+                groups[i].lightness = self.color_mixer_edits[i].lightness;
+            }
+            let adjusted_image_id = module.alloc_id();
+            module.push_op(Op::ColorMix(ColorMixOp {
+                result: adjusted_image_id,
+                arg: *current_output_id,
+                groups,
+            }));
             module.set_output_id(adjusted_image_id);
             *current_output_id = adjusted_image_id;
         }

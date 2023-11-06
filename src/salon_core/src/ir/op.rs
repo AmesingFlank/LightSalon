@@ -74,11 +74,10 @@ pub struct AdjustVibranceAndSaturationOp {
 pub struct ColorMixOp {
     pub result: Id,
     pub arg: Id,
-    pub hue_range: (f32, f32),
     pub groups: [ColorMixGroup; 8],
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct ColorMixGroup {
     pub hue: f32,
     pub saturation: f32,
