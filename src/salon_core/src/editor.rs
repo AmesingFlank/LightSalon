@@ -6,7 +6,8 @@ use crate::{
     ir::{
         AdjustContrastOp, AdjustExposureOp, AdjustHighlightsAndShadowsOp,
         AdjustTemperatureAndTintOp, AdjustVibranceAndSaturationOp, ApplyCurveOp,
-        ComputeBasicStatisticsOp, Id, Module, Op, ComputeHistogramOp, CollectDataForEditorOp, IdTag,
+        CollectDataForEditorOp, ComputeBasicStatisticsOp, ComputeHistogramOp, Id, IdTag, Module,
+        Op,
     },
 };
 
@@ -47,11 +48,11 @@ pub struct Edit {
 impl Edit {
     pub fn new() -> Self {
         Self {
-            global: GlobalEdit::new()
+            global: GlobalEdit::new(),
         }
     }
 
-    pub fn to_ir_module(&self) -> Module { 
+    pub fn to_ir_module(&self) -> Module {
         self.global.to_ir_module()
     }
 }
@@ -77,7 +78,7 @@ pub struct GlobalEdit {
 }
 
 #[derive(Clone, Copy, PartialEq)]
-pub struct ColorMixerEdit { 
+pub struct ColorMixerEdit {
     pub hue: f32,
     pub saturation: f32,
     pub lightness: f32,
@@ -128,14 +129,13 @@ impl GlobalEdit {
 
         self.maybe_add_temperature_tint(&mut module, &mut current_output_id);
         self.maybe_add_vibrance_saturation(&mut module, &mut current_output_id);
-        
+
         self.add_collect_data_for_editor(&mut module, &mut current_output_id);
 
         module
     }
 
     pub fn add_collect_data_for_editor(&self, module: &mut Module, current_output_id: &mut Id) {
-
         let histogram_id = module.alloc_id();
         module.push_op(Op::ComputeHistogram(ComputeHistogramOp {
             result: histogram_id,
@@ -200,6 +200,28 @@ impl GlobalEdit {
         }
     }
 
+    fn maybe_add_curves(&self, module: &mut Module, current_output_id: &mut Id) {
+        let mut maybe_add_curve = |control: &Vec<(f32, f32)>, r: bool, g: bool, b: bool| {
+            if *control != Self::initial_control_points() {
+                let adjusted_image_id = module.alloc_id();
+                module.push_op(Op::ApplyCurve(ApplyCurveOp {
+                    result: adjusted_image_id,
+                    arg: *current_output_id,
+                    control_points: control.clone(),
+                    apply_r: r,
+                    apply_g: g,
+                    apply_b: b,
+                }));
+                module.set_output_id(adjusted_image_id);
+                *current_output_id = adjusted_image_id;
+            }
+        };
+        maybe_add_curve(&self.curve_control_points_all, true, true, true);
+        maybe_add_curve(&self.curve_control_points_r, true, false, false);
+        maybe_add_curve(&self.curve_control_points_g, false, true, false);
+        maybe_add_curve(&self.curve_control_points_b, false, false, true);
+    }
+
     fn maybe_add_temperature_tint(&self, module: &mut Module, current_output_id: &mut Id) {
         if self.temperature != 0.0 || self.tint != 0.0 {
             let temperature_tint_adjusted_image_id = module.alloc_id();
@@ -228,28 +250,6 @@ impl GlobalEdit {
             module.set_output_id(adjusted_image_id);
             *current_output_id = adjusted_image_id;
         }
-    }
-
-    fn maybe_add_curves(&self, module: &mut Module, current_output_id: &mut Id) {
-        let mut maybe_add_curve = |control: &Vec<(f32, f32)>, r: bool, g: bool, b: bool| {
-            if *control != Self::initial_control_points() {
-                let adjusted_image_id = module.alloc_id();
-                module.push_op(Op::ApplyCurve(ApplyCurveOp {
-                    result: adjusted_image_id,
-                    arg: *current_output_id,
-                    control_points: control.clone(),
-                    apply_r: r,
-                    apply_g: g,
-                    apply_b: b,
-                }));
-                module.set_output_id(adjusted_image_id);
-                *current_output_id = adjusted_image_id;
-            }
-        };
-        maybe_add_curve(&self.curve_control_points_all, true, true, true);
-        maybe_add_curve(&self.curve_control_points_r, true, false, false);
-        maybe_add_curve(&self.curve_control_points_g, false, true, false);
-        maybe_add_curve(&self.curve_control_points_b, false, false, true);
     }
 
     fn initial_control_points() -> Vec<(f32, f32)> {
