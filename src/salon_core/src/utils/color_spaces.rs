@@ -31,14 +31,14 @@ fn hue_to_rgb(hue: f32) -> Vec3<f32> {
     );
 }
 
-fn rgb_to_hsl(rgb: Vec3<f32>) -> Vec3<f32> {
+pub fn rgb_to_hsl(rgb: Vec3<f32>) -> Vec3<f32> {
     let hmmc = rgb_to_hmmc(rgb);
     let sum = hmmc.y + hmmc.z;
     let den = 1.0 - (sum - 1.0).abs();
     return vec3((hmmc.x, hmmc.w / den.max(0.001), sum * 0.5));
 }
 
-fn hsl_to_rgb(hsl: Vec3<f32>) -> Vec3<f32> {
+pub fn hsl_to_rgb(hsl: Vec3<f32>) -> Vec3<f32> {
     let rgb = hue_to_rgb(hsl.x);
     let chroma = (1.0 - (2.0 * hsl.z - 1.0).abs()) * hsl.y;
     return (rgb - vec3((0.5, 0.5, 0.5))) * chroma + vec3((hsl.z, hsl.z, hsl.z));

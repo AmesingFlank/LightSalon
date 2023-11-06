@@ -6,6 +6,8 @@ pub struct AppUiState {
 
     pub selected_curve_control_point_index: Option<usize>,
     pub curve_scope: CurveScope,
+
+    pub color_mixer_color_index: usize,
 }
 
 impl AppUiState {
@@ -15,6 +17,7 @@ impl AppUiState {
             fps_counter: FpsCounterState::new(),
             selected_curve_control_point_index: None,
             curve_scope: CurveScope::RGB,
+            color_mixer_color_index: 0,
         }
     }
 }
