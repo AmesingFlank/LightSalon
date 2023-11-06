@@ -6,9 +6,9 @@ pub enum Op {
     AdjustExposure(AdjustExposureOp),
     AdjustContrast(AdjustContrastOp),
     AdjustHighlightsAndShadows(AdjustHighlightsAndShadowsOp),
+    ApplyCurve(ApplyCurveOp),
     AdjustTemperatureAndTint(AdjustTemperatureAndTintOp),
     AdjustVibranceAndSaturation(AdjustVibranceAndSaturationOp),
-    ApplyCurve(ApplyCurveOp),
     ComputeBasicStatistics(ComputeBasicStatisticsOp),
     ComputeHistogram(ComputeHistogramOp),
     CollectDataForEditor(CollectDataForEditorOp),
@@ -42,6 +42,16 @@ pub struct AdjustHighlightsAndShadowsOp {
     pub shadows: f32,
 }
 
+#[derive(Clone)]
+pub struct ApplyCurveOp {
+    pub result: Id,
+    pub arg: Id,
+    pub control_points: Vec<(f32, f32)>,
+    pub apply_r: bool,
+    pub apply_g: bool,
+    pub apply_b: bool,
+}
+
 // grouping temp and tint together, because they are heavy and shares a lot of common work
 #[derive(Clone)]
 pub struct AdjustTemperatureAndTintOp {
@@ -58,17 +68,6 @@ pub struct AdjustVibranceAndSaturationOp {
     pub vibrance: f32,
     pub saturation: f32,
 }
-
-#[derive(Clone)]
-pub struct ApplyCurveOp {
-    pub result: Id,
-    pub arg: Id,
-    pub control_points: Vec<(f32, f32)>,
-    pub apply_r: bool,
-    pub apply_g: bool,
-    pub apply_b: bool,
-}
-
 
 #[derive(Clone)]
 pub struct ComputeBasicStatisticsOp {
