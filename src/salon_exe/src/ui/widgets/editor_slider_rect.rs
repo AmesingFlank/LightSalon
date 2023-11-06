@@ -16,6 +16,7 @@ use wgpu::util::DeviceExt;
 pub struct EditorSliderRectCallback {
     pub left_color: [f32; 3],
     pub right_color: [f32; 3],
+    pub interpolate_in_hsl: bool,
     pub rect_id: egui::Id,
 }
 
@@ -33,6 +34,7 @@ impl egui_wgpu::CallbackTrait for EditorSliderRectCallback {
             queue,
             self.left_color,
             self.right_color,
+            self.interpolate_in_hsl,
             self.rect_id,
         );
         Vec::new()
@@ -70,7 +72,7 @@ impl EditorSliderRectRenderResources {
         let ring_buffer = RingBuffer::new(
             runtime.clone(),
             BufferProperties {
-                size: size_of::<f32>() * 8,
+                size: size_of::<f32>() * (12),
                 host_readable: false,
             },
         );
@@ -93,6 +95,7 @@ impl EditorSliderRectRenderResources {
         queue: &wgpu::Queue,
         left_color: [f32; 3],
         right_color: [f32; 3],
+        interpolate_in_hsl: bool,
         rect_id: egui::Id,
     ) {
         let buffer: &Buffer = self.ring_buffer.get();
@@ -108,6 +111,7 @@ impl EditorSliderRectRenderResources {
                 right_color[1],
                 right_color[2],
                 1.0,
+                interpolate_in_hsl as i32 as f32,
             ]),
         );
 

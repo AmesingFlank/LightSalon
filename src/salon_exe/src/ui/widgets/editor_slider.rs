@@ -98,7 +98,7 @@ pub struct EditorSlider<'a> {
     custom_formatter: Option<NumFormatter<'a>>,
     custom_parser: Option<NumParser<'a>>,
     trailing_fill: Option<bool>,
-    color_override: Option<(Color32, Color32)>,
+    color_override: Option<(Color32, Color32, bool)>,
 }
 
 impl<'a> EditorSlider<'a> {
@@ -297,8 +297,8 @@ impl<'a> EditorSlider<'a> {
         self
     }
 
-    pub fn color_override(mut self, color_left: Color32, color_right: Color32) -> Self {
-        self.color_override = Some((color_left, color_right));
+    pub fn color_override(mut self, color_left: Color32, color_right: Color32, interpolate_in_hsl: bool) -> Self {
+        self.color_override = Some((color_left, color_right, interpolate_in_hsl));
         self
     }
 
@@ -652,24 +652,26 @@ impl<'a> EditorSlider<'a> {
             let visuals = ui.style().interact(response);
             let widget_visuals = &ui.visuals().widgets;
 
-            if let Some(ref color) = self.color_override {
-                let left = color.0;
+            if let Some(ref color_override_params) = self.color_override {
+                let left = color_override_params.0;
                 let left = [
                     left[0] as f32 / 255.0,
                     left[1] as f32 / 255.0,
                     left[2] as f32 / 255.0,
                 ];
-                let right = color.1;
+                let right = color_override_params.1;
                 let right = [
                     right[0] as f32 / 255.0,
                     right[1] as f32 / 255.0,
                     right[2] as f32 / 255.0,
                 ];
+                let interpolate_in_hsl = color_override_params.2;
                 ui.painter().add(egui_wgpu::Callback::new_paint_callback(
                     rail_rect,
                     EditorSliderRectCallback {
                         left_color: left,
                         right_color: right,
+                        interpolate_in_hsl: interpolate_in_hsl,
                         rect_id: response.id,
                     },
                 ));

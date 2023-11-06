@@ -22,6 +22,7 @@ pub fn color_adjust(
                     .color_override(
                         Color32::from_rgb(50, 130, 230),
                         Color32::from_rgb(255, 230, 50),
+                        false,
                     )
                     .text("Temperature"),
             );
@@ -30,6 +31,7 @@ pub fn color_adjust(
                     .color_override(
                         Color32::from_rgb(65, 230, 25),
                         Color32::from_rgb(150, 0, 230),
+                        false,
                     )
                     .text("Tint"),
             );
