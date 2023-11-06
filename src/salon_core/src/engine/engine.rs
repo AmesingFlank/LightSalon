@@ -12,11 +12,14 @@ use super::{
     ops::{
         basic_statistics::ComputeBasicStatisticsImpl,
         collect_data_for_editor::CollectDataForEditorImpl,
+        color_mix::ColorMixImpl,
         contrast::AdjustContrastImpl,
+        curve::ApplyCurveImpl,
         exposure::AdjustExposureImpl,
         highlights_shadows::AdjustHighlightsAndShadowsImpl,
         histogram::{self, ComputeHistogramImpl},
-        vibrance_saturation::AdjustVibranceAndSaturationImpl, temperature_tint::AdjustTemperatureAndTintImpl, curve::ApplyCurveImpl,
+        temperature_tint::AdjustTemperatureAndTintImpl,
+        vibrance_saturation::AdjustVibranceAndSaturationImpl,
     },
     result::ProcessResult,
     value_store::ValueStore,
@@ -105,25 +108,32 @@ impl Engine {
                     );
                 }
                 Op::AdjustHighlightsAndShadows(ref op) => {
-                    self.op_impls.highlights_shadows.as_mut().unwrap().encode_commands(
-                        &mut encoder,
-                        op,
-                        &mut self.value_store,
-                    );
+                    self.op_impls
+                        .highlights_shadows
+                        .as_mut()
+                        .unwrap()
+                        .encode_commands(&mut encoder, op, &mut self.value_store);
                 }
                 Op::AdjustTemperatureAndTint(ref op) => {
-                    self.op_impls.temperature_tint.as_mut().unwrap().encode_commands(
-                        &mut encoder,
-                        op,
-                        &mut self.value_store,
-                    );
+                    self.op_impls
+                        .temperature_tint
+                        .as_mut()
+                        .unwrap()
+                        .encode_commands(&mut encoder, op, &mut self.value_store);
                 }
                 Op::AdjustVibranceAndSaturation(ref op) => {
-                    self.op_impls.vibrance_saturation.as_mut().unwrap().encode_commands(
-                        &mut encoder,
-                        op,
-                        &mut self.value_store,
-                    );
+                    self.op_impls
+                        .vibrance_saturation
+                        .as_mut()
+                        .unwrap()
+                        .encode_commands(&mut encoder, op, &mut self.value_store);
+                }
+                Op::ColorMix(ref op) => {
+                    self.op_impls
+                        .color_mix
+                        .as_mut()
+                        .unwrap()
+                        .encode_commands(&mut encoder, op, &mut self.value_store);
                 }
                 Op::ApplyCurve(ref op) => {
                     self.op_impls.curve.as_mut().unwrap().encode_commands(
@@ -202,9 +212,16 @@ impl Engine {
                 }
                 Op::AdjustVibranceAndSaturation(_) => {
                     if self.op_impls.vibrance_saturation.is_none() {
-                        self.op_impls.vibrance_saturation = Some(AdjustVibranceAndSaturationImpl::new(self.runtime.clone()))
+                        self.op_impls.vibrance_saturation =
+                            Some(AdjustVibranceAndSaturationImpl::new(self.runtime.clone()))
                     }
                     self.op_impls.vibrance_saturation.as_mut().unwrap().reset();
+                }
+                Op::ColorMix(_) => {
+                    if self.op_impls.color_mix.is_none() {
+                        self.op_impls.color_mix = Some(ColorMixImpl::new(self.runtime.clone()))
+                    }
+                    self.op_impls.color_mix.as_mut().unwrap().reset();
                 }
                 Op::ApplyCurve(_) => {
                     if self.op_impls.curve.is_none() {
@@ -231,7 +248,11 @@ impl Engine {
                         self.op_impls.collect_data_for_editor =
                             Some(CollectDataForEditorImpl::new(self.runtime.clone()))
                     }
-                    self.op_impls.collect_data_for_editor.as_mut().unwrap().reset();
+                    self.op_impls
+                        .collect_data_for_editor
+                        .as_mut()
+                        .unwrap()
+                        .reset();
                 }
             }
         }

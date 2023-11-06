@@ -9,6 +9,7 @@ pub enum Op {
     ApplyCurve(ApplyCurveOp),
     AdjustTemperatureAndTint(AdjustTemperatureAndTintOp),
     AdjustVibranceAndSaturation(AdjustVibranceAndSaturationOp),
+    ColorMix(ColorMixOp),
     ComputeBasicStatistics(ComputeBasicStatisticsOp),
     ComputeHistogram(ComputeHistogramOp),
     CollectDataForEditor(CollectDataForEditorOp),
@@ -67,6 +68,21 @@ pub struct AdjustVibranceAndSaturationOp {
     pub arg: Id,
     pub vibrance: f32,
     pub saturation: f32,
+}
+
+#[derive(Clone)]
+pub struct ColorMixOp {
+    pub result: Id,
+    pub arg: Id,
+    pub hue_range: (f32, f32),
+    pub groups: [ColorMixGroup; 8],
+}
+
+#[derive(Clone)]
+pub struct ColorMixGroup {
+    pub hue: f32,
+    pub saturation: f32,
+    pub lightness: f32,
 }
 
 #[derive(Clone)]
