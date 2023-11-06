@@ -762,8 +762,8 @@ impl<'a> EditorSlider<'a> {
 
     fn rail_radius_limit(&self, rect: &Rect) -> f32 {
         match self.orientation {
-            SliderOrientation::Horizontal => (rect.height() / 4.0).at_least(2.0),
-            SliderOrientation::Vertical => (rect.width() / 4.0).at_least(2.0),
+            SliderOrientation::Horizontal => (rect.height() / 8.0).at_least(2.0),
+            SliderOrientation::Vertical => (rect.width() / 8.0).at_least(2.0),
         }
     }
 
