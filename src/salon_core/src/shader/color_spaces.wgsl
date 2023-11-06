@@ -9,7 +9,10 @@ fn rgb_to_hmmc(rgb: vec3<f32>) -> vec4<f32> {
   var hue = dc.z + 4.0;
   hue = mix(hue, dc.y + 2.0, step(M, rgb.g));
   hue = mix(hue, dc.x, step(M, rgb.r));
-  hue = (hue / 6.0) % 1.0;
+  hue = hue / 6.0;
+  if (hue < 0.0) {
+    hue = hue + 1.0;
+  }
   return vec4(hue, m, M, chroma);
 }
 

@@ -16,7 +16,10 @@ fn rgb_to_hmmc(rgb: Vec3<f32>) -> Vec4<f32> {
     let mut hue = dc.z + 4.0;
     hue = mix(hue, dc.y + 2.0, step(M, rgb.y));
     hue = mix(hue, dc.x, step(M, rgb.x));
-    hue = (hue / 6.0) % 1.0;
+    hue = hue / 6.0;
+    if hue < 0.0 {
+        hue = hue + 1.0;
+    }
     return vec4((hue, m, M, chroma));
 }
 
