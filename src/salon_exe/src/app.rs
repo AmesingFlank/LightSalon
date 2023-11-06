@@ -1,4 +1,10 @@
-use crate::ui::{self, file_menu, AppUiState, widgets::{MainImageRenderResources, ThumbnailRenderResources}};
+use crate::ui::{
+    self, file_menu,
+    widgets::{
+        ColoredSliderRectRenderResources, MainImageRenderResources, ThumbnailRenderResources,
+    },
+    AppUiState,
+};
 use eframe::{
     egui::{self, accesskit::Vec2, CollapsingHeader, Ui, Visuals},
     emath::remap,
@@ -75,6 +81,12 @@ impl App {
             .callback_resources
             .insert(thumbnail_render_resources);
 
+        let colored_slider_rect_resources =
+            ColoredSliderRectRenderResources::new(runtime.clone(), wgpu_render_state.target_format);
+        renderer
+            .callback_resources
+            .insert(colored_slider_rect_resources);
+
         Self {
             session,
             ui_state: AppUiState::new(),
@@ -113,6 +125,10 @@ impl eframe::App for App {
             let thumbnail_resources: &mut ThumbnailRenderResources =
                 renderer.callback_resources.get_mut().unwrap();
             thumbnail_resources.reset();
+
+            let colored_rect_resources: &mut ColoredSliderRectRenderResources =
+                renderer.callback_resources.get_mut().unwrap();
+            colored_rect_resources.reset();
         }
 
         egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {

@@ -4,7 +4,14 @@
 
 use std::ops::RangeInclusive;
 
-use eframe::{egui::{WidgetText, Ui, Response, Sense, Key, DragValue, WidgetInfo, TextStyle, Label, Widget, egui_assert}, emath::{self, Rangef, remap_clamp, lerp, NumExt, remap}, epaint::{Color32, vec2, self, Rect, Pos2, pos2}};
+use eframe::{
+    egui::{
+        egui_assert, DragValue, Key, Label, Response, Sense, TextStyle, Ui, Widget, WidgetInfo,
+        WidgetText,
+    },
+    emath::{self, lerp, remap, remap_clamp, NumExt, Rangef},
+    epaint::{self, pos2, vec2, Color32, Pos2, Rect, Rounding},
+};
 
 use crate::*;
 
@@ -70,7 +77,7 @@ pub enum SliderOrientation {
 ///
 /// The default [`Slider`] size is set by [`crate::style::Spacing::slider_width`].
 #[must_use = "You should put this widget in an ui with `ui.add(widget);`"]
-pub struct Slider<'a> {
+pub struct ColoredSlider<'a> {
     get_set_value: GetSetValue<'a>,
     range: RangeInclusive<f64>,
     spec: SliderSpec,
@@ -91,9 +98,10 @@ pub struct Slider<'a> {
     custom_formatter: Option<NumFormatter<'a>>,
     custom_parser: Option<NumParser<'a>>,
     trailing_fill: Option<bool>,
+    color_override: Option<([f32; 3], [f32; 3])>,
 }
 
-impl<'a> Slider<'a> {
+impl<'a> ColoredSlider<'a> {
     /// Creates a new horizontal slider.
     pub fn new<Num: emath::Numeric>(value: &'a mut Num, range: RangeInclusive<Num>) -> Self {
         let range_f64 = range.start().to_f64()..=range.end().to_f64();
@@ -137,6 +145,7 @@ impl<'a> Slider<'a> {
             custom_formatter: None,
             custom_parser: None,
             trailing_fill: None,
+            color_override: None,
         }
     }
 
@@ -285,6 +294,11 @@ impl<'a> Slider<'a> {
     /// The fill color will be taken from `selection.bg_fill` in your [`Visuals`], the same as a [`ProgressBar`].
     pub fn trailing_fill(mut self, trailing_fill: bool) -> Self {
         self.trailing_fill = Some(trailing_fill);
+        self
+    }
+
+    pub fn color_override(mut self, color_left: [f32; 3], color_right: [f32; 3]) -> Self {
+        self.color_override = Some((color_left, color_right));
         self
     }
 
@@ -541,7 +555,7 @@ impl<'a> Slider<'a> {
     }
 }
 
-impl<'a> Slider<'a> {
+impl<'a> ColoredSlider<'a> {
     /// Just the slider, no text
     fn allocate_slider_space(&self, ui: &mut Ui, thickness: f32) -> Response {
         let desired_size = match self.orientation {
@@ -638,11 +652,22 @@ impl<'a> Slider<'a> {
             let visuals = ui.style().interact(response);
             let widget_visuals = &ui.visuals().widgets;
 
-            ui.painter().rect_filled(
-                rail_rect,
-                widget_visuals.inactive.rounding,
-                widget_visuals.inactive.bg_fill,
-            );
+            if let Some(ref color) = self.color_override {
+                ui.painter().add(egui_wgpu::Callback::new_paint_callback(
+                    rail_rect,
+                    ColoredSliderRectCallback {
+                        left_color: color.0,
+                        right_color: color.1,
+                        rect_id: response.id,
+                    },
+                ));
+            } else {
+                ui.painter().rect_filled(
+                    rail_rect,
+                    Rounding::ZERO,
+                    widget_visuals.inactive.bg_fill,
+                );
+            }
 
             let position_1d = self.position_from_value(value, position_range);
             let center = self.marker_center(position_1d, &rail_rect);
@@ -847,7 +872,7 @@ impl<'a> Slider<'a> {
     }
 }
 
-impl<'a> Widget for Slider<'a> {
+impl<'a> Widget for ColoredSlider<'a> {
     fn ui(mut self, ui: &mut Ui) -> Response {
         let inner_response = match self.orientation {
             SliderOrientation::Horizontal => ui.horizontal(|ui| self.add_contents(ui)),
@@ -865,6 +890,8 @@ impl<'a> Widget for Slider<'a> {
 // even though mathematically it doesn't make sense.
 
 use std::f64::INFINITY;
+
+use super::ColoredSliderRectCallback;
 
 /// When the user asks for an infinitely large range (e.g. logarithmic from zero),
 /// give a scale that this many orders of magnitude in size.
