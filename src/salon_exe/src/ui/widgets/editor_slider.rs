@@ -98,7 +98,7 @@ pub struct EditorSlider<'a> {
     custom_formatter: Option<NumFormatter<'a>>,
     custom_parser: Option<NumParser<'a>>,
     trailing_fill: Option<bool>,
-    color_override: Option<([f32; 3], [f32; 3])>,
+    color_override: Option<(Color32, Color32)>,
 }
 
 impl<'a> EditorSlider<'a> {
@@ -297,7 +297,7 @@ impl<'a> EditorSlider<'a> {
         self
     }
 
-    pub fn color_override(mut self, color_left: [f32; 3], color_right: [f32; 3]) -> Self {
+    pub fn color_override(mut self, color_left: Color32, color_right: Color32) -> Self {
         self.color_override = Some((color_left, color_right));
         self
     }
@@ -653,11 +653,23 @@ impl<'a> EditorSlider<'a> {
             let widget_visuals = &ui.visuals().widgets;
 
             if let Some(ref color) = self.color_override {
+                let left = color.0;
+                let left = [
+                    left[0] as f32 / 255.0,
+                    left[1] as f32 / 255.0,
+                    left[2] as f32 / 255.0,
+                ];
+                let right = color.1;
+                let right = [
+                    right[0] as f32 / 255.0,
+                    right[1] as f32 / 255.0,
+                    right[2] as f32 / 255.0,
+                ];
                 ui.painter().add(egui_wgpu::Callback::new_paint_callback(
                     rail_rect,
                     EditorSliderRectCallback {
-                        left_color: color.0,
-                        right_color: color.1,
+                        left_color: left,
+                        right_color: right,
                         rect_id: response.id,
                     },
                 ));
