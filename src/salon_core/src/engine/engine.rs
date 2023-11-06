@@ -114,6 +114,13 @@ impl Engine {
                         .unwrap()
                         .encode_commands(&mut encoder, op, &mut self.value_store);
                 }
+                Op::ApplyCurve(ref op) => {
+                    self.op_impls.curve.as_mut().unwrap().encode_commands(
+                        &mut encoder,
+                        op,
+                        &mut self.value_store,
+                    );
+                }
                 Op::AdjustTemperatureAndTint(ref op) => {
                     self.op_impls
                         .temperature_tint
@@ -129,14 +136,7 @@ impl Engine {
                         .encode_commands(&mut encoder, op, &mut self.value_store);
                 }
                 Op::ColorMix(ref op) => {
-                    self.op_impls
-                        .color_mix
-                        .as_mut()
-                        .unwrap()
-                        .encode_commands(&mut encoder, op, &mut self.value_store);
-                }
-                Op::ApplyCurve(ref op) => {
-                    self.op_impls.curve.as_mut().unwrap().encode_commands(
+                    self.op_impls.color_mix.as_mut().unwrap().encode_commands(
                         &mut encoder,
                         op,
                         &mut self.value_store,
@@ -203,6 +203,12 @@ impl Engine {
                     }
                     self.op_impls.highlights_shadows.as_mut().unwrap().reset();
                 }
+                Op::ApplyCurve(_) => {
+                    if self.op_impls.curve.is_none() {
+                        self.op_impls.curve = Some(ApplyCurveImpl::new(self.runtime.clone()))
+                    }
+                    self.op_impls.curve.as_mut().unwrap().reset();
+                }
                 Op::AdjustTemperatureAndTint(_) => {
                     if self.op_impls.temperature_tint.is_none() {
                         self.op_impls.temperature_tint =
@@ -222,12 +228,6 @@ impl Engine {
                         self.op_impls.color_mix = Some(ColorMixImpl::new(self.runtime.clone()))
                     }
                     self.op_impls.color_mix.as_mut().unwrap().reset();
-                }
-                Op::ApplyCurve(_) => {
-                    if self.op_impls.curve.is_none() {
-                        self.op_impls.curve = Some(ApplyCurveImpl::new(self.runtime.clone()))
-                    }
-                    self.op_impls.curve.as_mut().unwrap().reset();
                 }
                 Op::ComputeBasicStatistics(_) => {
                     if self.op_impls.basic_statistics.is_none() {
