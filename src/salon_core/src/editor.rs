@@ -72,6 +72,25 @@ pub struct GlobalEdit {
     pub tint_val: f32,
     pub vibrance_val: f32,
     pub saturation_val: f32,
+
+    pub color_mixer_edits: [ColorMixerEdit; 8],
+}
+
+#[derive(Clone, Copy, PartialEq)]
+pub struct ColorMixerEdit { 
+    pub hue: f32,
+    pub saturation: f32,
+    pub lightness: f32,
+}
+
+impl ColorMixerEdit {
+    pub fn new() -> Self {
+        Self {
+            hue: 0.0,
+            saturation: 0.0,
+            lightness: 0.0,
+        }
+    }
 }
 
 impl GlobalEdit {
@@ -91,6 +110,8 @@ impl GlobalEdit {
             tint_val: 0.0,
             vibrance_val: 0.0,
             saturation_val: 0.0,
+
+            color_mixer_edits: [ColorMixerEdit::new(); 8],
         }
     }
 
