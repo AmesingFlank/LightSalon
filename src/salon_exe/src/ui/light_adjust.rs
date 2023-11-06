@@ -17,19 +17,19 @@ pub fn light_adjust(
         .default_open(true)
         .show(ui, |ui| {
             ui.spacing_mut().slider_width = ui.available_width() * 0.6;
-            ui.add(EditorSlider::new(&mut editor_state.exposure_val, -4.0..=4.0).text("Exposure"));
+            ui.add(EditorSlider::new(&mut editor_state.exposure, -4.0..=4.0).text("Exposure"));
 
             ui.add(
-                EditorSlider::new(&mut editor_state.contrast_val, -100.0..=100.0).text("Contrast"),
+                EditorSlider::new(&mut editor_state.contrast, -100.0..=100.0).text("Contrast"),
             );
 
             ui.add(
-                EditorSlider::new(&mut editor_state.highlights_val, -100.0..=100.0)
+                EditorSlider::new(&mut editor_state.highlights, -100.0..=100.0)
                     .text("Highlights"),
             );
 
             ui.add(
-                EditorSlider::new(&mut editor_state.shadows_val, -100.0..=100.0).text("Shadows"),
+                EditorSlider::new(&mut editor_state.shadows, -100.0..=100.0).text("Shadows"),
             );
         });
 }

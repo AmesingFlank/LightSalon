@@ -58,20 +58,20 @@ impl Edit {
 
 #[derive(Clone, PartialEq)]
 pub struct GlobalEdit {
-    pub exposure_val: f32,
-    pub contrast_val: f32,
-    pub highlights_val: f32,
-    pub shadows_val: f32,
+    pub exposure: f32,
+    pub contrast: f32,
+    pub highlights: f32,
+    pub shadows: f32,
 
     pub curve_control_points_all: Vec<(f32, f32)>,
     pub curve_control_points_r: Vec<(f32, f32)>,
     pub curve_control_points_g: Vec<(f32, f32)>,
     pub curve_control_points_b: Vec<(f32, f32)>,
 
-    pub temperature_val: f32,
-    pub tint_val: f32,
-    pub vibrance_val: f32,
-    pub saturation_val: f32,
+    pub temperature: f32,
+    pub tint: f32,
+    pub vibrance: f32,
+    pub saturation: f32,
 
     pub color_mixer_edits: [ColorMixerEdit; 8],
 }
@@ -96,20 +96,20 @@ impl ColorMixerEdit {
 impl GlobalEdit {
     pub fn new() -> Self {
         GlobalEdit {
-            exposure_val: 0.0,
-            contrast_val: 0.0,
-            highlights_val: 0.0,
-            shadows_val: 0.0,
+            exposure: 0.0,
+            contrast: 0.0,
+            highlights: 0.0,
+            shadows: 0.0,
 
             curve_control_points_all: GlobalEdit::initial_control_points(),
             curve_control_points_r: GlobalEdit::initial_control_points(),
             curve_control_points_g: GlobalEdit::initial_control_points(),
             curve_control_points_b: GlobalEdit::initial_control_points(),
 
-            temperature_val: 0.0,
-            tint_val: 0.0,
-            vibrance_val: 0.0,
-            saturation_val: 0.0,
+            temperature: 0.0,
+            tint: 0.0,
+            vibrance: 0.0,
+            saturation: 0.0,
 
             color_mixer_edits: [ColorMixerEdit::new(); 8],
         }
@@ -152,12 +152,12 @@ impl GlobalEdit {
     }
 
     fn maybe_add_exposure(&self, module: &mut Module, current_output_id: &mut Id) {
-        if self.exposure_val != 0.0 {
+        if self.exposure != 0.0 {
             let exposure_adjusted_image_id = module.alloc_id();
             module.push_op(Op::AdjustExposure(AdjustExposureOp {
                 result: exposure_adjusted_image_id,
                 arg: *current_output_id,
-                exposure: self.exposure_val,
+                exposure: self.exposure,
             }));
             module.set_output_id(exposure_adjusted_image_id);
             *current_output_id = exposure_adjusted_image_id;
@@ -165,7 +165,7 @@ impl GlobalEdit {
     }
 
     fn maybe_add_contrast(&self, module: &mut Module, current_output_id: &mut Id) {
-        if self.contrast_val != 0.0 {
+        if self.contrast != 0.0 {
             let basic_stats_id = module.alloc_id();
             module.push_op(Op::ComputeBasicStatistics(ComputeBasicStatisticsOp {
                 result: basic_stats_id,
@@ -177,7 +177,7 @@ impl GlobalEdit {
                 result: contrast_adjusted_image_id,
                 arg: *current_output_id,
                 basic_stats: basic_stats_id,
-                contrast: self.contrast_val,
+                contrast: self.contrast,
             }));
             module.set_output_id(contrast_adjusted_image_id);
             *current_output_id = contrast_adjusted_image_id;
@@ -185,14 +185,14 @@ impl GlobalEdit {
     }
 
     fn maybe_add_highlights_shadows(&self, module: &mut Module, current_output_id: &mut Id) {
-        if self.highlights_val != 0.0 || self.shadows_val != 0.0 {
+        if self.highlights != 0.0 || self.shadows != 0.0 {
             let adjusted_image_id = module.alloc_id();
             module.push_op(Op::AdjustHighlightsAndShadows(
                 AdjustHighlightsAndShadowsOp {
                     result: adjusted_image_id,
                     arg: *current_output_id,
-                    highlights: self.highlights_val,
-                    shadows: self.shadows_val,
+                    highlights: self.highlights,
+                    shadows: self.shadows,
                 },
             ));
             module.set_output_id(adjusted_image_id);
@@ -201,13 +201,13 @@ impl GlobalEdit {
     }
 
     fn maybe_add_temperature_tint(&self, module: &mut Module, current_output_id: &mut Id) {
-        if self.temperature_val != 0.0 || self.tint_val != 0.0 {
+        if self.temperature != 0.0 || self.tint != 0.0 {
             let temperature_tint_adjusted_image_id = module.alloc_id();
             module.push_op(Op::AdjustTemperatureAndTint(AdjustTemperatureAndTintOp {
                 result: temperature_tint_adjusted_image_id,
                 arg: *current_output_id,
-                temperature: self.temperature_val,
-                tint: self.tint_val,
+                temperature: self.temperature,
+                tint: self.tint,
             }));
             module.set_output_id(temperature_tint_adjusted_image_id);
             *current_output_id = temperature_tint_adjusted_image_id;
@@ -215,14 +215,14 @@ impl GlobalEdit {
     }
 
     fn maybe_add_vibrance_saturation(&self, module: &mut Module, current_output_id: &mut Id) {
-        if self.vibrance_val != 0.0 || self.saturation_val != 0.0 {
+        if self.vibrance != 0.0 || self.saturation != 0.0 {
             let adjusted_image_id = module.alloc_id();
             module.push_op(Op::AdjustVibranceAndSaturation(
                 AdjustVibranceAndSaturationOp {
                     result: adjusted_image_id,
                     arg: *current_output_id,
-                    vibrance: self.vibrance_val,
-                    saturation: self.saturation_val,
+                    vibrance: self.vibrance,
+                    saturation: self.saturation,
                 },
             ));
             module.set_output_id(adjusted_image_id);
