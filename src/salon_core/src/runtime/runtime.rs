@@ -7,10 +7,11 @@ use crate::{
     buffer::{Buffer, BufferProperties},
     image::{ColorSpace, Image, ImageFormat, ImageProperties},
     sampler::Sampler,
-    utils::{color_space_converter::ColorSpaceConverter, mipmap_generator::MipmapGenerator},
 };
 
 use half::prelude::*;
+
+use super::{mipmap_generator::MipmapGenerator, color_space_converter::ColorSpaceConverter};
 
 pub struct Runtime {
     pub adapter: Arc<wgpu::Adapter>,
