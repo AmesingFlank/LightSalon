@@ -32,11 +32,11 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         return;
     }
     var rgb = textureLoad(input, global_id.xy, 0).rgb;
-    var hsl = rgb_to_hsluv(rgb);
+    var hsl = rgb_to_LCh(rgb);
 
-    var h = hsl.x;
+    var h = hsl.z;
     var s = hsl.y;
-    var l = hsl.z;
+    var l = hsl.x;
 
     for(var i: i32 = 0; i < 8; i = i + 1) {
         let g = params.groups[i];
@@ -44,7 +44,7 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         let diff = hue_diff(base_hue, h);
         let impact = max(0.0, 1.0 - diff / (360.0 / 8.0));
         
-        let hue_shift = g.hue * (0.0 / 100.0) * (360.0 / 8.0) * impact;
+        let hue_shift = g.hue * (1.0 / 100.0) * (360.0 / 8.0) * impact;
         h += hue_shift;
         if (h > 360.0) {
             h -= 360.0;
@@ -60,10 +60,10 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         l += lightness_shift;
     }
 
-    hsl.x = h;
+    hsl.z = h;
     hsl.y = s;
-    hsl.z = l;
+    hsl.x = l;
 
-    rgb = hsluv_to_rgb(hsl);
+    rgb = LCh_to_rgb(hsl);
     textureStore(output, global_id.xy, vec4(rgb, 1.0));
 }
