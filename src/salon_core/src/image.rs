@@ -16,7 +16,8 @@ pub struct Image {
 pub enum ColorSpace { // matches color_spaces.wgsl
     LinearRGB = 0,
     sRGB = 1,
-    LCh = 2,
+    HSL = 2,
+    LCh = 3,
 }
 
 
