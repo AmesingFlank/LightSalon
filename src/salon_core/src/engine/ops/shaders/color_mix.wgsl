@@ -21,7 +21,7 @@ struct Params {
 var<uniform> params: Params;
 
 fn hue_diff(ha: f32, hb: f32) -> f32 {
-    return min(abs(ha - hb), min(abs(ha + 360.0 - hb), abs(ha - (hb + 360.0))));
+    return min(abs(ha - hb), min(abs(ha + LCh_HUE_RANGE - hb), abs(ha - (hb + LCh_HUE_RANGE))));
 }
 
 @compute
@@ -38,20 +38,18 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     var s = hsl.y;
     var l = hsl.x;
 
+    let group_hue_range = (LCh_HUE_RANGE / 8.0);
+
     for(var i: i32 = 0; i < 8; i = i + 1) {
         let g = params.groups[i];
-        let base_hue = f32(i) * (360.0 / 8.0);
-        let diff = hue_diff(base_hue, h);
-        let impact = max(0.0, 1.0 - diff / (360.0 / 8.0));
         
-        let hue_shift = g.hue * (1.0 / 100.0) * (360.0 / 8.0) * impact;
+        let base_hue = f32(i) * group_hue_range;
+        let diff = hue_diff(base_hue, h);
+        let impact = max(0.0, 1.0 - diff / group_hue_range);
+        
+        let hue_shift = g.hue * (1.0 / 100.0) * group_hue_range * impact;
         h += hue_shift;
-        if (h > 360.0) {
-            h -= 360.0;
-        }
-        if (h < 0.0) {
-            h += 360.0;
-        }
+        h = normalize_hue(h, LCh_HUE_RANGE);
 
         let saturation_shift = 1.0 + g.saturation * (1.0 / 100.0) * impact;
         s *= saturation_shift;

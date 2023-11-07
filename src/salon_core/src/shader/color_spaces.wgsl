@@ -4,6 +4,9 @@ const COLOR_SPACE_sRGB: u32 = 1u;
 const COLOR_SPACE_HSL: u32 = 2u;
 const COLOR_SPACE_LCh: u32 = 3u;
 
+const LCh_HUE_RANGE: f32 = 6.2831853072; // 2.0 * PI;  use radians
+const HSL_HUE_RANGE: f32 = 1.0;
+
 // conversion functions
 
 fn to_linear_rgb(color: vec3<f32>, space: u32) -> vec3<f32> {
@@ -381,16 +384,14 @@ fn Luv_to_LCh(Luv: vec3<f32>) -> vec3<f32> {
   let V = Luv.z;
 
   let C = length(Luv.yz);
-  var H = degrees(atan2(V, U));
-  if (H < 0.0) {
-      H = 360.0 + H;
-  }
+  var h = atan2(V, U);
+  h = normalize_hue(h, LCh_HUE_RANGE);
   
-  return vec3(L, C, H);
+  return vec3(L, C, h);
 }
 
 fn LCh_to_Luv(LCh: vec3<f32>) -> vec3<f32> {
-  let hrad = radians(LCh.b);
+  let hrad = LCh.b;
   return vec3(
       LCh.r,
       cos(hrad) * LCh.g,
@@ -404,6 +405,17 @@ fn rgb_to_LCh(rgb: vec3<f32>) -> vec3<f32> {
 
 fn LCh_to_rgb(hsluv: vec3<f32>) -> vec3<f32> {
   return XYZ_to_rgb(Luv_to_XYZ(LCh_to_Luv((hsluv))));
+}
+
+fn normalize_hue(hue: f32, range: f32) -> f32 {
+  var result = hue;
+  if result < 0.0 {
+    result += range;
+  }
+  if result > range {
+    result -= range;
+  }
+  return result;
 }
 
 
@@ -436,31 +448,30 @@ fn interpolate_srgb(srgb1: vec3<f32>, srgb2: vec3<f32>, t: f32) -> vec3<f32> {
   return linear_to_srgb(mix(srgb_to_linear(srgb1), srgb_to_linear(srgb2), t));
 }
 
-fn interpolate_hue(h1: f32, h2: f32, t: f32) -> f32 {
-  if(abs(h1-h2) < 0.5) {
+fn interpolate_hue(h1: f32, h2: f32, t: f32, hue_range: f32) -> f32 {
+  if(abs(h1-h2) < hue_range * 0.5) {
     return mix(h1, h2, t);
   }
   var result: f32 = 0.0;
   if(h1 < h2) {
-    result = mix(h1 + 1.0, h2, t);
+    result = mix(h1 + hue_range, h2, t);
   }
   else {
-    result = mix(h1, h2 + 1.0, t);
+    result = mix(h1, h2 + hue_range, t);
   }
-  if(result > 1.0) {
-    result -= 1.0;
-  }
+  result = normalize_hue(result, hue_range);
+
   return result;
 }
 
 fn interpolate_hsl(hsl1: vec3<f32>, hsl2: vec3<f32>, t: f32) -> vec3<f32> {
-  let h = interpolate_hue(hsl1.x, hsl2.x, t);
+  let h = interpolate_hue(hsl1.x, hsl2.x, t, HSL_HUE_RANGE);
 
   return vec3(h, mix(hsl1.yz, hsl2.yz, t));
 }
 
 fn interpolate_LCh(LCh1: vec3<f32>, LCh2: vec3<f32>, t: f32) -> vec3<f32> {
-  let h = interpolate_hue(LCh1.z, LCh2.z, t);
+  let h = interpolate_hue(LCh1.z, LCh2.z, t, LCh_HUE_RANGE);
 
   return vec3(mix(LCh1.xy, LCh2.xy, t), h);
 }
