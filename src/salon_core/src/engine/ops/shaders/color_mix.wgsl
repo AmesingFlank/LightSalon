@@ -53,11 +53,11 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
             h += 360.0;
         }
 
-        let saturation_shift = g.saturation * (1.0 / 100.0) * impact;
-        s += saturation_shift;
+        let saturation_shift = 1.0 + g.saturation * (1.0 / 100.0) * impact;
+        s *= saturation_shift;
 
-        let lightness_shift = g.lightness * (1.0 / 100.0) * impact;
-        l += lightness_shift;
+        let lightness_shift = 1.0 + g.lightness * (1.0 / 100.0) * 0.5 * impact;
+        l *= lightness_shift;
     }
 
     hsl.z = h;
