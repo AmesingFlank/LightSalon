@@ -11,10 +11,12 @@ pub struct Image {
     pub uuid: u32,
 }
 
+
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub enum ColorSpace {
+pub enum ColorSpace { // matches color_spaces.wgsl
     LinearRGB = 0,
     sRGB = 1,
+    LCh = 2,
 }
 
 

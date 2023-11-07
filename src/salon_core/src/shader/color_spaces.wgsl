@@ -1,6 +1,22 @@
 // matches Image.rs
 const COLOR_SPACE_LINEAR_RGB: u32 = 0u;
 const COLOR_SPACE_sRGB: u32 = 1u;
+const COLOR_SPACE_LCh: u32 = 2u;
+
+fn to_linear_rgb(color: vec3<f32>, space: u32) -> vec3<f32> {
+  if (space == COLOR_SPACE_LINEAR_RGB) {
+    return color;
+  }
+  else if (space == COLOR_SPACE_sRGB) {
+    return srgb_to_linear(color);
+  }
+  else if (space == COLOR_SPACE_LCh) {
+    return LCh_to_rgb(color);
+  }
+  else {
+    return vec3(0.0);
+  }
+}
 
 // https://en.wikipedia.org/wiki/HSL_and_HSV
 
