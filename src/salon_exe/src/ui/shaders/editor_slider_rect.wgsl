@@ -6,7 +6,7 @@ struct VertexOut {
 struct Params {
     color_left: vec4<f32>,
     color_right: vec4<f32>,
-    interpolate_in_hsl: f32,
+    color_space: f32,
 };
 
 @group(0) @binding(0)
@@ -34,9 +34,9 @@ fn vs_main(@builtin(vertex_index) v_idx: u32) -> VertexOut {
 @fragment
 fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
     let t = 1.0 - in.uv.x;
-    if (params.interpolate_in_hsl == 1.0) {
-        var hsl_left = rgb_to_hsl(params.color_left.xyz);
-        var hsl_right = rgb_to_hsl(params.color_right.xyz);
+    if (params.color_space == f32(COLOR_SPACE_HSL)) {
+        var hsl_left =  params.color_left.xyz;
+        var hsl_right =  params.color_right.xyz;
 
         if (abs(hsl_right.x - hsl_left.x) > abs(hsl_right.x + 1.0 - hsl_left.x)) {
             hsl_right.x = hsl_right.x + 1.0;

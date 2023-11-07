@@ -5,6 +5,7 @@ use eframe::{
 use egui_plot::{Line, MarkerShape, Plot, Points};
 use salon_core::{
     editor::GlobalEdit,
+    image::ColorSpace,
     session::Session,
     utils::{color_spaces::hsl_to_rgb, vec::vec3},
 };
@@ -66,7 +67,7 @@ pub fn color_mixer(
 
             ui.add(
                 EditorSlider::new(&mut edit.color_mixer_edits[index].hue, -100.0..=100.0)
-                    .color_override(left_hue_color, right_hue_color, true)
+                    .color_override([left_hue, 1.0, 0.3], [right_hue, 1.0, 0.3], ColorSpace::HSL)
                     .text("Hue"),
             );
 
@@ -75,24 +76,18 @@ pub fn color_mixer(
                 base_hue = base_hue + 1.0;
             }
 
-            let left_saturation_color = color_from_hsl(base_hue, 0.1, 0.3);
-            let right_saturation_color = color_from_hsl(base_hue, 1.0, 0.3);
-
             ui.add(
                 EditorSlider::new(
                     &mut edit.color_mixer_edits[index].saturation,
                     -100.0..=100.0,
                 )
-                .color_override(left_saturation_color, right_saturation_color, true)
+                .color_override([base_hue, 0.1, 0.3], [base_hue, 1.0, 0.3], ColorSpace::HSL)
                 .text("Saturation"),
             );
 
-            let left_lightness_color = color_from_hsl(base_hue, 1.0, 0.01);
-            let right_lightness_color = color_from_hsl(base_hue, 1.0, 0.9);
-
             ui.add(
                 EditorSlider::new(&mut edit.color_mixer_edits[index].lightness, -100.0..=100.0)
-                    .color_override(left_lightness_color, right_lightness_color, true)
+                    .color_override([base_hue, 1.0, 0.01], [base_hue, 1.0, 0.9], ColorSpace::HSL)
                     .text("Lightness"),
             );
         });

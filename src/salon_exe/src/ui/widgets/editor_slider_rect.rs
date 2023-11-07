@@ -4,7 +4,7 @@ use std::{collections::HashMap, num::NonZeroU64};
 
 use eframe::{egui, egui_wgpu};
 use salon_core::buffer::{Buffer, BufferProperties, RingBuffer};
-use salon_core::image::Image;
+use salon_core::image::{Image, ColorSpace};
 use salon_core::runtime::{
     BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager, BindingResource,
     Runtime,
@@ -16,7 +16,7 @@ use wgpu::util::DeviceExt;
 pub struct EditorSliderRectCallback {
     pub left_color: [f32; 3],
     pub right_color: [f32; 3],
-    pub interpolate_in_hsl: bool,
+    pub color_space: ColorSpace,
     pub rect_id: egui::Id,
 }
 
@@ -34,7 +34,7 @@ impl egui_wgpu::CallbackTrait for EditorSliderRectCallback {
             queue,
             self.left_color,
             self.right_color,
-            self.interpolate_in_hsl,
+            self.color_space,
             self.rect_id,
         );
         Vec::new()
@@ -95,7 +95,7 @@ impl EditorSliderRectRenderResources {
         queue: &wgpu::Queue,
         left_color: [f32; 3],
         right_color: [f32; 3],
-        interpolate_in_hsl: bool,
+        color_space: ColorSpace,
         rect_id: egui::Id,
     ) {
         let buffer: &Buffer = self.ring_buffer.get();
@@ -111,7 +111,7 @@ impl EditorSliderRectRenderResources {
                 right_color[1],
                 right_color[2],
                 1.0,
-                interpolate_in_hsl as i32 as f32,
+                color_space as u32 as f32,
             ]),
         );
 

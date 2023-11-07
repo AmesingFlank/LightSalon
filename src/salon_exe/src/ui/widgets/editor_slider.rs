@@ -12,6 +12,7 @@ use eframe::{
     emath::{self, lerp, remap, remap_clamp, NumExt, Rangef},
     epaint::{self, pos2, vec2, Color32, Pos2, Rect, Rounding},
 };
+use salon_core::image::ColorSpace;
 
 use crate::*;
 
@@ -98,7 +99,7 @@ pub struct EditorSlider<'a> {
     custom_formatter: Option<NumFormatter<'a>>,
     custom_parser: Option<NumParser<'a>>,
     trailing_fill: Option<bool>,
-    color_override: Option<(Color32, Color32, bool)>,
+    color_override: Option<([f32; 3], [f32; 3], ColorSpace)>,
 }
 
 impl<'a> EditorSlider<'a> {
@@ -297,8 +298,8 @@ impl<'a> EditorSlider<'a> {
         self
     }
 
-    pub fn color_override(mut self, color_left: Color32, color_right: Color32, interpolate_in_hsl: bool) -> Self {
-        self.color_override = Some((color_left, color_right, interpolate_in_hsl));
+    pub fn color_override(mut self, color_left: [f32; 3], color_right: [f32; 3], color_space: ColorSpace) -> Self {
+        self.color_override = Some((color_left, color_right, color_space));
         self
     }
 
@@ -653,25 +654,14 @@ impl<'a> EditorSlider<'a> {
             let widget_visuals = &ui.visuals().widgets;
 
             if let Some(ref color_override_params) = self.color_override {
-                let left = color_override_params.0;
-                let left = [
-                    left[0] as f32 / 255.0,
-                    left[1] as f32 / 255.0,
-                    left[2] as f32 / 255.0,
-                ];
-                let right = color_override_params.1;
-                let right = [
-                    right[0] as f32 / 255.0,
-                    right[1] as f32 / 255.0,
-                    right[2] as f32 / 255.0,
-                ];
+                let (left, right, space) = color_override_params;
                 let interpolate_in_hsl = color_override_params.2;
                 ui.painter().add(egui_wgpu::Callback::new_paint_callback(
                     rail_rect,
                     EditorSliderRectCallback {
-                        left_color: left,
-                        right_color: right,
-                        interpolate_in_hsl: interpolate_in_hsl,
+                        left_color: *left,
+                        right_color: *right,
+                        color_space: *space,
                         rect_id: response.id,
                     },
                 ));
