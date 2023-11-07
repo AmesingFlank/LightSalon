@@ -287,3 +287,138 @@ fn CCT_Duv_to_xy(CCT_Duv: vec2<f32>) -> vec2<f32> {
   let v = v0 + Duv * cos_theta;
   return uv_to_xy(vec2(u, v));
 }
+
+
+// https://github.com/williammalo/hsluv-glsl/blob/master/hsluv-glsl.fsh
+// prolly from https://en.wikipedia.org/wiki/CIELUV
+fn Y_to_L(Y: f32) -> f32 {
+  if (Y <= 0.0088564516790356308) {
+    return Y * 903.2962962962963;
+  }
+  else {
+    return 116.0 * pow(Y, 1.0 / 3.0) - 16.0;
+  }
+}
+
+fn L_to_Y(L: f32) -> f32 {
+  if (L <= 8.0) {
+    return L / 903.2962962962963;
+  }
+  else {
+    return pow((L + 16.0) / 116.0, 3.0);
+  }
+}
+
+fn XYZ_to_Luv(XYZ: vec3<f32>) -> vec3<f32>{
+  let X = XYZ.x;
+  let Y = XYZ.y;
+  let Z = XYZ.z;
+
+  let L = Y_to_L(Y);
+  
+  let div = 1.0 / dot(XYZ,vec3(1.0, 15.0, 3.0)); 
+
+  return vec3(1.0, (52.0 * (X * div) - 2.57179), (117.0 * (Y * div) - 6.08816)) * L;
+}
+
+
+fn Luv_to_XYZ(Luv: vec3<f32>) -> vec3<f32> {
+  let L = Luv.x;
+
+  let U = Luv.y / (13.0 * L) + 0.19783000664283681;
+  let V = Luv.z / (13.0 * L) + 0.468319994938791;
+
+  let Y = L_to_Y(L);
+  let X = 2.25 * U * Y / V;
+  let Z = (3.9 / V - 5.9) * Y - (X / 3.0);
+
+  return vec3(X, Y, Z);
+}
+
+fn Luv_to_LCh(Luv: vec3<f32>) -> vec3<f32> {
+  let L = Luv.x;
+  let U = Luv.y;
+  let V = Luv.z;
+
+  let C = length(Luv.yz);
+  var H = degrees(atan2(V, U));
+  if (H < 0.0) {
+      H = 360.0 + H;
+  }
+  
+  return vec3(L, C, H);
+}
+
+fn LCh_to_Luv(LCh: vec3<f32>) -> vec3<f32> {
+  let hrad = radians(LCh.b);
+  return vec3(
+      LCh.r,
+      cos(hrad) * LCh.g,
+      sin(hrad) * LCh.g
+  );
+}
+
+fn hsluv_to_LCh(hsluv: vec3<f32>) -> vec3<f32> {
+  var tuple = hsluv;
+  tuple.g *= max_chroma_for_LH(tuple.b, tuple.r) * 0.01;
+  return tuple.bgr;
+}
+
+fn LCh_to_hsluv(LCh: vec3<f32>) -> vec3<f32> {
+  var tuple = LCh;
+  tuple.g /= max_chroma_for_LH(tuple.r, tuple.b) * 0.01;
+  return tuple.bgr;
+}
+
+fn length_of_ray_until_intersect(theta: f32, x: vec3<f32>, y: vec3<f32>) -> vec3<f32> {
+    var len = y / (sin(theta) - x * cos(theta));
+    if (len.r < 0.0) {len.r=1000.0;}
+    if (len.g < 0.0) {len.g=1000.0;}
+    if (len.b < 0.0) {len.b=1000.0;}
+    return len;
+} 
+
+fn max_chroma_for_LH(L: f32, H: f32) -> f32 {
+    let hrad = radians(H);
+    let m2 = mat3x3(
+         3.2409699419045214  ,-0.96924363628087983 , 0.055630079696993609,
+        -1.5373831775700935  , 1.8759675015077207  ,-0.20397695888897657 ,
+        -0.49861076029300328 , 0.041555057407175613, 1.0569715142428786  
+    );
+    let sub1 = pow(L + 16.0, 3.0) / 1560896.0;
+    var sub2: f32 = 0.0;
+    if (sub1 > 0.0088564516790356308) {
+      sub2 = sub1;
+    } 
+    else { 
+      sub2 = L / 903.2962962962963;
+    }
+
+    let top1   = (284517.0 * m2[0] - 94839.0  * m2[2]) * sub2;
+    let bottom = (632260.0 * m2[2] - 126452.0 * m2[1]) * sub2;
+    let top2   = (838422.0 * m2[2] + 769860.0 * m2[1] + 731718.0 * m2[0]) * L * sub2;
+
+    let bound0x = top1 / bottom;
+    let bound0y = top2 / bottom;
+
+    let bound1x = top1 / (bottom + 126452.0);
+    let bound1y = (top2 - 769860.0 * L) / (bottom + 126452.0);
+
+    let lengths0 = length_of_ray_until_intersect(hrad, bound0x, bound0y );
+    let lengths1 = length_of_ray_until_intersect(hrad, bound1x, bound1y );
+
+    return  min(lengths0.r,
+            min(lengths1.r,
+            min(lengths0.g,
+            min(lengths1.g,
+            min(lengths0.b,
+                lengths1.b)))));
+}
+
+fn rgb_to_hsluv(rgb: vec3<f32>) -> vec3<f32> {
+  return LCh_to_hsluv(Luv_to_LCh(XYZ_to_Luv(rgb_to_XYZ(rgb))));
+}
+
+fn hsluv_to_rgb(hsluv: vec3<f32>) -> vec3<f32> {
+  return XYZ_to_rgb(Luv_to_XYZ(LCh_to_Luv(hsluv_to_LCh(hsluv))));
+}
