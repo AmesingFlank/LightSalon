@@ -290,15 +290,18 @@ fn CCT_Duv_to_xy(CCT_Duv: vec2<f32>) -> vec2<f32> {
 
 
 // https://github.com/williammalo/hsluv-glsl/blob/master/hsluv-glsl.fsh
-// prolly from https://en.wikipedia.org/wiki/CIELUV
+// prolly from https://en.wikipedia.org/wiki/CIELUV, with Yn = 1.0
 fn Y_to_L(Y: f32) -> f32 {
-  if (Y <= 0.0088564516790356308) {
-    return Y * 903.2962962962963;
+  if (Y <= 0.0088564516790356308 /*(6/29)^3*/) {
+    return Y * 903.2962962962963 /*(29/3)^3*/;
   }
   else {
     return 116.0 * pow(Y, 1.0 / 3.0) - 16.0;
   }
 }
+
+const REF_U = 0.19783000664283681;
+const REF_V = 0.468319994938791;
 
 fn L_to_Y(L: f32) -> f32 {
   if (L <= 8.0) {
@@ -309,30 +312,45 @@ fn L_to_Y(L: f32) -> f32 {
   }
 }
 
+
 fn XYZ_to_Luv(XYZ: vec3<f32>) -> vec3<f32>{
   let X = XYZ.x;
   let Y = XYZ.y;
   let Z = XYZ.z;
 
-  let L = Y_to_L(Y);
-  
-  let div = 1.0 / dot(XYZ,vec3(1.0, 15.0, 3.0)); 
+	let L = Y_to_L(Y);
 
-  return vec3(1.0, (52.0 * (X * div) - 2.57179), (117.0 * (Y * div) - 6.08816)) * L;
+	if (L == 0.0 || (X == 0.0 && Y == 0.0 && Z == 0.0)) {
+		return vec3(0.0, 0.0, 0.0);
+	}
+
+	let u_prime = (4.0 * X) / (X + (15.0 * Y) + (3.0 * Z));
+	let v_prime = (9.0 * Y) / (X + (15.0 * Y) + (3.0 * Z));
+	let u = 13.0 * L * (u_prime - REF_U);
+	let v = 13.0 * L * (v_prime - REF_V);
+
+	return vec3(L, u, v);
 }
 
 
 fn Luv_to_XYZ(Luv: vec3<f32>) -> vec3<f32> {
   let L = Luv.x;
+  let u = Luv.y;
+  let v = Luv.z;
 
-  let U = Luv.y / (13.0 * L) + 0.19783000664283681;
-  let V = Luv.z / (13.0 * L) + 0.468319994938791;
+  if (L == 0.0) {
+		return vec3(0.0, 0.0, 0.0);
+	}
 
-  let Y = L_to_Y(L);
-  let X = 2.25 * U * Y / V;
-  let Z = (3.9 / V - 5.9) * Y - (X / 3.0);
+  let u_prime = u / (13.0 * L) + REF_U;
+	let v_prime = v / (13.0 * L) + REF_V;
 
-  return vec3(X, Y, Z);
+	let Y = L_to_Y(L);
+
+	let X = Y * (9.0 * u_prime) / (4.0 * v_prime);
+	let Z = Y * (12.0 - 3.0 * u_prime - 20.0 * v_prime) / (4.0 * v_prime);
+
+	return vec3(X, Y, Z);
 }
 
 fn Luv_to_LCh(Luv: vec3<f32>) -> vec3<f32> {

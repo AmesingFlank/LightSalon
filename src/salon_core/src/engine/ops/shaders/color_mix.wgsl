@@ -21,7 +21,7 @@ struct Params {
 var<uniform> params: Params;
 
 fn hue_diff(ha: f32, hb: f32) -> f32 {
-    return min(abs(ha - hb), min(abs(ha + 1.0 - hb), abs(ha - (hb + 1.0))));
+    return min(abs(ha - hb), min(abs(ha + 360.0 - hb), abs(ha - (hb + 360.0))));
 }
 
 @compute
@@ -32,7 +32,7 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         return;
     }
     var rgb = textureLoad(input, global_id.xy, 0).rgb;
-    var hsl = rgb_to_hsl(rgb);
+    var hsl = rgb_to_hsluv(rgb);
 
     var h = hsl.x;
     var s = hsl.y;
@@ -40,32 +40,30 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
     for(var i: i32 = 0; i < 8; i = i + 1) {
         let g = params.groups[i];
-        let base_hue = f32(i) / 8.0;
+        let base_hue = f32(i) * (360.0 / 8.0);
         let diff = hue_diff(base_hue, h);
-        let impact = max(0.0, 1.0 - diff * 16.0);
+        let impact = max(0.0, 1.0 - diff / (360.0 / 8.0));
         
-        let hue_shift = g.hue * (1.0 / 100.0) * (1.0 / 8.0) * impact;
+        let hue_shift = g.hue * (0.0 / 100.0) * (360.0 / 8.0) * impact;
         h += hue_shift;
-        if (h > 1.0) {
-            h -= 1.0;
+        if (h > 360.0) {
+            h -= 360.0;
         }
         if (h < 0.0) {
-            h += 1.0;
+            h += 360.0;
         }
 
         let saturation_shift = g.saturation * (1.0 / 100.0) * impact;
         s += saturation_shift;
-        s = clamp(s, 0.0, 1.0);
 
         let lightness_shift = g.lightness * (1.0 / 100.0) * impact;
         l += lightness_shift;
-        l = clamp(l, 0.0, 1.0);
     }
 
     hsl.x = h;
     hsl.y = s;
     hsl.z = l;
 
-    rgb = hsl_to_rgb(hsl);
+    rgb = hsluv_to_rgb(hsl);
     textureStore(output, global_id.xy, vec4(rgb, 1.0));
 }
