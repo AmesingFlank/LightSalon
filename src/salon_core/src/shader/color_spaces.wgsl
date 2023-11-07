@@ -4,6 +4,8 @@ const COLOR_SPACE_sRGB: u32 = 1u;
 const COLOR_SPACE_HSL: u32 = 2u;
 const COLOR_SPACE_LCh: u32 = 3u;
 
+// conversion functions
+
 fn to_linear_rgb(color: vec3<f32>, space: u32) -> vec3<f32> {
   if (space == COLOR_SPACE_LINEAR_RGB) {
     return color;
@@ -402,4 +404,63 @@ fn rgb_to_LCh(rgb: vec3<f32>) -> vec3<f32> {
 
 fn LCh_to_rgb(hsluv: vec3<f32>) -> vec3<f32> {
   return XYZ_to_rgb(Luv_to_XYZ(LCh_to_Luv((hsluv))));
+}
+
+
+// interpolation functions
+
+fn interpolate_color(color1: vec3<f32>, color2: vec3<f32>, t: f32, space: u32) -> vec3<f32> {
+  if (space == COLOR_SPACE_LINEAR_RGB) {
+    return interpolate_linear(color1, color2, t);
+  }
+  else if (space == COLOR_SPACE_sRGB) {
+    return interpolate_srgb(color1, color2, t);
+  }
+  else if (space == COLOR_SPACE_HSL) {
+    return interpolate_hsl(color1, color2, t);
+  }
+  else if (space == COLOR_SPACE_LCh) {
+    return interpolate_LCh(color1, color2, t);
+  }
+  else { // fallback to linear interpolation
+    return  mix(color1, color2, t);
+  }
+}
+
+
+fn interpolate_linear(rgb1: vec3<f32>, rgb2: vec3<f32>, t: f32) -> vec3<f32> {
+  return mix(rgb1, rgb2, t);
+}
+
+fn interpolate_srgb(srgb1: vec3<f32>, srgb2: vec3<f32>, t: f32) -> vec3<f32> {
+  return linear_to_srgb(mix(srgb_to_linear(srgb1), srgb_to_linear(srgb2), t));
+}
+
+fn interpolate_hue(h1: f32, h2: f32, t: f32) -> f32 {
+  if(abs(h1-h2) < 0.5) {
+    return mix(h1, h2, t);
+  }
+  var result: f32 = 0.0;
+  if(h1 < h2) {
+    result = mix(h1 + 1.0, h2, t);
+  }
+  else {
+    result = mix(h1, h2 + 1.0, t);
+  }
+  if(result > 1.0) {
+    result -= 1.0;
+  }
+  return result;
+}
+
+fn interpolate_hsl(hsl1: vec3<f32>, hsl2: vec3<f32>, t: f32) -> vec3<f32> {
+  let h = interpolate_hue(hsl1.x, hsl2.x, t);
+
+  return vec3(h, mix(hsl1.yz, hsl2.yz, t));
+}
+
+fn interpolate_LCh(LCh1: vec3<f32>, LCh2: vec3<f32>, t: f32) -> vec3<f32> {
+  let h = interpolate_hue(LCh1.z, LCh2.z, t);
+
+  return vec3(mix(LCh1.xy, LCh2.xy, t), h);
 }
