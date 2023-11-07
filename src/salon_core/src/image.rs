@@ -13,7 +13,7 @@ pub struct Image {
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum ColorSpace {
-    Linear = 0,
+    LinearRGB = 0,
     sRGB = 1,
 }
 

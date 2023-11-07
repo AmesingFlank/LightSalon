@@ -38,7 +38,7 @@ fn vs_main(@builtin(vertex_index) v_idx: u32) -> VertexOut {
 @fragment
 fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
     var color = textureSample(tex, tex_sampler, in.uv).rgb;
-    if (params.image_color_space == COLOR_SPACE_LINEAR) {
+    if (params.image_color_space == COLOR_SPACE_LINEAR_RGB) {
         color = linear_to_srgb(color);
     } 
     return vec4(color, 1.0);

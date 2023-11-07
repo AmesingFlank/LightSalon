@@ -1,3 +1,7 @@
+// matches Image.rs
+const COLOR_SPACE_LINEAR_RGB: u32 = 0u;
+const COLOR_SPACE_SRGB: u32 = 1u;
+
 // https://en.wikipedia.org/wiki/HSL_and_HSV
 
 // hmmc: hue, channel-wise min, Max and chroma (i.e. max-min)
@@ -45,10 +49,6 @@ fn hsl_to_rgb(hsl: vec3<f32>) -> vec3<f32> {
   let chroma = (1.0 - abs(2.0 * hsl.z - 1.0)) * hsl.y;
   return chroma * (rgb - 0.5) + hsl.z;
 }
-
-// matches Image.rs
-const COLOR_SPACE_LINEAR: u32 = 0u;
-const COLOR_SPACE_SRGB: u32 = 1u;
 
 fn linear_to_srgb_channel(C: f32) -> f32 {
   if (C <= 0.0031308) {

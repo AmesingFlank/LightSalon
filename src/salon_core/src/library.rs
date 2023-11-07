@@ -58,7 +58,7 @@ impl Library for LocalLibrary {
                 let path = &self.paths[index];
                 let img = self.runtime.create_image_from_path(path).unwrap();
                 let mut img = Arc::new(img);
-                img = self.runtime.convert_color_space(img, ColorSpace::Linear);
+                img = self.runtime.convert_color_space(img, ColorSpace::LinearRGB);
                 self.images.insert(index, img.clone());
                 img.clone()
             }
