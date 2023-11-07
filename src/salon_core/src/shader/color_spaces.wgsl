@@ -1,6 +1,6 @@
 // matches Image.rs
 const COLOR_SPACE_LINEAR_RGB: u32 = 0u;
-const COLOR_SPACE_SRGB: u32 = 1u;
+const COLOR_SPACE_sRGB: u32 = 1u;
 
 // https://en.wikipedia.org/wiki/HSL_and_HSV
 
