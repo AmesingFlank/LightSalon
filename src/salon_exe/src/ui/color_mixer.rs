@@ -29,25 +29,25 @@ pub fn color_mixer(
             ui.spacing_mut().slider_width = ui.available_width() * 0.6;
 
             let colors_base: [Color32; 8] = [
-                Color32::from_rgb(165, 13, 37),  // LCh (50, 100, 0.0 / 8.0 * 2 * PI)
-                Color32::from_rgb(160, 54, 0),   // LCh (60, 100, 1.0 / 8.0 * 2 * PI)
-                Color32::from_rgb(71, 82, 0),    // LCh (60, 100, 2.0 / 8.0 * 2 * PI)
-                Color32::from_rgb(0, 105, 4),    // LCh (60, 100, 3.0 / 8.0 * 2 * PI)
-                Color32::from_rgb(0, 115, 85),   // LCh (60, 100, 4.0 / 8.0 * 2 * PI)
-                Color32::from_rgb(0, 98, 195),   // LCh (60, 100, 5.0 / 8.0 * 2 * PI)
-                Color32::from_rgb(73, 54, 247),  // LCh (60, 100, 6.0 / 8.0 * 2 * PI)
-                Color32::from_rgb(204, 22, 172), // LCh (60, 100, 7.0 / 8.0 * 2 * PI)
+                Color32::from_rgb(128, 0, 20), // HSLuv (0.0 / 8.0 * 2 * PI, 100, 40)
+                Color32::from_rgb(148, 56, 0), // HSLuv (1.0 / 8.0 * 2 * PI, 100, 60)
+                Color32::from_rgb(71, 79, 0),  // HSLuv (2.0 / 8.0 * 2 * PI, 100, 60)
+                Color32::from_rgb(0, 98, 18),  // HSLuv (3.0 / 8.0 * 2 * PI, 100, 60)
+                Color32::from_rgb(0, 92, 78),  // HSLuv (4.0 / 8.0 * 2 * PI, 100, 60)
+                Color32::from_rgb(0, 86, 139), // HSLuv (5.0 / 8.0 * 2 * PI, 100, 60)
+                Color32::from_rgb(30, 5, 255), // HSLuv (6.0 / 8.0 * 2 * PI, 100, 40)
+                Color32::from_rgb(105, 0, 87), // HSLuv (7.0 / 8.0 * 2 * PI, 100, 40)
             ];
 
             let colors_checked: [Color32; 8] = [
-                Color32::from_rgb(255, 162, 227), // LCh (100, 100, 0.0 / 8.0 * 2 * PI)
-                Color32::from_rgb(255, 214, 65),  // LCh (100, 100, 1.0 / 8.0 * 2 * PI)
-                Color32::from_rgb(253, 255, 22),  // LCh (100, 100, 2.0 / 8.0 * 2 * PI)
-                Color32::from_rgb(50, 255, 101),  // LCh (100, 100, 3.0 / 8.0 * 2 * PI)
-                Color32::from_rgb(0, 255, 255),   // LCh (100, 100, 4.0 / 8.0 * 2 * PI)
-                Color32::from_rgb(0, 255, 255),   // LCh (100, 100, 5.0 / 8.0 * 2 * PI)
-                Color32::from_rgb(255, 222, 255), // LCh (100, 100, 6.0 / 8.0 * 2 * PI)
-                Color32::from_rgb(255, 158, 255), // LCh (60, 100, 7.0 / 8.0 * 2 * PI)
+                Color32::from_rgb(255, 177, 189), // HSLuv (0.0 / 8.0 * 2 * PI, 100, 90)
+                Color32::from_rgb(255, 182, 138), // HSLuv (1.0 / 8.0 * 2 * PI, 100, 90)
+                Color32::from_rgb(193, 215, 0),  // HSLuv (2.0 / 8.0 * 2 * PI, 100, 90)
+                Color32::from_rgb(33, 255, 72),  // HSLuv (3.0 / 8.0 * 2 * PI, 100, 90)
+                Color32::from_rgb(0, 251, 212),  // HSLuv (4.0 / 8.0 * 2 * PI, 100, 90)
+                Color32::from_rgb(130, 208, 255), // HSLuv (5.0 / 8.0 * 2 * PI, 100, 90)
+                Color32::from_rgb(195, 188, 255), // HSLuv (6.0 / 8.0 * 2 * PI, 100, 90)
+                Color32::from_rgb(255, 172, 240), // HSLuv (7.0 / 8.0 * 2 * PI, 100, 90)
             ];
 
             ui.horizontal(|ui| {
@@ -116,14 +116,4 @@ pub fn color_mixer(
                     .text("Lightness"),
             );
         });
-}
-
-fn color_from_hsl(h: f32, s: f32, l: f32) -> Color32 {
-    let hsl = vec3((h, s, l));
-    let rgb = hsl_to_rgb(hsl);
-    Color32::from_rgb(
-        (rgb.x * 255.0) as u8,
-        (rgb.y * 255.0) as u8,
-        (rgb.z * 255.0) as u8,
-    )
 }
