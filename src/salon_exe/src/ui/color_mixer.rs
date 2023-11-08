@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use eframe::{
     egui::{self, CollapsingHeader, Ui},
     epaint::Color32,
@@ -26,15 +28,27 @@ pub fn color_mixer(
         .show(ui, |ui| {
             ui.spacing_mut().slider_width = ui.available_width() * 0.6;
 
-            let mut colors_base: [Color32; 8] = [Color32::BLACK; 8];
-            for i in 0..8usize {
-                colors_base[i] = color_from_hsl(i as f32 / 8.0, 1.0, 0.3);
-            }
+            let colors_base: [Color32; 8] = [
+                Color32::from_rgb(165, 13, 37),  // LCh (50, 100, 0.0 / 8.0 * 2 * PI)
+                Color32::from_rgb(160, 54, 0),   // LCh (60, 100, 1.0 / 8.0 * 2 * PI)
+                Color32::from_rgb(71, 82, 0),    // LCh (60, 100, 2.0 / 8.0 * 2 * PI)
+                Color32::from_rgb(0, 105, 4),    // LCh (60, 100, 3.0 / 8.0 * 2 * PI)
+                Color32::from_rgb(0, 115, 85),   // LCh (60, 100, 4.0 / 8.0 * 2 * PI)
+                Color32::from_rgb(0, 98, 195),   // LCh (60, 100, 5.0 / 8.0 * 2 * PI)
+                Color32::from_rgb(73, 54, 247),  // LCh (60, 100, 6.0 / 8.0 * 2 * PI)
+                Color32::from_rgb(204, 22, 172), // LCh (60, 100, 7.0 / 8.0 * 2 * PI)
+            ];
 
-            let mut colors_checked: [Color32; 8] = [Color32::BLACK; 8];
-            for i in 0..8usize {
-                colors_checked[i] = color_from_hsl(i as f32 / 8.0, 1.0, 0.8);
-            }
+            let colors_checked: [Color32; 8] = [
+                Color32::from_rgb(255, 162, 227), // LCh (100, 100, 0.0 / 8.0 * 2 * PI)
+                Color32::from_rgb(255, 214, 65),  // LCh (100, 100, 1.0 / 8.0 * 2 * PI)
+                Color32::from_rgb(253, 255, 22),  // LCh (100, 100, 2.0 / 8.0 * 2 * PI)
+                Color32::from_rgb(50, 255, 101),  // LCh (100, 100, 3.0 / 8.0 * 2 * PI)
+                Color32::from_rgb(0, 255, 255),   // LCh (100, 100, 4.0 / 8.0 * 2 * PI)
+                Color32::from_rgb(0, 255, 255),   // LCh (100, 100, 5.0 / 8.0 * 2 * PI)
+                Color32::from_rgb(255, 222, 255), // LCh (100, 100, 6.0 / 8.0 * 2 * PI)
+                Color32::from_rgb(255, 158, 255), // LCh (60, 100, 7.0 / 8.0 * 2 * PI)
+            ];
 
             ui.horizontal(|ui| {
                 for i in 0..8usize {
@@ -55,39 +69,49 @@ pub fn color_mixer(
 
             let index = ui_state.color_mixer_color_index;
 
-            let mut base_hue = index as f32 / 8.0;
+            let hue_range = PI * 2.0;
 
-            let mut left_hue = (base_hue - 1.0 / 8.0) % 1.0;
+            let mut base_hue = index as f32 * hue_range / 8.0;
+
+            let mut left_hue = base_hue - hue_range / 8.0;
             if left_hue < 0.0 {
-                left_hue = left_hue + 1.0;
+                left_hue = left_hue + hue_range;
             }
-            let right_hue = (base_hue + 1.0 / 8.0) % 1.0;
-            let left_hue_color = color_from_hsl(left_hue, 1.0, 0.3);
-            let right_hue_color = color_from_hsl(right_hue, 1.0, 0.3);
+            let mut right_hue = base_hue + hue_range / 8.0;
+            if right_hue > hue_range {
+                right_hue = right_hue - hue_range;
+            }
 
             ui.add(
                 EditorSlider::new(&mut edit.color_mixer_edits[index].hue, -100.0..=100.0)
-                    .color_override([left_hue, 1.0, 0.3], [right_hue, 1.0, 0.3], ColorSpace::HSL)
+                    .color_override(
+                        [60.0, 100.0, left_hue],
+                        [60.0, 100.0, right_hue],
+                        ColorSpace::LCh,
+                    )
                     .text("Hue"),
             );
-
-            base_hue = base_hue + edit.color_mixer_edits[index].hue * (1.0 / 100.0) * (1.0 / 8.0);
-            if base_hue < 0.0 {
-                base_hue = base_hue + 1.0;
-            }
 
             ui.add(
                 EditorSlider::new(
                     &mut edit.color_mixer_edits[index].saturation,
                     -100.0..=100.0,
                 )
-                .color_override([base_hue, 0.1, 0.3], [base_hue, 1.0, 0.3], ColorSpace::HSL)
+                .color_override(
+                    [60.0, 0.0, base_hue],
+                    [60.0, 100.0, base_hue],
+                    ColorSpace::LCh,
+                )
                 .text("Saturation"),
             );
 
             ui.add(
                 EditorSlider::new(&mut edit.color_mixer_edits[index].lightness, -100.0..=100.0)
-                    .color_override([base_hue, 1.0, 0.01], [base_hue, 1.0, 0.9], ColorSpace::HSL)
+                    .color_override(
+                        [0.0, 100.0, base_hue],
+                        [100.0, 100.0, base_hue],
+                        ColorSpace::LCh,
+                    )
                     .text("Lightness"),
             );
         });

@@ -33,26 +33,8 @@ fn vs_main(@builtin(vertex_index) v_idx: u32) -> VertexOut {
 
 @fragment
 fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
-    let t = 1.0 - in.uv.x;
-    if (params.color_space == f32(COLOR_SPACE_HSL)) {
-        var hsl_left =  params.color_left.xyz;
-        var hsl_right =  params.color_right.xyz;
-
-        if (abs(hsl_right.x - hsl_left.x) > abs(hsl_right.x + 1.0 - hsl_left.x)) {
-            hsl_right.x = hsl_right.x + 1.0;
-        }
-        if (abs(hsl_right.x - hsl_left.x) > abs(hsl_right.x - (hsl_left.x + 1.0))) {
-            hsl_left.x = hsl_left.x + 1.0;
-        }
-
-        var hsl = t * hsl_left + (1.0 - t) * hsl_right;
-        if (hsl.x > 1.0) {
-            hsl.x -= 1.0;
-        }
-
-        return vec4(hsl_to_rgb(hsl), 1.0);
-    }
-    else {
-        return t * params.color_left + (1.0 - t) * params.color_right;
-    }
+    let t = in.uv.x;
+    let color = interpolate_color(params.color_left.xyz, params.color_right.xyz, t, u32(params.color_space));
+    let rgb = to_linear_rgb(color, u32(params.color_space));
+    return vec4(rgb, 1.0);
 }
