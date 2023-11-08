@@ -70,14 +70,15 @@ pub fn color_mixer(
             let index = ui_state.color_mixer_color_index;
 
             let hue_range = PI * 2.0;
+            let group_hue_range = hue_range / 8.0;
 
-            let mut base_hue = index as f32 * hue_range / 8.0;
+            let mut base_hue = index as f32 * group_hue_range;
 
-            let mut left_hue = base_hue - hue_range / 8.0;
+            let mut left_hue = base_hue - group_hue_range;
             if left_hue < 0.0 {
                 left_hue = left_hue + hue_range;
             }
-            let mut right_hue = base_hue + hue_range / 8.0;
+            let mut right_hue = base_hue + group_hue_range;
             if right_hue > hue_range {
                 right_hue = right_hue - hue_range;
             }
@@ -85,9 +86,9 @@ pub fn color_mixer(
             ui.add(
                 EditorSlider::new(&mut edit.color_mixer_edits[index].hue, -100.0..=100.0)
                     .color_override(
-                        [60.0, 100.0, left_hue],
-                        [60.0, 100.0, right_hue],
-                        ColorSpace::LCh,
+                        [left_hue, 100.0, 60.0],
+                        [right_hue, 100.0, 60.0],
+                        ColorSpace::HSLuv,
                     )
                     .text("Hue"),
             );
@@ -98,9 +99,9 @@ pub fn color_mixer(
                     -100.0..=100.0,
                 )
                 .color_override(
-                    [60.0, 0.0, base_hue],
-                    [60.0, 100.0, base_hue],
-                    ColorSpace::LCh,
+                    [base_hue, 0.0, 60.0],
+                    [base_hue, 100.0, 60.0],
+                    ColorSpace::HSLuv,
                 )
                 .text("Saturation"),
             );
@@ -108,9 +109,9 @@ pub fn color_mixer(
             ui.add(
                 EditorSlider::new(&mut edit.color_mixer_edits[index].lightness, -100.0..=100.0)
                     .color_override(
-                        [0.0, 100.0, base_hue],
-                        [100.0, 100.0, base_hue],
-                        ColorSpace::LCh,
+                        [base_hue, 100.0, 0.0],
+                        [base_hue, 100.0, 100.0],
+                        ColorSpace::HSLuv,
                     )
                     .text("Lightness"),
             );

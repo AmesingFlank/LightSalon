@@ -18,6 +18,7 @@ pub enum ColorSpace { // matches color_spaces.wgsl
     sRGB = 1,
     HSL = 2,
     LCh = 3,
+    HSLuv = 4,
 }
 
 

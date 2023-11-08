@@ -3,6 +3,7 @@ const COLOR_SPACE_LINEAR_RGB: u32 = 0u;
 const COLOR_SPACE_sRGB: u32 = 1u;
 const COLOR_SPACE_HSL: u32 = 2u;
 const COLOR_SPACE_LCh: u32 = 3u;
+const COLOR_SPACE_HSLuv: u32 = 4u;
 
 const LCh_HUE_RANGE: f32 = 6.2831853072; // 2.0 * PI;  use radians
 const HSLuv_HUE_RANGE: f32 = 6.2831853072; // 2.0 * PI;  use radians
@@ -22,6 +23,9 @@ fn to_linear_rgb(color: vec3<f32>, space: u32) -> vec3<f32> {
   }
   else if (space == COLOR_SPACE_LCh) {
     return LCh_to_rgb(color);
+  }
+  else if (space == COLOR_SPACE_HSLuv) {
+    return hsluv_to_rgb(color);
   }
   else {
     return vec3(0.0);
@@ -522,6 +526,9 @@ fn interpolate_color(color1: vec3<f32>, color2: vec3<f32>, t: f32, space: u32) -
   else if (space == COLOR_SPACE_LCh) {
     return interpolate_LCh(color1, color2, t);
   }
+  else if (space == COLOR_SPACE_HSLuv) {
+    return interpolate_hsluv(color1, color2, t);
+  }
   else { // fallback to linear interpolation
     return  mix(color1, color2, t);
   }
@@ -562,4 +569,10 @@ fn interpolate_LCh(LCh1: vec3<f32>, LCh2: vec3<f32>, t: f32) -> vec3<f32> {
   let h = interpolate_hue(LCh1.z, LCh2.z, t, LCh_HUE_RANGE);
 
   return vec3(mix(LCh1.xy, LCh2.xy, t), h);
+}
+
+fn interpolate_hsluv(hsluv1: vec3<f32>, hsluv2: vec3<f32>, t: f32) -> vec3<f32> {
+  let h = interpolate_hue(hsluv1.x, hsluv2.x, t, HSLuv_HUE_RANGE);
+
+  return vec3(h, mix(hsluv1.yz, hsluv2.yz, t));
 }
