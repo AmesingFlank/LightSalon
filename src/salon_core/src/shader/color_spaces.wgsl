@@ -5,6 +5,7 @@ const COLOR_SPACE_HSL: u32 = 2u;
 const COLOR_SPACE_LCh: u32 = 3u;
 
 const LCh_HUE_RANGE: f32 = 6.2831853072; // 2.0 * PI;  use radians
+const HSLuv_HUE_RANGE: f32 = 6.2831853072; // 2.0 * PI;  use radians
 const HSL_HUE_RANGE: f32 = 1.0;
 
 // conversion functions
@@ -418,6 +419,89 @@ fn normalize_hue(hue: f32, range: f32) -> f32 {
   return result;
 }
 
+
+fn hsluv_to_LCh(hsluv: vec3<f32>) -> vec3<f32> {
+  let L = hsluv.z;
+  let saturation = hsluv.y;
+  var hue = hsluv.x;
+
+  if (saturation < 1e-6) {
+    hue = 0.0;
+  }
+
+  let chroma = saturation * max_chroma_for_LH(L, hue) / 100.0;
+  return vec3(L, chroma, hue);
+}
+
+fn LCh_to_hsluv(LCh: vec3<f32>) -> vec3<f32> {
+  let L = LCh.x;
+  let chroma = LCh.y;
+  var hue = LCh.z;
+  
+  if (chroma < 1e-6) {
+    hue = 0.0;
+  }
+  
+  var saturation = chroma * 100.0 / max_chroma_for_LH(L, hue);
+  if (L > 100.0 - 1e-6 || L < 1e-6){
+    saturation = 0.0;
+  }
+  
+  return vec3(hue, saturation, L);
+}
+
+fn length_of_ray_until_intersect(theta: f32, x: vec3<f32>, y: vec3<f32>) -> vec3<f32> {
+    var len = y / (sin(theta) - x * cos(theta));
+    if (len.r < 0.0) {len.r=1000.0;}
+    if (len.g < 0.0) {len.g=1000.0;}
+    if (len.b < 0.0) {len.b=1000.0;}
+    return len;
+} 
+
+fn max_chroma_for_LH(L: f32, H: f32) -> f32 {
+    let hrad = H;
+    let m2 = mat3x3(
+         3.2409699419045214  ,-0.96924363628087983 , 0.055630079696993609,
+        -1.5373831775700935  , 1.8759675015077207  ,-0.20397695888897657 ,
+        -0.49861076029300328 , 0.041555057407175613, 1.0569715142428786  
+    );
+    let sub1 = pow(L + 16.0, 3.0) / 1560896.0;
+    var sub2: f32 = 0.0;
+    if (sub1 > 0.0088564516790356308) {
+      sub2 = sub1;
+    } 
+    else { 
+      sub2 = L / 903.2962962962963;
+    }
+
+    let top1   = (284517.0 * m2[0] - 94839.0  * m2[2]) * sub2;
+    let bottom = (632260.0 * m2[2] - 126452.0 * m2[1]) * sub2;
+    let top2   = (838422.0 * m2[2] + 769860.0 * m2[1] + 731718.0 * m2[0]) * L * sub2;
+
+    let bound0x = top1 / bottom;
+    let bound0y = top2 / bottom;
+
+    let bound1x = top1 / (bottom + 126452.0);
+    let bound1y = (top2 - 769860.0 * L) / (bottom + 126452.0);
+
+    let lengths0 = length_of_ray_until_intersect(hrad, bound0x, bound0y );
+    let lengths1 = length_of_ray_until_intersect(hrad, bound1x, bound1y );
+
+    return  min(lengths0.r,
+            min(lengths1.r,
+            min(lengths0.g,
+            min(lengths1.g,
+            min(lengths0.b,
+                lengths1.b)))));
+}
+
+fn rgb_to_hsluv(rgb: vec3<f32>) -> vec3<f32> {
+  return LCh_to_hsluv(rgb_to_LCh(rgb));
+}
+
+fn hsluv_to_rgb(hsluv: vec3<f32>) -> vec3<f32> {
+  return LCh_to_rgb(hsluv_to_LCh(hsluv));
+}
 
 // interpolation functions
 
