@@ -384,9 +384,13 @@ fn Luv_to_LCh(Luv: vec3<f32>) -> vec3<f32> {
   let U = Luv.y;
   let V = Luv.z;
 
-  let C = length(Luv.yz);
+  let C = sqrt(U * U + V * V);
+
   var h = atan2(V, U);
   h = normalize_hue(h, LCh_HUE_RANGE);
+  if (C < 1e-1) {
+    h = 0.0;
+  }
   
   return vec3(L, C, h);
 }
@@ -425,7 +429,7 @@ fn hsluv_to_LCh(hsluv: vec3<f32>) -> vec3<f32> {
   let saturation = hsluv.y;
   var hue = hsluv.x;
 
-  if (saturation < 1e-6) {
+  if (saturation < 1e-3) {
     hue = 0.0;
   }
 
@@ -438,12 +442,12 @@ fn LCh_to_hsluv(LCh: vec3<f32>) -> vec3<f32> {
   let chroma = LCh.y;
   var hue = LCh.z;
   
-  if (chroma < 1e-6) {
+  if (chroma < 1e-3) {
     hue = 0.0;
   }
   
   var saturation = chroma * 100.0 / max_chroma_for_LH(L, hue);
-  if (L > 100.0 - 1e-6 || L < 1e-6){
+  if (L > 100.0 - 1e-3 || L < 1e-3){
     saturation = 0.0;
   }
   

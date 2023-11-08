@@ -58,10 +58,6 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         l *= lightness_shift;
     }
 
-    h = params.groups[0].hue * 0.01 * HSLuv_HUE_RANGE;
-    s = params.groups[0].saturation;
-    l = params.groups[0].lightness;
-
     hsl.x = h;
     hsl.y = s;
     hsl.z = l;
