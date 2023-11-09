@@ -29,6 +29,8 @@ fn get_dark_channel(xy: vec2<u32>, input_size: vec2<u32>) -> u32 {
     return result;
 }
 
+const half_group_size: u32 = 8u;
+
 @compute
 @workgroup_size(16, 16)
 fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>, @builtin(local_invocation_id) local_id: vec3<u32>) {
@@ -44,17 +46,17 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>, @builtin(local_i
     workgroupBarrier();
 
     let dark_channel = get_dark_channel(global_id.xy, input_size);
-    let subpatch_x = 1 + i32(local_id.x / 8u);
-    let subpatch_y = 1 + i32(local_id.y / 8u);
+    let subpatch_x = 1 + i32(local_id.x / half_group_size);
+    let subpatch_y = 1 + i32(local_id.y / half_group_size);
     atomicMin(&local_patch.min_dark_channels[subpatch_x][subpatch_y], dark_channel);
 
     workgroupBarrier();
 
     var delta: vec2<i32> = vec2(1, 1);
-    if (local_id.x < 8u) {
+    if (local_id.x < half_group_size) {
         delta.x = -1;
     }
-    if (local_id.y < 8u) {
+    if (local_id.y < half_group_size) {
         delta.y = -1;
     }
 
@@ -63,19 +65,19 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>, @builtin(local_i
     var other_subpatch_x: i32;
     var other_subpatch_y: i32;
     
-    other_pixel_coord = vec2<u32>(vec2<i32>(global_id.xy) + vec2(delta.x, 0) * 8);
+    other_pixel_coord = vec2<u32>(vec2<i32>(global_id.xy) + vec2(delta.x, 0) * i32(half_group_size));
     other_dark_channel = get_dark_channel(other_pixel_coord, input_size);
     other_subpatch_x =  subpatch_x + delta.x;
     other_subpatch_y =  subpatch_y + 0;
     atomicMin(&local_patch.min_dark_channels[other_subpatch_x][other_subpatch_y], other_dark_channel);
 
-    other_pixel_coord = vec2<u32>(vec2<i32>(global_id.xy) + vec2(0, delta.y) * 8);
+    other_pixel_coord = vec2<u32>(vec2<i32>(global_id.xy) + vec2(0, delta.y) * i32(half_group_size));
     other_dark_channel = get_dark_channel(other_pixel_coord, input_size);
     other_subpatch_x =  subpatch_x + 0;
     other_subpatch_y =  subpatch_y + delta.y;
     atomicMin(&local_patch.min_dark_channels[other_subpatch_x][other_subpatch_y], other_dark_channel);
 
-    other_pixel_coord = vec2<u32>(vec2<i32>(global_id.xy) + vec2(delta.x, delta.y) * 8);
+    other_pixel_coord = vec2<u32>(vec2<i32>(global_id.xy) + vec2(delta.x, delta.y) * i32(half_group_size));
     other_dark_channel = get_dark_channel(other_pixel_coord, input_size);
     other_subpatch_x =  subpatch_x + delta.x;
     other_subpatch_y =  subpatch_y + delta.y;
@@ -83,8 +85,8 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>, @builtin(local_i
 
     workgroupBarrier();
 
-    let x = (f32(local_id.x) + 0.5) / 8.0 + 0.5;
-    let y = (f32(local_id.y) + 0.5) / 8.0 + 0.5;
+    let x = (f32(local_id.x) + 0.5) / f32(half_group_size) + 0.5;
+    let y = (f32(local_id.y) + 0.5) / f32(half_group_size) + 0.5;
 
     let x0 = i32(floor(x));
     let x1 = x0 + 1;
