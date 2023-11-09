@@ -109,7 +109,7 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>, @builtin(local_i
     let A = vec3(1.0);
     let dehazed = (c - A) / t + A;
 
-    let coeff = params.value / 4.0;
+    let coeff = params.value * 0.01;
     c = c * (1.0 - coeff) + dehazed * coeff;
 
     textureStore(output, global_id.xy, vec4<f32>(c, 1.0));

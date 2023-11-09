@@ -9,6 +9,7 @@ mod light_adjust;
 mod editor;
 mod bottom_bar;
 mod color_mixer;
+mod effects;
 
 pub mod widgets;
 
@@ -23,3 +24,4 @@ pub use editor::*;
 pub use light_adjust::*;
 pub use bottom_bar::*;
 pub use color_mixer::*;
+pub use effects::*;
