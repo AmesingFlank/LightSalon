@@ -15,6 +15,7 @@ use super::{
         color_mix::ColorMixImpl,
         contrast::AdjustContrastImpl,
         curve::ApplyCurveImpl,
+        dehaze::DehazeImpl,
         exposure::AdjustExposureImpl,
         highlights_shadows::AdjustHighlightsAndShadowsImpl,
         histogram::{self, ComputeHistogramImpl},
@@ -142,6 +143,13 @@ impl Engine {
                         &mut self.value_store,
                     );
                 }
+                Op::Dehaze(ref op) => {
+                    self.op_impls.dehaze.as_mut().unwrap().encode_commands(
+                        &mut encoder,
+                        op,
+                        &mut self.value_store,
+                    );
+                }
                 Op::ComputeBasicStatistics(ref op) => {
                     self.op_impls
                         .basic_statistics
@@ -228,6 +236,12 @@ impl Engine {
                         self.op_impls.color_mix = Some(ColorMixImpl::new(self.runtime.clone()))
                     }
                     self.op_impls.color_mix.as_mut().unwrap().reset();
+                }
+                Op::Dehaze(_) => {
+                    if self.op_impls.dehaze.is_none() {
+                        self.op_impls.dehaze = Some(DehazeImpl::new(self.runtime.clone()))
+                    }
+                    self.op_impls.dehaze.as_mut().unwrap().reset();
                 }
                 Op::ComputeBasicStatistics(_) => {
                     if self.op_impls.basic_statistics.is_none() {

@@ -4,7 +4,7 @@ use super::ops::{
     contrast::AdjustContrastImpl, curve::ApplyCurveImpl, exposure::AdjustExposureImpl,
     highlights_shadows::AdjustHighlightsAndShadowsImpl, histogram::ComputeHistogramImpl,
     temperature_tint::AdjustTemperatureAndTintImpl,
-    vibrance_saturation::AdjustVibranceAndSaturationImpl,
+    vibrance_saturation::AdjustVibranceAndSaturationImpl, dehaze::DehazeImpl,
 };
 
 #[derive(Default)]
@@ -16,6 +16,7 @@ pub struct OpImplCollection {
     pub temperature_tint: Option<AdjustTemperatureAndTintImpl>,
     pub vibrance_saturation: Option<AdjustVibranceAndSaturationImpl>,
     pub color_mix: Option<ColorMixImpl>,
+    pub dehaze: Option<DehazeImpl>,
     pub basic_statistics: Option<ComputeBasicStatisticsImpl>,
     pub histogram: Option<ComputeHistogramImpl>,
     pub collect_data_for_editor: Option<CollectDataForEditorImpl>,

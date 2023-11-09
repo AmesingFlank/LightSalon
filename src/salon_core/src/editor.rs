@@ -7,7 +7,7 @@ use crate::{
         AdjustContrastOp, AdjustExposureOp, AdjustHighlightsAndShadowsOp,
         AdjustTemperatureAndTintOp, AdjustVibranceAndSaturationOp, ApplyCurveOp,
         CollectDataForEditorOp, ColorMixGroup, ColorMixOp, ComputeBasicStatisticsOp,
-        ComputeHistogramOp, Id, IdTag, Module, Op,
+        ComputeHistogramOp, Id, IdTag, Module, Op, DehazeOp,
     },
 };
 
@@ -75,6 +75,8 @@ pub struct GlobalEdit {
     pub saturation: f32,
 
     pub color_mixer_edits: [ColorMixerEdit; 8],
+
+    pub dehaze: f32,
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -113,6 +115,8 @@ impl GlobalEdit {
             saturation: 0.0,
 
             color_mixer_edits: [ColorMixerEdit::new(); 8],
+
+            dehaze: 0.0,
         }
     }
 
@@ -131,6 +135,8 @@ impl GlobalEdit {
         self.maybe_add_vibrance_saturation(&mut module, &mut current_output_id);
 
         self.maybe_add_color_mix(&mut module, &mut current_output_id);
+
+        self.maybe_add_dehaze(&mut module, &mut current_output_id);
 
         self.add_collect_data_for_editor(&mut module, &mut current_output_id);
 
@@ -274,6 +280,19 @@ impl GlobalEdit {
             }));
             module.set_output_id(adjusted_image_id);
             *current_output_id = adjusted_image_id;
+        }
+    }
+
+    fn maybe_add_dehaze(&self, module: &mut Module, current_output_id: &mut Id) {
+        if self.dehaze != 0.0 {
+            let exposure_adjusted_image_id = module.alloc_id();
+            module.push_op(Op::Dehaze(DehazeOp {
+                result: exposure_adjusted_image_id,
+                arg: *current_output_id,
+                dehaze: self.dehaze,
+            }));
+            module.set_output_id(exposure_adjusted_image_id);
+            *current_output_id = exposure_adjusted_image_id;
         }
     }
 

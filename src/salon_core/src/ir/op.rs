@@ -10,6 +10,7 @@ pub enum Op {
     AdjustTemperatureAndTint(AdjustTemperatureAndTintOp),
     AdjustVibranceAndSaturation(AdjustVibranceAndSaturationOp),
     ColorMix(ColorMixOp),
+    Dehaze(DehazeOp),
     ComputeBasicStatistics(ComputeBasicStatisticsOp),
     ComputeHistogram(ComputeHistogramOp),
     CollectDataForEditor(CollectDataForEditorOp),
@@ -82,6 +83,13 @@ pub struct ColorMixGroup {
     pub hue: f32,
     pub saturation: f32,
     pub lightness: f32,
+}
+
+#[derive(Clone)]
+pub struct DehazeOp {
+    pub result: Id,
+    pub arg: Id,
+    pub dehaze: f32,
 }
 
 #[derive(Clone)]
