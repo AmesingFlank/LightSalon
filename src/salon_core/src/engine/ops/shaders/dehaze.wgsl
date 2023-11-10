@@ -1,4 +1,6 @@
-
+const half_group_size: u32 = 4u;
+const group_size: u32 = 8u;
+const twice_group_size: u32 = 16u;
 
 @group(0) @binding(0)
 var input: texture_2d<f32>;
@@ -14,105 +16,116 @@ struct Params {
 var<uniform> params: Params;
 
 struct LocalPatch {
-    min_dark_channels: array<array<atomic<u32>, 4>, 4>,
+    dark_channels: array<array<u32, twice_group_size>, twice_group_size>,
+    sum_variance: atomic<u32>,
 };
 
 var<workgroup> local_patch: LocalPatch;
 
+fn is_in_image(xy: vec2<u32>, input_size: vec2<u32>) -> bool {
+    if (xy.x >= 0u && xy.y >= 0u && xy.x < input_size.x && xy.y < input_size.y) {
+        return true;
+    }
+    return false;
+}
+
 fn get_dark_channel(xy: vec2<u32>, input_size: vec2<u32>) -> u32 {
     var result = 255u;
-    if (xy.x >= 0u && xy.y >= 0u && xy.x < input_size.x && xy.y < input_size.y) {
+    if (is_in_image(xy, input_size)) {
         var pixel = textureLoad(input, xy, 0).rgb;
-        let dark_channel = min(pixel.r, min(pixel.g, pixel.b));
+        var dark_channel = min(pixel.r, min(pixel.g, pixel.b));
+        //dark_channel = linear_to_srgb_channel(dark_channel);
         result = u32(dark_channel * 255.0);
     }
     return result;
 }
 
-const half_group_size: u32 = 8u;
-
 @compute
-@workgroup_size(16, 16)
+@workgroup_size(8, 8)
 fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>, @builtin(local_invocation_id) local_id: vec3<u32>) {
     let input_size = textureDimensions(input);
     if(global_id.x >= input_size.x || global_id.y >= input_size.y){
         return;
     }
-    
-    if (local_id.x < 4u && local_id.y < 4u) {
-        local_patch.min_dark_channels[local_id.x][local_id.y] = 255u;
-    }
 
-    workgroupBarrier();
-
-    let dark_channel = get_dark_channel(global_id.xy, input_size);
-    let subpatch_x = 1 + i32(local_id.x / half_group_size);
-    let subpatch_y = 1 + i32(local_id.y / half_group_size);
-    atomicMin(&local_patch.min_dark_channels[subpatch_x][subpatch_y], dark_channel);
-
-    workgroupBarrier();
-
-    var delta: vec2<i32> = vec2(1, 1);
+    var quadrant: vec2<i32> = vec2(1, 1);
     if (local_id.x < half_group_size) {
-        delta.x = -1;
+        quadrant.x = -1;
     }
     if (local_id.y < half_group_size) {
-        delta.y = -1;
+        quadrant.y = -1;
     }
 
-    var other_pixel_coord: vec2<u32>;
-    var other_dark_channel: u32;
-    var other_subpatch_x: i32;
-    var other_subpatch_y: i32;
-    
-    other_pixel_coord = vec2<u32>(vec2<i32>(global_id.xy) + vec2(delta.x, 0) * i32(half_group_size));
-    other_dark_channel = get_dark_channel(other_pixel_coord, input_size);
-    other_subpatch_x =  subpatch_x + delta.x;
-    other_subpatch_y =  subpatch_y + 0;
-    atomicMin(&local_patch.min_dark_channels[other_subpatch_x][other_subpatch_y], other_dark_channel);
+    local_patch.sum_variance = 0u;
 
-    other_pixel_coord = vec2<u32>(vec2<i32>(global_id.xy) + vec2(0, delta.y) * i32(half_group_size));
-    other_dark_channel = get_dark_channel(other_pixel_coord, input_size);
-    other_subpatch_x =  subpatch_x + 0;
-    other_subpatch_y =  subpatch_y + delta.y;
-    atomicMin(&local_patch.min_dark_channels[other_subpatch_x][other_subpatch_y], other_dark_channel);
+    for (var x: i32 = 0; x < 2; x += 1) {
+        for (var y: i32 = 0; y < 2; y += 1) {
+            let delta = vec2<i32>(x, y) * quadrant * i32(half_group_size);
+            let global_coord = vec2<i32>(global_id.xy) + delta;
+            let local_coord = vec2<i32>(local_id.xy) + delta + i32(half_group_size);
+            if (is_in_image(vec2<u32>(global_coord), input_size)) {
+                let dark = get_dark_channel(vec2<u32>(global_coord), input_size);
+                local_patch.dark_channels[local_coord.x][local_coord.y] = dark;
+            }
+        }
+    }
 
-    other_pixel_coord = vec2<u32>(vec2<i32>(global_id.xy) + vec2(delta.x, delta.y) * i32(half_group_size));
-    other_dark_channel = get_dark_channel(other_pixel_coord, input_size);
-    other_subpatch_x =  subpatch_x + delta.x;
-    other_subpatch_y =  subpatch_y + delta.y;
-    atomicMin(&local_patch.min_dark_channels[other_subpatch_x][other_subpatch_y], other_dark_channel);
+    workgroupBarrier(); 
 
-    workgroupBarrier();
+    let local_coord = vec2<i32>(local_id.xy) + i32(half_group_size);
+    var sum: u32 = 0u;
+    var sum_squares: u32 = 0u;
+    var count: u32 = 0u;
+    var max_dark = 0u;
 
-    let x = (f32(local_id.x) + 0.5) / f32(half_group_size) + 0.5;
-    let y = (f32(local_id.y) + 0.5) / f32(half_group_size) + 0.5;
+    for (var x: i32 = -i32(half_group_size); x <= i32(half_group_size); x += 1) {
+        for (var y: i32 = -i32(half_group_size); y <= i32(half_group_size); y += 1) {
+            let coord = local_coord + vec2<i32>(x, y);
+            let global_coord = vec2<i32>(global_id.xy) + vec2(x, y);
+            if (is_in_image(vec2<u32>(global_coord), input_size)) {
+                let dark = local_patch.dark_channels[coord.x][coord.y];
+                sum += dark;
+                sum_squares += dark * dark;
+                count += 1u;
+                max_dark = max(max_dark, dark);
+            }
+        }
+    }
 
-    let x0 = i32(floor(x));
-    let x1 = x0 + 1;
-    let y0 = i32(floor(y));
-    let y1 = y0 + 1;
+    let local_mean = sum / count;
+    let local_variance = sum_squares / count - local_mean * local_mean;
+    atomicAdd(&local_patch.sum_variance, local_variance);
 
-    let xf = x - f32(x0);
-    let yf = y - f32(y0);
+    workgroupBarrier(); 
 
-    let dark_00 = f32(local_patch.min_dark_channels[x0][y0]) / 255.0;
-    let dark_01 = f32(local_patch.min_dark_channels[x0][y1]) / 255.0;
-    let dark_10 = f32(local_patch.min_dark_channels[x1][y0]) / 255.0;
-    let dark_11 = f32(local_patch.min_dark_channels[x1][y1]) / 255.0;
+    let noise = local_patch.sum_variance / (group_size * group_size);
 
-    let dark = dark_00 * (1.0 - xf) * (1.0 - yf) + dark_01 * (1.0 - xf) * (yf) + dark_10 * (xf) * (1.0 - yf) + dark_11 * xf * yf;
-    
-    var t = 1.0 - 0.95 * dark;
+    let mean_f = f32(local_mean) / 255.0;
+    let var_f = f32(local_variance) / (255.0 * 255.0);
+    let noise_f = f32(noise) / (255.0 * 255.0);
+
+    let this_pixel_dark = f32(get_dark_channel(global_id.xy, input_size)) / 255.0;
+
+    let veil = mean_f + max(var_f - noise_f, 0.0) / var_f * (this_pixel_dark - mean_f);
+
+
+    let A = 0.5;
+
+    var t = 1.0 - 0.95 * veil / A;
     t = max(t, 0.1);
 
     var c = textureLoad(input, global_id.xy, 0).rgb;
 
-    let A = vec3(1.0);
+    //c = linear_to_srgb(c);
+    
     let dehazed = (c - A) / t + A;
 
     let coeff = params.value * 0.01;
     c = c * (1.0 - coeff) + dehazed * coeff;
+
+    //c = vec3(t);
+
+    //c = srgb_to_linear(c);
 
     textureStore(output, global_id.xy, vec4<f32>(c, 1.0));
 }

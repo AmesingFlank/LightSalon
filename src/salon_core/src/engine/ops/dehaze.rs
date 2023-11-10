@@ -9,7 +9,8 @@ use crate::{
         BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager,
         BindingResource, Runtime,
     },
-    shader::{Shader, ShaderLibraryModule}, utils::math::div_up,
+    shader::{Shader, ShaderLibraryModule},
+    utils::math::div_up,
 };
 
 pub struct DehazeImpl {
@@ -90,8 +91,8 @@ impl DehazeImpl {
                 encoder.begin_compute_pass(&wgpu::ComputePassDescriptor { label: None });
             compute_pass.set_pipeline(&self.pipeline);
 
-            let num_workgroups_x = div_up(input_img.properties.dimensions.0, 16);
-            let num_workgroups_y = div_up(input_img.properties.dimensions.1, 16);
+            let num_workgroups_x = div_up(input_img.properties.dimensions.0, 8);
+            let num_workgroups_y = div_up(input_img.properties.dimensions.1, 8);
 
             compute_pass.set_bind_group(0, &bind_group, &[]);
             compute_pass.dispatch_workgroups(num_workgroups_x, num_workgroups_y, 1);
