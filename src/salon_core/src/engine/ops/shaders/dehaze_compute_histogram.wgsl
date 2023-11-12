@@ -23,7 +23,7 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>, @builtin(local_i
     }
 
     let c = textureLoad(input, global_id.xy, 0).rgb;
-    let dark_channel = u32(min(min(c.r, c.g), min(c.b, 1.0)) / f32(num_bins - 1));
+    let dark_channel = u32(min(min(c.r, c.g), min(c.b, 1.0)) * f32(num_bins - 1));
 
     atomicAdd(&airlight_local.dark_channel_histogram[dark_channel], 1u); 
 

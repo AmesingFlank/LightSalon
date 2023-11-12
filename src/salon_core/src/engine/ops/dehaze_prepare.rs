@@ -31,7 +31,7 @@ pub struct PrepareDehazeImpl {
     bind_group_manager_prepare: BindGroupManager,
 }
 
-const NUM_BINS: i32 = 256;
+const NUM_BINS: u32 = 256u32;
 
 impl PrepareDehazeImpl {
     pub fn new(runtime: Arc<Runtime>) -> Self {
@@ -160,10 +160,10 @@ impl PrepareDehazeImpl {
                             binding: 1,
                             resource: BindingResource::TextureStorage(&output_img, 0),
                         },
-                        // BindGroupEntry {
-                        //     binding: 2,
-                        //     resource: BindingResource::Buffer(buffer),
-                        // },
+                        BindGroupEntry {
+                            binding: 2,
+                            resource: BindingResource::Buffer(buffer),
+                        },
                     ],
                 });
 
@@ -173,7 +173,18 @@ impl PrepareDehazeImpl {
 
             compute_pass.set_pipeline(&self.pipeline_clear_histogram);
             compute_pass.set_bind_group(0, &bind_group_clear_histogram, &[]);
-            compute_pass.dispatch_workgroups(1, 1, 1);
+            compute_pass.dispatch_workgroups(NUM_BINS, 1, 1);
+
+            let num_workgroups_x = div_up(input_img.properties.dimensions.0, 16);
+            let num_workgroups_y = div_up(input_img.properties.dimensions.1, 16);
+            compute_pass.set_pipeline(&self.pipeline_compute_histogram);
+            compute_pass.set_bind_group(0, &bind_group_compute_histogram, &[]);
+            compute_pass.dispatch_workgroups(num_workgroups_x, num_workgroups_y, 1);
+
+            
+            compute_pass.set_pipeline(&self.pipeline_estimate_airlight);
+            compute_pass.set_bind_group(0, &bind_group_compute_histogram, &[]);
+            compute_pass.dispatch_workgroups(num_workgroups_x, num_workgroups_y, 1);
 
             let num_workgroups_x = div_up(input_img.properties.dimensions.0, 8);
             let num_workgroups_y = div_up(input_img.properties.dimensions.1, 8);

@@ -107,14 +107,16 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>, @builtin(local_i
  
     let veil = sum_num / sum_denom;
 
-    let A = 1.0;
+    let A = airlight.estimated_airlight;
 
     var t = 1.0 - 0.95 * veil / A;
     t = max(t, 0.1);
 
     var c = textureLoad(input, global_id.xy, 0).rgb;
     
-    let dehazed = (c - A) / t + A; 
+    c = (c - A) / t + A; 
 
-    textureStore(output, global_id.xy, vec4<f32>(dehazed, 1.0));
+    //c = vec3(A);
+
+    textureStore(output, global_id.xy, vec4<f32>(c, 1.0));
 }

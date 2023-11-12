@@ -12,7 +12,7 @@ struct Airlight {
 var<storage, read_write> airlight: Airlight; 
 
 @compute
-@workgroup_size(16, 16)
+@workgroup_size(1)
 fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>, @builtin(local_invocation_id) local_id: vec3<u32>) {
     let input_size = textureDimensions(input);
 
@@ -21,8 +21,9 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>, @builtin(local_i
     var cumulative = 1.0;
     for(var i: i32 = num_bins - 1; i >= 0; i -= 1) {
         cumulative -= f32(airlight.dark_channel_histogram[i]) / num_pixels;
-        if (cumulative <= 0.998) {
+        if (cumulative <= 0.99) {
             airlight.estimated_airlight = f32(i) / f32(num_bins - 1);
+            break;
         }
     }
 }
