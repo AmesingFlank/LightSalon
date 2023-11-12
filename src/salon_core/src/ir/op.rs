@@ -1,6 +1,6 @@
 use super::Id;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub enum Op {
     Input(InputOp),
     AdjustExposure(AdjustExposureOp),
@@ -16,19 +16,19 @@ pub enum Op {
     CollectDataForEditor(CollectDataForEditorOp),
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct InputOp {
     pub result: Id,
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct AdjustExposureOp {
     pub result: Id,
     pub arg: Id,
     pub exposure: f32,
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct AdjustContrastOp {
     pub result: Id,
     pub arg: Id,
@@ -36,7 +36,7 @@ pub struct AdjustContrastOp {
     pub contrast: f32,
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct AdjustHighlightsAndShadowsOp {
     pub result: Id,
     pub arg: Id,
@@ -44,7 +44,7 @@ pub struct AdjustHighlightsAndShadowsOp {
     pub shadows: f32,
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct ApplyCurveOp {
     pub result: Id,
     pub arg: Id,
@@ -55,7 +55,7 @@ pub struct ApplyCurveOp {
 }
 
 // grouping temp and tint together, because they are heavy and shares a lot of common work
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct AdjustTemperatureAndTintOp {
     pub result: Id,
     pub arg: Id,
@@ -63,7 +63,7 @@ pub struct AdjustTemperatureAndTintOp {
     pub tint: f32,
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct AdjustVibranceAndSaturationOp {
     pub result: Id,
     pub arg: Id,
@@ -71,40 +71,40 @@ pub struct AdjustVibranceAndSaturationOp {
     pub saturation: f32,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct ColorMixOp {
     pub result: Id,
     pub arg: Id,
     pub groups: [ColorMixGroup; 8],
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct ColorMixGroup {
     pub hue: f32,
     pub saturation: f32,
     pub lightness: f32,
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct DehazeOp {
     pub result: Id,
     pub arg: Id,
     pub dehaze: f32,
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct ComputeBasicStatisticsOp {
     pub result: Id,
     pub arg: Id,
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct ComputeHistogramOp {
     pub result: Id,
     pub arg: Id,
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct CollectDataForEditorOp {
     pub result: Id,
     pub histogram_final: Id,

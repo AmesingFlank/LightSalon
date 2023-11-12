@@ -95,7 +95,21 @@ impl Engine {
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
-        for op in ops {
+        let has_prev_execution = execution_context.last_input_image_uuid.is_some() && execution_context.last_module.is_some();
+        let mut can_reuse_prev_value = has_prev_execution && execution_context.last_input_image_uuid == Some(input_img.uuid);
+
+        for i in 0..ops.len() {
+            let op = &ops[i];
+
+            if can_reuse_prev_value {
+                let last_module = execution_context.last_module.as_ref().unwrap();
+                can_reuse_prev_value = i < last_module.ops().len() && *op == last_module.ops()[i];
+            }
+
+            if can_reuse_prev_value {
+                continue;
+            }
+
             match op {
                 Op::Input(ref input) => {
                     execution_context
@@ -194,6 +208,9 @@ impl Engine {
             .encode_mipmap_generation_command(&output_image.as_ref(), &mut encoder);
 
         self.runtime.queue.submit(Some(encoder.finish()));
+
+        execution_context.last_module = Some(module.clone());
+        execution_context.last_input_image_uuid = Some(input_img.uuid);
     }
 
     fn reset_op_impls(&mut self, module: &Module) {
