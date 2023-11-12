@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
 use crate::{
-    engine::{Engine, ProcessResult},
+    engine::{Engine, ExecutionContext, ProcessResult},
     image::Image,
     ir::{
         AdjustContrastOp, AdjustExposureOp, AdjustHighlightsAndShadowsOp,
         AdjustTemperatureAndTintOp, AdjustVibranceAndSaturationOp, ApplyCurveOp,
         CollectDataForEditorOp, ColorMixGroup, ColorMixOp, ComputeBasicStatisticsOp,
-        ComputeHistogramOp, Id, IdTag, Module, Op, DehazeOp,
+        ComputeHistogramOp, DehazeOp, Id, IdTag, Module, Op,
     },
 };
 
@@ -15,6 +15,7 @@ pub struct Editor {
     pub current_edit: Edit,
     pub current_input_image: Option<Arc<Image>>,
     pub current_result: Option<ProcessResult>,
+    engine_execution_context: ExecutionContext,
 }
 
 impl Editor {
@@ -23,6 +24,7 @@ impl Editor {
             current_edit: Edit::new(),
             current_input_image: None,
             current_result: None,
+            engine_execution_context: ExecutionContext::new(),
         }
     }
 
@@ -33,7 +35,8 @@ impl Editor {
     pub fn execute_edit(&mut self, engine: &mut Engine) {
         if let Some(ref img) = self.current_input_image {
             let module = self.current_edit.to_ir_module();
-            let result = engine.execute_module(&module, img.clone());
+            let result =
+                engine.execute_module(&module, img.clone(), &mut self.engine_execution_context);
             self.current_result = Some(result);
         }
     }

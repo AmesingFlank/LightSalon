@@ -24,13 +24,12 @@ use super::{
     },
     result::ProcessResult,
     value_store::ValueStore,
-    DataForEditor,
+    DataForEditor, ExecutionContext,
 };
 
 pub struct Engine {
     pub runtime: Arc<Runtime>,
     pub op_impls: OpImplCollection,
-    pub value_store: ValueStore,
 }
 
 impl Engine {
@@ -38,17 +37,21 @@ impl Engine {
         Engine {
             runtime,
             op_impls: OpImplCollection::new(),
-            value_store: ValueStore::new(),
         }
     }
 
-    pub fn execute_module(&mut self, module: &Module, input_img: Arc<Image>) -> ProcessResult {
+    pub fn execute_module(
+        &mut self,
+        module: &Module,
+        input_img: Arc<Image>,
+        execution_context: &mut ExecutionContext,
+    ) -> ProcessResult {
         let mut result = ProcessResult::new_empty();
         self.reset_op_impls(module);
-        self.apply_ops(module, input_img);
+        self.apply_ops(module, input_img, execution_context);
 
         let output_id = module.get_output_id().expect("expecting an output id");
-        let output_value = self
+        let output_value = execution_context
             .value_store
             .map
             .get(&output_id)
@@ -56,7 +59,7 @@ impl Engine {
         let output_image = output_value.as_image().clone();
 
         if let Some(editor_data_id) = module.get_tagged_id(IdTag::DataForEditor) {
-            let editor_data_buffer = self
+            let editor_data_buffer = execution_context
                 .value_store
                 .map
                 .get(&editor_data_id)
@@ -80,7 +83,12 @@ impl Engine {
         result
     }
 
-    fn apply_ops(&mut self, module: &Module, input_img: Arc<Image>) {
+    fn apply_ops(
+        &mut self,
+        module: &Module,
+        input_img: Arc<Image>,
+        execution_context: &mut ExecutionContext,
+    ) {
         let ops = module.ops();
         let mut encoder = self
             .runtime
@@ -90,7 +98,8 @@ impl Engine {
         for op in ops {
             match op {
                 Op::Input(ref input) => {
-                    self.value_store
+                    execution_context
+                        .value_store
                         .map
                         .insert(input.result, Value::Image(input_img.clone()));
                 }
@@ -98,14 +107,14 @@ impl Engine {
                     self.op_impls.exposure.as_mut().unwrap().encode_commands(
                         &mut encoder,
                         op,
-                        &mut self.value_store,
+                        &mut execution_context.value_store,
                     );
                 }
                 Op::AdjustContrast(ref op) => {
                     self.op_impls.contrast.as_mut().unwrap().encode_commands(
                         &mut encoder,
                         op,
-                        &mut self.value_store,
+                        &mut execution_context.value_store,
                     );
                 }
                 Op::AdjustHighlightsAndShadows(ref op) => {
@@ -113,13 +122,13 @@ impl Engine {
                         .highlights_shadows
                         .as_mut()
                         .unwrap()
-                        .encode_commands(&mut encoder, op, &mut self.value_store);
+                        .encode_commands(&mut encoder, op, &mut execution_context.value_store);
                 }
                 Op::ApplyCurve(ref op) => {
                     self.op_impls.curve.as_mut().unwrap().encode_commands(
                         &mut encoder,
                         op,
-                        &mut self.value_store,
+                        &mut execution_context.value_store,
                     );
                 }
                 Op::AdjustTemperatureAndTint(ref op) => {
@@ -127,27 +136,27 @@ impl Engine {
                         .temperature_tint
                         .as_mut()
                         .unwrap()
-                        .encode_commands(&mut encoder, op, &mut self.value_store);
+                        .encode_commands(&mut encoder, op, &mut execution_context.value_store);
                 }
                 Op::AdjustVibranceAndSaturation(ref op) => {
                     self.op_impls
                         .vibrance_saturation
                         .as_mut()
                         .unwrap()
-                        .encode_commands(&mut encoder, op, &mut self.value_store);
+                        .encode_commands(&mut encoder, op, &mut execution_context.value_store);
                 }
                 Op::ColorMix(ref op) => {
                     self.op_impls.color_mix.as_mut().unwrap().encode_commands(
                         &mut encoder,
                         op,
-                        &mut self.value_store,
+                        &mut execution_context.value_store,
                     );
                 }
                 Op::Dehaze(ref op) => {
                     self.op_impls.dehaze.as_mut().unwrap().encode_commands(
                         &mut encoder,
                         op,
-                        &mut self.value_store,
+                        &mut execution_context.value_store,
                     );
                 }
                 Op::ComputeBasicStatistics(ref op) => {
@@ -155,13 +164,13 @@ impl Engine {
                         .basic_statistics
                         .as_mut()
                         .unwrap()
-                        .encode_commands(&mut encoder, op, &mut self.value_store);
+                        .encode_commands(&mut encoder, op, &mut execution_context.value_store);
                 }
                 Op::ComputeHistogram(ref op) => {
                     self.op_impls.histogram.as_mut().unwrap().encode_commands(
                         &mut encoder,
                         op,
-                        &mut self.value_store,
+                        &mut execution_context.value_store,
                     );
                 }
                 Op::CollectDataForEditor(ref op) => {
@@ -169,13 +178,13 @@ impl Engine {
                         .collect_data_for_editor
                         .as_mut()
                         .unwrap()
-                        .encode_commands(&mut encoder, op, &mut self.value_store);
+                        .encode_commands(&mut encoder, op, &mut execution_context.value_store);
                 }
             }
         }
 
         let output_id = module.get_output_id().expect("expecting an output id");
-        let output_value = self
+        let output_value = execution_context
             .value_store
             .map
             .get(&output_id)
