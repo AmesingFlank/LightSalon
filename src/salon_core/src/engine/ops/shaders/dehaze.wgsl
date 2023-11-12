@@ -16,8 +16,7 @@ struct Params {
 var<uniform> params: Params;
 
 struct LocalPatch {
-    dark_channels: array<array<u32, twice_group_size>, twice_group_size>,
-    sum_variance: atomic<u32>,
+    dark_channels: array<array<f32, twice_group_size>, twice_group_size>,
 };
 
 var<workgroup> local_patch: LocalPatch;
@@ -29,15 +28,25 @@ fn is_in_image(xy: vec2<u32>, input_size: vec2<u32>) -> bool {
     return false;
 }
 
-fn get_dark_channel(xy: vec2<u32>, input_size: vec2<u32>) -> u32 {
-    var result = 255u;
+fn get_dark_channel(xy: vec2<u32>, input_size: vec2<u32>) -> f32 {
+    var result = 1.0;
     if (is_in_image(xy, input_size)) {
         var pixel = textureLoad(input, xy, 0).rgb;
         var dark_channel = min(pixel.r, min(pixel.g, pixel.b));
         //dark_channel = linear_to_srgb_channel(dark_channel);
-        result = u32(dark_channel * 255.0);
+        result = dark_channel;
     }
     return result;
+}
+
+fn f(v: f32) -> f32 {
+    let sigma_s = f32(group_size);
+    return exp(-v*v) / (2.0 * sigma_s * sigma_s);
+}
+
+fn g(v: f32) -> f32 {
+    let sigma_r = 0.1;
+    return exp(-v*v) / (2.0 * sigma_r * sigma_r);
 }
 
 @compute
@@ -56,8 +65,6 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>, @builtin(local_i
         quadrant.y = -1;
     }
 
-    local_patch.sum_variance = 0u;
-
     for (var x: i32 = 0; x < 2; x += 1) {
         for (var y: i32 = 0; y < 2; y += 1) {
             let delta = vec2<i32>(x, y) * quadrant * i32(half_group_size);
@@ -72,44 +79,33 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>, @builtin(local_i
 
     workgroupBarrier(); 
 
-    let local_coord = vec2<i32>(local_id.xy) + i32(half_group_size);
-    var sum: u32 = 0u;
-    var sum_squares: u32 = 0u;
-    var count: u32 = 0u;
-    var max_dark = 0u;
+    let my_local_coord = vec2<i32>(local_id.xy) + i32(half_group_size);
+    let my_dark_channel = local_patch.dark_channels[my_local_coord.x][my_local_coord.y];
+
+    var sum_num: f32 = 0.0;
+    var sum_denom: f32 = 0.0;
 
     for (var x: i32 = -i32(half_group_size); x <= i32(half_group_size); x += 1) {
         for (var y: i32 = -i32(half_group_size); y <= i32(half_group_size); y += 1) {
-            let coord = local_coord + vec2<i32>(x, y);
+            let coord = my_local_coord + vec2<i32>(x, y);
             let global_coord = vec2<i32>(global_id.xy) + vec2(x, y);
             if (is_in_image(vec2<u32>(global_coord), input_size)) {
-                let dark = local_patch.dark_channels[coord.x][coord.y];
-                sum += dark;
-                sum_squares += dark * dark;
-                count += 1u;
-                max_dark = max(max_dark, dark);
+                let distance = length(vec2(f32(x), f32(y)));
+                let dark_channel = local_patch.dark_channels[coord.x][coord.y];
+                let value_dist = f32(dark_channel - my_dark_channel);
+
+                let f_dist = f(distance);
+                let g_value_dist = g(value_dist);
+
+                sum_num += f_dist * g_value_dist * dark_channel;
+                sum_denom += f_dist * g_value_dist;
             }
         }
     }
+ 
+    let veil = sum_num / sum_denom;
 
-    let local_mean = sum / count;
-    let local_variance = sum_squares / count - local_mean * local_mean;
-    atomicAdd(&local_patch.sum_variance, local_variance);
-
-    workgroupBarrier(); 
-
-    let noise = local_patch.sum_variance / (group_size * group_size);
-
-    let mean_f = f32(local_mean) / 255.0;
-    let var_f = f32(local_variance) / (255.0 * 255.0);
-    let noise_f = f32(noise) / (255.0 * 255.0);
-
-    let this_pixel_dark = f32(get_dark_channel(global_id.xy, input_size)) / 255.0;
-
-    let veil = mean_f + max(var_f - noise_f, 0.0) / var_f * (this_pixel_dark - mean_f);
-
-
-    let A = 0.5;
+    let A = 1.0;
 
     var t = 1.0 - 0.95 * veil / A;
     t = max(t, 0.1);
@@ -126,6 +122,8 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>, @builtin(local_i
     //c = vec3(t);
 
     //c = srgb_to_linear(c);
+
+    //c = vec3(veil);
 
     textureStore(output, global_id.xy, vec4<f32>(c, 1.0));
 }
