@@ -14,6 +14,15 @@ struct LocalPatch {
 
 var<workgroup> local_patch: LocalPatch;
 
+const num_bins: i32 = 255;
+
+struct Airlight {
+    estimated_airlight: f32,
+}
+
+@group(0) @binding(2)
+var<storage, read_write> airlight: Airlight; 
+
 fn is_in_image(xy: vec2<u32>, input_size: vec2<u32>) -> bool {
     if (xy.x >= 0u && xy.y >= 0u && xy.x < input_size.x && xy.y < input_size.y) {
         return true;
