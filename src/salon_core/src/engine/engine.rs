@@ -15,7 +15,8 @@ use super::{
         color_mix::ColorMixImpl,
         contrast::AdjustContrastImpl,
         curve::ApplyCurveImpl,
-        dehaze::DehazeImpl,
+        dehaze_apply::ApplyDehazeImpl,
+        dehaze_prepare::PrepareDehazeImpl,
         exposure::AdjustExposureImpl,
         highlights_shadows::AdjustHighlightsAndShadowsImpl,
         histogram::{self, ComputeHistogramImpl},
@@ -95,8 +96,10 @@ impl Engine {
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
-        let has_prev_execution = execution_context.last_input_image_uuid.is_some() && execution_context.last_module.is_some();
-        let mut can_reuse_prev_value = has_prev_execution && execution_context.last_input_image_uuid == Some(input_img.uuid);
+        let has_prev_execution = execution_context.last_input_image_uuid.is_some()
+            && execution_context.last_module.is_some();
+        let mut can_reuse_prev_value =
+            has_prev_execution && execution_context.last_input_image_uuid == Some(input_img.uuid);
 
         for i in 0..ops.len() {
             let op = &ops[i];
@@ -166,12 +169,19 @@ impl Engine {
                         &mut execution_context.value_store,
                     );
                 }
-                Op::Dehaze(ref op) => {
-                    self.op_impls.dehaze.as_mut().unwrap().encode_commands(
-                        &mut encoder,
-                        op,
-                        &mut execution_context.value_store,
-                    );
+                Op::PrepareDehaze(ref op) => {
+                    self.op_impls
+                        .prepare_dehaze
+                        .as_mut()
+                        .unwrap()
+                        .encode_commands(&mut encoder, op, &mut execution_context.value_store);
+                }
+                Op::ApplyDehaze(ref op) => {
+                    self.op_impls
+                        .apply_dehaze
+                        .as_mut()
+                        .unwrap()
+                        .encode_commands(&mut encoder, op, &mut execution_context.value_store);
                 }
                 Op::ComputeBasicStatistics(ref op) => {
                     self.op_impls
@@ -263,11 +273,19 @@ impl Engine {
                     }
                     self.op_impls.color_mix.as_mut().unwrap().reset();
                 }
-                Op::Dehaze(_) => {
-                    if self.op_impls.dehaze.is_none() {
-                        self.op_impls.dehaze = Some(DehazeImpl::new(self.runtime.clone()))
+                Op::PrepareDehaze(_) => {
+                    if self.op_impls.prepare_dehaze.is_none() {
+                        self.op_impls.prepare_dehaze =
+                            Some(PrepareDehazeImpl::new(self.runtime.clone()))
                     }
-                    self.op_impls.dehaze.as_mut().unwrap().reset();
+                    self.op_impls.prepare_dehaze.as_mut().unwrap().reset();
+                }
+                Op::ApplyDehaze(_) => {
+                    if self.op_impls.apply_dehaze.is_none() {
+                        self.op_impls.apply_dehaze =
+                            Some(ApplyDehazeImpl::new(self.runtime.clone()))
+                    }
+                    self.op_impls.apply_dehaze.as_mut().unwrap().reset();
                 }
                 Op::ComputeBasicStatistics(_) => {
                     if self.op_impls.basic_statistics.is_none() {

@@ -8,13 +8,6 @@ var input: texture_2d<f32>;
 @group(0) @binding(1)
 var output: texture_storage_2d<rgba16float, write>;
 
-struct Params {
-    value: f32,
-};
-
-@group(0) @binding(2)
-var<uniform> params: Params;
-
 struct LocalPatch {
     dark_channels: array<array<f32, twice_group_size>, twice_group_size>,
 };
@@ -111,19 +104,8 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>, @builtin(local_i
     t = max(t, 0.1);
 
     var c = textureLoad(input, global_id.xy, 0).rgb;
-
-    //c = linear_to_srgb(c);
     
-    let dehazed = (c - A) / t + A;
+    let dehazed = (c - A) / t + A; 
 
-    let coeff = params.value * 0.01;
-    c = c * (1.0 - coeff) + dehazed * coeff;
-
-    //c = vec3(t);
-
-    //c = srgb_to_linear(c);
-
-    //c = vec3(veil);
-
-    textureStore(output, global_id.xy, vec4<f32>(c, 1.0));
+    textureStore(output, global_id.xy, vec4<f32>(dehazed, 1.0));
 }

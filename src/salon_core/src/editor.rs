@@ -5,9 +5,9 @@ use crate::{
     image::Image,
     ir::{
         AdjustContrastOp, AdjustExposureOp, AdjustHighlightsAndShadowsOp,
-        AdjustTemperatureAndTintOp, AdjustVibranceAndSaturationOp, ApplyCurveOp,
+        AdjustTemperatureAndTintOp, AdjustVibranceAndSaturationOp, ApplyCurveOp, ApplyDehazeOp,
         CollectDataForEditorOp, ColorMixGroup, ColorMixOp, ComputeBasicStatisticsOp,
-        ComputeHistogramOp, DehazeOp, Id, IdTag, Module, Op,
+        ComputeHistogramOp, Id, IdTag, Module, Op, PrepareDehazeOp,
     },
 };
 
@@ -128,6 +128,9 @@ impl GlobalEdit {
 
         let mut current_output_id = module.get_output_id().expect("expecting an output id");
 
+        // do dehaze first, because `PrepareDehaze` is expensive
+        self.maybe_add_dehaze(&mut module, &mut current_output_id);
+
         self.maybe_add_exposure(&mut module, &mut current_output_id);
         self.maybe_add_contrast(&mut module, &mut current_output_id);
         self.maybe_add_highlights_shadows(&mut module, &mut current_output_id);
@@ -138,8 +141,6 @@ impl GlobalEdit {
         self.maybe_add_vibrance_saturation(&mut module, &mut current_output_id);
 
         self.maybe_add_color_mix(&mut module, &mut current_output_id);
-
-        self.maybe_add_dehaze(&mut module, &mut current_output_id);
 
         self.add_collect_data_for_editor(&mut module, &mut current_output_id);
 
@@ -288,14 +289,21 @@ impl GlobalEdit {
 
     fn maybe_add_dehaze(&self, module: &mut Module, current_output_id: &mut Id) {
         if self.dehaze != 0.0 {
-            let exposure_adjusted_image_id = module.alloc_id();
-            module.push_op(Op::Dehaze(DehazeOp {
-                result: exposure_adjusted_image_id,
+            let dehazed_id = module.alloc_id();
+            module.push_op(Op::PrepareDehaze(PrepareDehazeOp {
+                result: dehazed_id,
                 arg: *current_output_id,
-                dehaze: self.dehaze,
             }));
-            module.set_output_id(exposure_adjusted_image_id);
-            *current_output_id = exposure_adjusted_image_id;
+
+            let dehaze_applied_id = module.alloc_id();
+            module.push_op(Op::ApplyDehaze(ApplyDehazeOp {
+                result: dehaze_applied_id,
+                arg: *current_output_id,
+                dehazed: dehazed_id,
+                amount: self.dehaze,
+            }));
+            module.set_output_id(dehaze_applied_id);
+            *current_output_id = dehaze_applied_id;
         }
     }
 

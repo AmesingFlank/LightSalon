@@ -4,7 +4,7 @@ use crate::{
     buffer::{Buffer, BufferProperties, RingBuffer},
     engine::value_store::ValueStore,
     image::ColorSpace,
-    ir::{DehazeOp, Id},
+    ir::{Id, PrepareDehazeOp},
     runtime::{
         BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager,
         BindingResource, Runtime,
@@ -13,15 +13,15 @@ use crate::{
     utils::math::div_up,
 };
 
-pub struct DehazeImpl {
+pub struct PrepareDehazeImpl {
     runtime: Arc<Runtime>,
     pipeline: wgpu::ComputePipeline,
     bind_group_manager: BindGroupManager,
     ring_buffer: RingBuffer,
 }
-impl DehazeImpl {
+impl PrepareDehazeImpl {
     pub fn new(runtime: Arc<Runtime>) -> Self {
-        let shader_code = Shader::from_code(include_str!("shaders/dehaze.wgsl"))
+        let shader_code = Shader::from_code(include_str!("shaders/dehaze_prepare.wgsl"))
             .with_library(ShaderLibraryModule::ColorSpaces)
             .full_code();
 
@@ -37,7 +37,7 @@ impl DehazeImpl {
             },
         );
 
-        DehazeImpl {
+        Self {
             runtime,
             pipeline,
             bind_group_manager,
@@ -45,7 +45,7 @@ impl DehazeImpl {
         }
     }
 }
-impl DehazeImpl {
+impl PrepareDehazeImpl {
     pub fn reset(&mut self) {
         self.ring_buffer.mark_all_available();
     }
@@ -53,7 +53,7 @@ impl DehazeImpl {
     pub fn encode_commands(
         &mut self,
         encoder: &mut wgpu::CommandEncoder,
-        op: &DehazeOp,
+        op: &PrepareDehazeOp,
         value_store: &mut ValueStore,
     ) {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
@@ -62,12 +62,6 @@ impl DehazeImpl {
             op.result,
             &input_img.properties,
         );
-
-        let buffer = self.ring_buffer.get();
-
-        self.runtime
-            .queue
-            .write_buffer(&buffer.buffer, 0, bytemuck::cast_slice(&[op.dehaze]));
 
         let bind_group = self.bind_group_manager.get_or_create(BindGroupDescriptor {
             entries: vec![
@@ -78,10 +72,6 @@ impl DehazeImpl {
                 BindGroupEntry {
                     binding: 1,
                     resource: BindingResource::TextureStorage(&output_img, 0),
-                },
-                BindGroupEntry {
-                    binding: 2,
-                    resource: BindingResource::Buffer(buffer),
                 },
             ],
         });
