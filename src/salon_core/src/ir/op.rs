@@ -10,6 +10,7 @@ pub enum Op {
     AdjustTemperatureAndTint(AdjustTemperatureAndTintOp),
     AdjustVibranceAndSaturation(AdjustVibranceAndSaturationOp),
     ColorMix(ColorMixOp),
+    AdjustVignette(AdjustVignetteOp),
     PrepareDehaze(PrepareDehazeOp),
     ApplyDehaze(ApplyDehazeOp),
     ComputeBasicStatistics(ComputeBasicStatisticsOp),
@@ -84,6 +85,13 @@ pub struct ColorMixGroup {
     pub hue: f32,
     pub saturation: f32,
     pub lightness: f32,
+}
+
+#[derive(Clone, PartialEq)]
+pub struct AdjustVignetteOp {
+    pub result: Id,
+    pub arg: Id,
+    pub vignette: f32,
 }
 
 #[derive(Clone, PartialEq)]

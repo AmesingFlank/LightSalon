@@ -5,7 +5,7 @@ use super::ops::{
     dehaze_prepare::PrepareDehazeImpl, exposure::AdjustExposureImpl,
     highlights_shadows::AdjustHighlightsAndShadowsImpl, histogram::ComputeHistogramImpl,
     temperature_tint::AdjustTemperatureAndTintImpl,
-    vibrance_saturation::AdjustVibranceAndSaturationImpl,
+    vibrance_saturation::AdjustVibranceAndSaturationImpl, vignette::AdjustVignetteImpl,
 };
 
 #[derive(Default)]
@@ -17,6 +17,7 @@ pub struct OpImplCollection {
     pub temperature_tint: Option<AdjustTemperatureAndTintImpl>,
     pub vibrance_saturation: Option<AdjustVibranceAndSaturationImpl>,
     pub color_mix: Option<ColorMixImpl>,
+    pub vignette: Option<AdjustVignetteImpl>,
     pub prepare_dehaze: Option<PrepareDehazeImpl>,
     pub apply_dehaze: Option<ApplyDehazeImpl>,
     pub basic_statistics: Option<ComputeBasicStatisticsImpl>,

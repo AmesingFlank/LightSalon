@@ -17,6 +17,7 @@ pub fn effects(
         .default_open(true)
         .show(ui, |ui| {
             ui.spacing_mut().slider_width = ui.available_width() * 0.6;
-            ui.add(EditorSlider::new(&mut edit.dehaze, 0.0..=100.0).text("Saturation"));
+            ui.add(EditorSlider::new(&mut edit.dehaze, 0.0..=100.0).text("Dehaze"));
+            ui.add(EditorSlider::new(&mut edit.vignette, -100.0..=100.0).text("Vignette"));
         });
 }

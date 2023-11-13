@@ -22,6 +22,7 @@ use super::{
         histogram::{self, ComputeHistogramImpl},
         temperature_tint::AdjustTemperatureAndTintImpl,
         vibrance_saturation::AdjustVibranceAndSaturationImpl,
+        vignette::AdjustVignetteImpl,
     },
     result::ProcessResult,
     value_store::ValueStore,
@@ -169,6 +170,13 @@ impl Engine {
                         &mut execution_context.value_store,
                     );
                 }
+                Op::AdjustVignette(ref op) => {
+                    self.op_impls.vignette.as_mut().unwrap().encode_commands(
+                        &mut encoder,
+                        op,
+                        &mut execution_context.value_store,
+                    );
+                }
                 Op::PrepareDehaze(ref op) => {
                     self.op_impls
                         .prepare_dehaze
@@ -272,6 +280,12 @@ impl Engine {
                         self.op_impls.color_mix = Some(ColorMixImpl::new(self.runtime.clone()))
                     }
                     self.op_impls.color_mix.as_mut().unwrap().reset();
+                }
+                Op::AdjustVignette(_) => {
+                    if self.op_impls.vignette.is_none() {
+                        self.op_impls.vignette = Some(AdjustVignetteImpl::new(self.runtime.clone()))
+                    }
+                    self.op_impls.vignette.as_mut().unwrap().reset();
                 }
                 Op::PrepareDehaze(_) => {
                     if self.op_impls.prepare_dehaze.is_none() {

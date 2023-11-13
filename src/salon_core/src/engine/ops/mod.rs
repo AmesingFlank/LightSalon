@@ -8,5 +8,6 @@ pub mod histogram;
 pub mod collect_data_for_editor;
 pub mod curve;
 pub mod color_mix;
+pub mod vignette;
 pub mod dehaze_prepare;
 pub mod dehaze_apply;

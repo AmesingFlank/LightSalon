@@ -7,7 +7,7 @@ use crate::{
         AdjustContrastOp, AdjustExposureOp, AdjustHighlightsAndShadowsOp,
         AdjustTemperatureAndTintOp, AdjustVibranceAndSaturationOp, ApplyCurveOp, ApplyDehazeOp,
         CollectDataForEditorOp, ColorMixGroup, ColorMixOp, ComputeBasicStatisticsOp,
-        ComputeHistogramOp, Id, IdTag, Module, Op, PrepareDehazeOp,
+        ComputeHistogramOp, Id, IdTag, Module, Op, PrepareDehazeOp, AdjustVignetteOp,
     },
 };
 
@@ -80,6 +80,7 @@ pub struct GlobalEdit {
     pub color_mixer_edits: [ColorMixerEdit; 8],
 
     pub dehaze: f32,
+    pub vignette: f32,
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -120,6 +121,7 @@ impl GlobalEdit {
             color_mixer_edits: [ColorMixerEdit::new(); 8],
 
             dehaze: 0.0,
+            vignette: 0.0,
         }
     }
 
@@ -141,6 +143,8 @@ impl GlobalEdit {
         self.maybe_add_vibrance_saturation(&mut module, &mut current_output_id);
 
         self.maybe_add_color_mix(&mut module, &mut current_output_id);
+
+        self.maybe_add_vignette(&mut module, &mut current_output_id);
 
         self.add_collect_data_for_editor(&mut module, &mut current_output_id);
 
@@ -281,6 +285,19 @@ impl GlobalEdit {
                 result: adjusted_image_id,
                 arg: *current_output_id,
                 groups,
+            }));
+            module.set_output_id(adjusted_image_id);
+            *current_output_id = adjusted_image_id;
+        }
+    }
+
+    fn maybe_add_vignette(&self, module: &mut Module, current_output_id: &mut Id) {
+        if self.vignette != 0.0 {
+            let adjusted_image_id = module.alloc_id();
+            module.push_op(Op::AdjustVignette(AdjustVignetteOp {
+                result: adjusted_image_id,
+                arg: *current_output_id,
+                vignette: self.vignette,
             }));
             module.set_output_id(adjusted_image_id);
             *current_output_id = adjusted_image_id;
