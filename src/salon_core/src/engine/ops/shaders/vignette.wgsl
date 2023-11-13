@@ -21,15 +21,18 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         return;
     }
     var rgb = textureLoad(input, global_id.xy, 0).rgb;
-    var hsl = rgb_to_hsl(rgb);
+    //var Luv = XYZ_to_Luv(rgb_to_XYZ(rgb));
 
-    let max_dim = f32(max(input_size.x, input_size.y));
-    let radius = max_dim * 0.5;
-    let dist_from_center = abs(vec2<f32>(global_id.xy) - vec2<f32>(input_size) * 0.5);
+    let uv = vec2(f32(global_id.x) / f32(input_size.x), f32(global_id.y) / f32(input_size.y));
 
-    let coeff = params.value * 0.02;
-    hsl.z *= exp(coeff * dist_from_center.x / radius) * exp(coeff * dist_from_center.y / radius);
+    let inner = 0.6;
+    let outer = 1.2;
+    let strength = -params.value * 0.01;
 
-    rgb = hsl_to_rgb(hsl);
+    let edge = length(abs(uv * 2.0 - 1.0));
+    let vignette = 1.0 - strength * smoothstep(inner, outer, edge);
+
+    rgb *= vignette;
+
     textureStore(output, global_id.xy, vec4<f32>(rgb, 1.0));
 }
