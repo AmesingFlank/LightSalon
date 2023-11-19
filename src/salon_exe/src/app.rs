@@ -149,11 +149,15 @@ impl eframe::App for App {
             });
         egui::CentralPanel::default().show(ctx, |ui| {
             egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
-                ui.horizontal_wrapped(|ui| ui.centered_and_justified(|ui| {
-                    ui.checkbox(&mut self.ui_state.show_grid, "Show Grid");
-                }));
+                ui.horizontal_wrapped(|ui| {
+                    ui.centered_and_justified(|ui| {
+                        ui.checkbox(&mut self.ui_state.show_grid, "Show Grid");
+                    })
+                });
             });
-            ui::main_image(ui, &mut self.session);
+            egui::CentralPanel::default().show(ctx, |ui| {
+                ui::main_image(ui, &mut self.session);
+            });
         });
         egui::Context::request_repaint(ctx);
     }
