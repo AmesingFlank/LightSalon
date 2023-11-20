@@ -3,6 +3,7 @@ use std::sync::Arc;
 use std::{collections::HashMap, num::NonZeroU64};
 
 use eframe::egui::Ui;
+use eframe::epaint::{Pos2, Color32, Stroke};
 use eframe::{egui, egui_wgpu};
 use salon_core::buffer::{Buffer, BufferProperties, RingBuffer};
 use salon_core::image::Image;
@@ -14,9 +15,10 @@ use salon_core::sampler::Sampler;
 use salon_core::session::Session;
 use salon_core::shader::{Shader, ShaderLibraryModule};
 
+use super::AppUiState;
 use super::widgets::MainImageCallback;
 
-pub fn main_image(ui: &mut Ui, session: &mut Session) {
+pub fn main_image(ctx: &egui::Context, ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
     if let Some(ref result) = session.editor.current_result {
         let max_x = ui.available_width();
         let max_y = ui.available_height();
@@ -39,10 +41,13 @@ pub fn main_image(ui: &mut Ui, session: &mut Session) {
 
             ui.centered_and_justified(|ui| {
                 let (rect, response) = ui.allocate_exact_size(size, egui::Sense::drag());
-                ui.painter().add(egui_wgpu::Callback::new_paint_callback(
+                let painter = egui::Painter::new(ctx.clone(), ui.layer_id(), rect);
+                let draw_grid = ui_state.show_grid;
+                painter.add(egui_wgpu::Callback::new_paint_callback(
                     rect,
                     MainImageCallback {
                         image: image.clone(),
+                        draw_grid
                     },
                 ));
             });

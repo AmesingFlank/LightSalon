@@ -156,7 +156,7 @@ impl eframe::App for App {
                 });
             });
             egui::CentralPanel::default().show(ctx, |ui| {
-                ui::main_image(ui, &mut self.session);
+                ui::main_image(ctx, ui, &mut self.session, &mut self.ui_state);
             });
         });
         egui::Context::request_repaint(ctx);
