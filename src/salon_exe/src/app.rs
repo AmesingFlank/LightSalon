@@ -128,6 +128,9 @@ impl eframe::App for App {
         egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
             ui.horizontal_wrapped(|ui| {
                 file_menu(ui, &mut self.session);
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::RIGHT), |ui| {
+                    ui.checkbox(&mut self.ui_state.show_grid, "Show Grid");
+                })
             });
         });
         egui::TopBottomPanel::bottom("bottom_bar").show(ctx, |ui| {
@@ -148,10 +151,6 @@ impl eframe::App for App {
                 ui::editor(ui, &mut self.session, &mut self.ui_state);
             });
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.vertical_centered(|ui| {
-                ui.checkbox(&mut self.ui_state.show_grid, "Show Grid");
-            });
-            ui.separator();
             ui::main_image(ctx, ui, &mut self.session, &mut self.ui_state);
         });
         //egui::Context::request_repaint(ctx);
