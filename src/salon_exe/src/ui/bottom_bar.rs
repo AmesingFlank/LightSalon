@@ -22,5 +22,5 @@ pub fn bottom_bar(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState)
         fps_counter.frames_since_last_fps_record = 0u32;
     }
     let fps_msg = "FPS: ".to_owned() + fps.to_string().as_str();
-    ui.label(fps_msg);
+    //ui.label(fps_msg);
 }

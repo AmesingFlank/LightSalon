@@ -6,6 +6,8 @@ pub struct AppUiState {
 
     pub show_grid: bool,
 
+    pub editor_panel: EditorPanel,
+
     pub selected_curve_control_point_index: Option<usize>,
     pub curve_scope: CurveScope,
 
@@ -18,6 +20,7 @@ impl AppUiState {
             last_frame_size: None,
             fps_counter: FpsCounterState::new(),
             show_grid: false,
+            editor_panel: EditorPanel::LightAndColor,
             selected_curve_control_point_index: None,
             curve_scope: CurveScope::RGB,
             color_mixer_color_index: 0,
@@ -55,4 +58,10 @@ impl fmt::Display for CurveScope {
         // or, alternatively:
         // fmt::Debug::fmt(self, f)
     }
+}
+
+#[derive(PartialEq)]
+pub enum EditorPanel {
+    LightAndColor,
+    CropAndRotate,
 }
