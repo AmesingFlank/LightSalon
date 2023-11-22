@@ -15,7 +15,6 @@ use salon_core::shader::{Shader, ShaderLibraryModule};
 
 pub struct MainImageCallback {
     pub image: Arc<Image>,
-    pub draw_grid: bool,
 }
 
 impl egui_wgpu::CallbackTrait for MainImageCallback {
@@ -27,7 +26,7 @@ impl egui_wgpu::CallbackTrait for MainImageCallback {
         resources: &mut egui_wgpu::CallbackResources,
     ) -> Vec<wgpu::CommandBuffer> {
         let mut resources: &mut MainImageRenderResources = resources.get_mut().unwrap();
-        resources.prepare(device, queue, self.image.as_ref(), self.draw_grid);
+        resources.prepare(device, queue, self.image.as_ref());
         Vec::new()
     }
 
@@ -64,7 +63,7 @@ impl MainImageRenderResources {
         let ring_buffer = RingBuffer::new(
             runtime.clone(),
             BufferProperties {
-                size: size_of::<u32>() * 2,
+                size: size_of::<u32>(),
                 host_readable: false,
             },
         );
@@ -97,13 +96,12 @@ impl MainImageRenderResources {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         image: &salon_core::image::Image,
-        draw_grid: bool,
     ) {
         let buffer = self.ring_buffer.get();
         queue.write_buffer(
             &buffer.buffer,
             0,
-            bytemuck::cast_slice(&[image.properties.color_space as u32, draw_grid as u32]),
+            bytemuck::cast_slice(&[image.properties.color_space as u32]),
         );
 
         let bind_group_desc = BindGroupDescriptor {

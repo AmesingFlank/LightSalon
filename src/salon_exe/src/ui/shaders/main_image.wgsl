@@ -5,7 +5,6 @@ struct VertexOut {
 
 struct Params {
     image_color_space: u32,
-    draw_grid: u32,
 };
 
 @group(0) @binding(0)
@@ -43,16 +42,5 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
     if (params.image_color_space == COLOR_SPACE_LINEAR_RGB) {
         color = linear_to_srgb(color);
     }
-    if (params.draw_grid == 1u) {
-        let x = in.uv.x;
-        let y = in.uv.y;
-        let xdist =  min(abs(x - 1.0 / 3.0), abs(x - 2.0 / 3.0));
-        let ydist =  min(abs(y - 1.0 / 3.0), abs(y - 2.0 / 3.0));
-        let xmargin = 0.001;
-        let ymargin = xmargin * f32(image_size.x) / f32(image_size.y);
-        if(xdist < xmargin || ydist < ymargin) {
-            color = mix(color, vec3(0.8), 0.8);
-        }
-    } 
     return vec4(color, 1.0);
 }

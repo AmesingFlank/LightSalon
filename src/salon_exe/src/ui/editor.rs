@@ -16,6 +16,7 @@ pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
             EditorPanel::LightAndColor,
             "Adjust",
         );
+        ui.separator();
         ui.selectable_value(
             &mut ui_state.editor_panel,
             EditorPanel::CropAndRotate,
