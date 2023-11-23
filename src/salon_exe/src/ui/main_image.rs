@@ -16,7 +16,7 @@ use salon_core::session::Session;
 use salon_core::shader::{Shader, ShaderLibraryModule};
 
 use super::widgets::MainImageCallback;
-use super::AppUiState;
+use super::{AppUiState, EditorPanel};
 
 pub fn main_image(
     ctx: &egui::Context,
@@ -54,30 +54,79 @@ pub fn main_image(
                         image: image.clone(),
                     },
                 ));
+                if ui_state.editor_panel == EditorPanel::CropAndRotate {
+                    draw_grid_impl(ui, rect);
+                    draw_drag_handles(ui, rect);
+                }
                 if draw_grid {
-                    let stroke = egui::Stroke::new(rect.width() * 0.002, Color32::from_gray(200));
-                    ui.painter().hline(
-                        egui::Rangef::new(rect.min.x, rect.max.x),
-                        rect.min.y + rect.height() / 3.0,
-                        stroke,
-                    );
-                    ui.painter().hline(
-                        egui::Rangef::new(rect.min.x, rect.max.x),
-                        rect.min.y + rect.height() * 2.0 / 3.0,
-                        stroke,
-                    );
-                    ui.painter().vline(
-                        rect.min.x + rect.width() / 3.0,
-                        egui::Rangef::new(rect.min.y, rect.max.y),
-                        stroke,
-                    );
-                    ui.painter().vline(
-                        rect.min.x + rect.width() * 2.0 / 3.0,
-                        egui::Rangef::new(rect.min.y, rect.max.y),
-                        stroke,
-                    );
+                    draw_grid_impl(ui, rect);
                 }
             });
         }
+    }
+}
+
+fn draw_drag_handles(ui: &mut Ui, rect: egui::Rect) {
+    let width = rect.width().min(rect.height()) * 0.005;
+    let length = rect.width().min(rect.height()) * 0.1;
+    let stroke = egui::Stroke::new(width, Color32::from_gray(250));
+
+    for y in [rect.min.y - width * 0.5, rect.max.y + width * 0.5] {
+        ui.painter().hline(
+            egui::Rangef::new(rect.min.x - width, rect.min.x - width + length * 0.5),
+            y,
+            stroke,
+        );
+        ui.painter().hline(
+            egui::Rangef::new(
+                rect.min.x + rect.width() * 0.5 - length * 0.5,
+                rect.min.x + rect.width() * 0.5 + length * 0.5,
+            ),
+            y,
+            stroke,
+        );
+        ui.painter().hline(
+            egui::Rangef::new(rect.max.x + width - length * 0.5, rect.max.x + width),
+            y,
+            stroke,
+        );
+    }
+
+    for x in [rect.min.x - width * 0.5, rect.max.x + width * 0.5] {
+        ui.painter().vline(
+            x,
+            egui::Rangef::new(rect.min.y - width, rect.min.y - width + length * 0.5),
+            stroke,
+        );
+        ui.painter().vline(
+            x,
+            egui::Rangef::new(
+                rect.min.y + rect.height() * 0.5 - length * 0.5,
+                rect.min.y + rect.height() * 0.5 + length * 0.5,
+            ),
+            stroke,
+        );
+        ui.painter().vline(
+            x,
+            egui::Rangef::new(rect.max.y + width - length * 0.5, rect.max.y + width),
+            stroke,
+        );
+    }
+}
+
+fn draw_grid_impl(ui: &mut Ui, rect: egui::Rect) {
+    let width = rect.width().min(rect.height()) * 0.001;
+    let stroke = egui::Stroke::new(width, Color32::from_gray(200));
+    for t in [0.0, 1.0, 2.0, 3.0] {
+        ui.painter().hline(
+            egui::Rangef::new(rect.min.x, rect.max.x),
+            rect.min.y + rect.height() * t / 3.0,
+            stroke,
+        );
+        ui.painter().vline(
+            rect.min.x + rect.width() * t / 3.0,
+            egui::Rangef::new(rect.min.y, rect.max.y),
+            stroke,
+        );
     }
 }

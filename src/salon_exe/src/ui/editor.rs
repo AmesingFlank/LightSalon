@@ -14,13 +14,13 @@ pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
         ui.selectable_value(
             &mut ui_state.editor_panel,
             EditorPanel::LightAndColor,
-            "Adjust",
+            "Light and Color",
         );
         ui.separator();
         ui.selectable_value(
             &mut ui_state.editor_panel,
             EditorPanel::CropAndRotate,
-            "Crop",
+            "Crop and Rotate",
         );
     });
 
@@ -37,7 +37,9 @@ pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
             color_mixer(ui, session, ui_state, &mut edit.global);
             effects(ui, session, ui_state, &mut edit.global);
         }
-        EditorPanel::CropAndRotate => {}
+        EditorPanel::CropAndRotate => {
+            
+        }
     }
 
     if session.state.current_image_index.is_none() {
