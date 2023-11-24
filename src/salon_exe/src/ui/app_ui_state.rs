@@ -12,6 +12,8 @@ pub struct AppUiState {
     pub curve_scope: CurveScope,
 
     pub color_mixer_color_index: usize,
+
+    pub crop_drag_state: CropDragState,
 }
 
 impl AppUiState {
@@ -24,6 +26,7 @@ impl AppUiState {
             selected_curve_control_point_index: None,
             curve_scope: CurveScope::RGB,
             color_mixer_color_index: 0,
+            crop_drag_state: CropDragState::new(),
         }
     }
 }
@@ -64,4 +67,66 @@ impl fmt::Display for CurveScope {
 pub enum EditorPanel {
     LightAndColor,
     CropAndRotate,
+}
+
+pub struct CropDragState {
+    pub edge_or_corner: Option<CropDragEdgeOrCorner>,
+}
+
+impl CropDragState {
+    pub fn new() -> Self {
+        Self {
+            edge_or_corner: None,
+        }
+    }
+}
+
+#[derive(PartialEq, Clone, Copy)]
+pub enum CropDragEdgeOrCorner {
+    Left,
+    Right,
+    Top,
+    Bottom,
+    TopLeft,
+    TopRight,
+    BottomLeft,
+    BottomRight,
+}
+
+impl CropDragEdgeOrCorner {
+    pub fn has_left(&self) -> bool {
+        match *self {
+            CropDragEdgeOrCorner::Left
+            | CropDragEdgeOrCorner::TopLeft
+            | CropDragEdgeOrCorner::BottomLeft => true,
+            _ => false,
+        }
+    }
+
+    pub fn has_right(&self) -> bool {
+        match *self {
+            CropDragEdgeOrCorner::Right
+            | CropDragEdgeOrCorner::TopRight
+            | CropDragEdgeOrCorner::BottomRight => true,
+            _ => false,
+        }
+    }
+
+    pub fn has_top(&self) -> bool {
+        match *self {
+            CropDragEdgeOrCorner::Top
+            | CropDragEdgeOrCorner::TopLeft
+            | CropDragEdgeOrCorner::TopRight => true,
+            _ => false,
+        }
+    }
+
+    pub fn has_bottom(&self) -> bool {
+        match *self {
+            CropDragEdgeOrCorner::Bottom
+            | CropDragEdgeOrCorner::BottomLeft
+            | CropDragEdgeOrCorner::BottomRight => true,
+            _ => false,
+        }
+    }
 }
