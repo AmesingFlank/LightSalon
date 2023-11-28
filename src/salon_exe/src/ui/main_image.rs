@@ -209,17 +209,27 @@ fn handle_crop_and_rotate_response(
         } else if response.drag_released() {
             ui_state.crop_drag_state.edge_or_corner = None;
         }
-    }
-    else if ui_state.crop_drag_state.translation {
-        // TODO
-    }
-    else {
+    } else if ui_state.crop_drag_state.translation {
+        ui.output_mut(|out| out.cursor_icon = CursorIcon::Grabbing);
+        if response.dragged() {
+            // TODO
+        } else if response.drag_released() {
+            ui_state.crop_drag_state.translation = false;
+        }
+    } else {
         if let Some(hover_pos) = response.hover_pos() {
             if let Some(edge_or_corner) = find_edge_or_corner(hover_pos, curr_rect) {
                 set_edge_or_corner_cursor(ui, edge_or_corner);
                 if response.drag_started() {
                     ui_state.crop_drag_state.edge_or_corner = Some(edge_or_corner);
                     ui_state.crop_drag_state.rect = Some(curr_rect);
+                }
+            } else {
+                if curr_rect.contains(hover_pos) {
+                    ui.output_mut(|out| out.cursor_icon = CursorIcon::Grab);
+                    if response.drag_started() {
+                        ui_state.crop_drag_state.translation = true;
+                    }
                 }
             }
         }
