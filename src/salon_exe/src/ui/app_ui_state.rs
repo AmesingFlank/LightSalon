@@ -73,6 +73,7 @@ pub enum EditorPanel {
 
 pub struct CropDragState {
     pub edge_or_corner: Option<CropDragEdgeOrCorner>,
+    pub translation: bool,
     pub rect: Option<egui::Rect>,
 }
 
@@ -80,6 +81,7 @@ impl CropDragState {
     pub fn new() -> Self {
         Self {
             edge_or_corner: None,
+            translation: false,
             rect: None,
         }
     }

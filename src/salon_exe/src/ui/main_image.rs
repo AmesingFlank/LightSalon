@@ -121,19 +121,7 @@ fn find_edge_or_corner(pos: egui::Pos2, rect: egui::Rect) -> Option<CropDragEdge
     None
 }
 
-fn handle_crop_and_rotate_response(
-    ui: &mut Ui,
-    response: &egui::Response,
-    curr_rect: egui::Rect,
-    original_rect: egui::Rect,
-    ui_state: &mut AppUiState,
-) {
-    let mut edge_or_corner = ui_state.crop_drag_state.edge_or_corner;
-    if edge_or_corner.is_none() {
-        if let Some(hover_pos) = response.hover_pos() {
-            edge_or_corner = find_edge_or_corner(hover_pos, curr_rect);
-        }
-    }
+fn set_cursor(ui: &mut Ui, edge_or_corner: &Option<CropDragEdgeOrCorner>) {
     if let Some(ref edge_or_corner) = edge_or_corner {
         match edge_or_corner {
             CropDragEdgeOrCorner::Left | CropDragEdgeOrCorner::Right => {
@@ -149,7 +137,24 @@ fn handle_crop_and_rotate_response(
                 ui.output_mut(|out| out.cursor_icon = CursorIcon::ResizeNeSw);
             }
         }
+    }
+}
 
+fn handle_crop_and_rotate_response(
+    ui: &mut Ui,
+    response: &egui::Response,
+    curr_rect: egui::Rect,
+    original_rect: egui::Rect,
+    ui_state: &mut AppUiState,
+) {
+    let mut edge_or_corner = ui_state.crop_drag_state.edge_or_corner;
+    if edge_or_corner.is_none() {
+        if let Some(hover_pos) = response.hover_pos() {
+            edge_or_corner = find_edge_or_corner(hover_pos, curr_rect);
+        }
+    }
+    if let Some(ref edge_or_corner) = edge_or_corner {
+        set_cursor(ui, &ui_state.crop_drag_state.edge_or_corner);
         if response.drag_started() {
             ui_state.crop_drag_state.edge_or_corner = Some(*edge_or_corner);
             ui_state.crop_drag_state.rect = Some(curr_rect);
