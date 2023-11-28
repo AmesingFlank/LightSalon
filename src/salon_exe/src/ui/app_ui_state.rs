@@ -1,5 +1,7 @@
 use std::{fmt, time::SystemTime};
 
+use eframe::egui;
+
 pub struct AppUiState {
     pub last_frame_size: Option<(f32, f32)>,
     pub fps_counter: FpsCounterState,
@@ -71,12 +73,14 @@ pub enum EditorPanel {
 
 pub struct CropDragState {
     pub edge_or_corner: Option<CropDragEdgeOrCorner>,
+    pub rect: Option<egui::Rect>,
 }
 
 impl CropDragState {
     pub fn new() -> Self {
         Self {
             edge_or_corner: None,
+            rect: None,
         }
     }
 }
