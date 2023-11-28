@@ -149,71 +149,72 @@ fn handle_crop_and_rotate_response(
                 ui.output_mut(|out| out.cursor_icon = CursorIcon::ResizeNeSw);
             }
         }
-    }
-    if response.drag_started() {
-        ui_state.crop_drag_state.edge_or_corner = edge_or_corner;
-        ui_state.crop_drag_state.rect = Some(curr_rect);
-    } else if response.dragged() {
-        let new_rect = ui_state.crop_drag_state.rect.as_mut().unwrap();
-        let aspect_ratio = new_rect.height() / new_rect.width();
-        let delta = response.drag_delta();
-        if let Some(ref edge_or_corner) = ui_state.crop_drag_state.edge_or_corner {
-            match edge_or_corner {
-                CropDragEdgeOrCorner::Left => {
-                    new_rect.min.x += delta.x;
-                }
-                CropDragEdgeOrCorner::Right => {
-                    new_rect.max.x += delta.x;
-                }
-                CropDragEdgeOrCorner::Top => {
-                    new_rect.min.y += delta.y;
-                }
-                CropDragEdgeOrCorner::Bottom => {
-                    new_rect.max.y += delta.y;
-                }
-                CropDragEdgeOrCorner::TopLeft => {
-                    if delta.x.signum() == delta.y.signum() {
-                        let x_abs = delta.x.abs().min(delta.y.abs() / aspect_ratio);
-                        new_rect.min.x += x_abs * delta.x.signum();
-                        new_rect.min.y += x_abs * aspect_ratio * delta.y.signum();
+
+        if response.drag_started() {
+            ui_state.crop_drag_state.edge_or_corner = Some(*edge_or_corner);
+            ui_state.crop_drag_state.rect = Some(curr_rect);
+        } else if response.dragged() {
+            let new_rect = ui_state.crop_drag_state.rect.as_mut().unwrap();
+            let aspect_ratio = new_rect.height() / new_rect.width();
+            let delta = response.drag_delta();
+            if let Some(ref edge_or_corner) = ui_state.crop_drag_state.edge_or_corner {
+                match edge_or_corner {
+                    CropDragEdgeOrCorner::Left => {
+                        new_rect.min.x += delta.x;
                     }
-                }
-                CropDragEdgeOrCorner::BottomRight => {
-                    if delta.x.signum() == delta.y.signum() {
-                        let x_abs = delta.x.abs().min(delta.y.abs() / aspect_ratio);
-                        new_rect.max.x += x_abs * delta.x.signum();
-                        new_rect.max.y += x_abs * aspect_ratio * delta.y.signum();
+                    CropDragEdgeOrCorner::Right => {
+                        new_rect.max.x += delta.x;
                     }
-                }
-                CropDragEdgeOrCorner::TopRight => {
-                    if delta.x.signum() == -delta.y.signum() {
-                        let x_abs = delta.x.abs().min(delta.y.abs() / aspect_ratio);
-                        new_rect.max.x += x_abs * delta.x.signum();
-                        new_rect.min.y += x_abs * aspect_ratio * delta.y.signum();
+                    CropDragEdgeOrCorner::Top => {
+                        new_rect.min.y += delta.y;
                     }
-                }
-                CropDragEdgeOrCorner::BottomLeft => {
-                    if delta.x.signum() == -delta.y.signum() {
-                        let x_abs = delta.x.abs().min(delta.y.abs() / aspect_ratio);
-                        new_rect.min.x += x_abs * delta.x.signum();
-                        new_rect.max.y += x_abs * aspect_ratio * delta.y.signum();
+                    CropDragEdgeOrCorner::Bottom => {
+                        new_rect.max.y += delta.y;
                     }
+                    CropDragEdgeOrCorner::TopLeft => {
+                        if delta.x.signum() == delta.y.signum() {
+                            let x_abs = delta.x.abs().min(delta.y.abs() / aspect_ratio);
+                            new_rect.min.x += x_abs * delta.x.signum();
+                            new_rect.min.y += x_abs * aspect_ratio * delta.y.signum();
+                        }
+                    }
+                    CropDragEdgeOrCorner::BottomRight => {
+                        if delta.x.signum() == delta.y.signum() {
+                            let x_abs = delta.x.abs().min(delta.y.abs() / aspect_ratio);
+                            new_rect.max.x += x_abs * delta.x.signum();
+                            new_rect.max.y += x_abs * aspect_ratio * delta.y.signum();
+                        }
+                    }
+                    CropDragEdgeOrCorner::TopRight => {
+                        if delta.x.signum() == -delta.y.signum() {
+                            let x_abs = delta.x.abs().min(delta.y.abs() / aspect_ratio);
+                            new_rect.max.x += x_abs * delta.x.signum();
+                            new_rect.min.y += x_abs * aspect_ratio * delta.y.signum();
+                        }
+                    }
+                    CropDragEdgeOrCorner::BottomLeft => {
+                        if delta.x.signum() == -delta.y.signum() {
+                            let x_abs = delta.x.abs().min(delta.y.abs() / aspect_ratio);
+                            new_rect.min.x += x_abs * delta.x.signum();
+                            new_rect.max.y += x_abs * aspect_ratio * delta.y.signum();
+                        }
+                    }
+                    _ => {}
                 }
-                _ => {}
             }
+
+            new_rect.min.x = new_rect.min.x.min(curr_rect.max.x);
+            new_rect.min.y = new_rect.min.y.min(curr_rect.max.y);
+            new_rect.max.x = new_rect.max.x.max(curr_rect.min.x);
+            new_rect.max.y = new_rect.max.y.max(curr_rect.min.y);
+
+            new_rect.min.x = new_rect.min.x.max(original_rect.min.x);
+            new_rect.min.y = new_rect.min.y.max(original_rect.min.y);
+            new_rect.max.x = new_rect.max.x.min(original_rect.max.x);
+            new_rect.max.y = new_rect.max.y.min(original_rect.max.y);
+        } else if response.drag_released() {
+            ui_state.crop_drag_state.edge_or_corner = None;
         }
-
-        new_rect.min.x = new_rect.min.x.min(curr_rect.max.x);
-        new_rect.min.y = new_rect.min.y.min(curr_rect.max.y);
-        new_rect.max.x = new_rect.max.x.max(curr_rect.min.x);
-        new_rect.max.y = new_rect.max.y.max(curr_rect.min.y);
-
-        new_rect.min.x = new_rect.min.x.max(original_rect.min.x);
-        new_rect.min.y = new_rect.min.y.max(original_rect.min.y);
-        new_rect.max.x = new_rect.max.x.min(original_rect.max.x);
-        new_rect.max.y = new_rect.max.y.min(original_rect.max.y);
-    } else if response.drag_released() {
-        ui_state.crop_drag_state.edge_or_corner = None;
     }
 }
 
