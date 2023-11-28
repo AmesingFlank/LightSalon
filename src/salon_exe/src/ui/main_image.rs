@@ -148,8 +148,8 @@ fn handle_crop_and_rotate_response(
     if let Some(ref edge_or_corner) = ui_state.crop_drag_state.edge_or_corner {
         set_edge_or_corner_cursor(ui, *edge_or_corner);
         if response.dragged() {
+            let aspect_ratio = curr_rect.height() / curr_rect.width();
             let new_rect = ui_state.crop_drag_state.rect.as_mut().unwrap();
-            let aspect_ratio = new_rect.height() / new_rect.width();
             let delta = response.drag_delta();
             if let Some(ref edge_or_corner) = ui_state.crop_drag_state.edge_or_corner {
                 match edge_or_corner {
@@ -212,7 +212,17 @@ fn handle_crop_and_rotate_response(
     } else if ui_state.crop_drag_state.translation {
         ui.output_mut(|out| out.cursor_icon = CursorIcon::Grabbing);
         if response.dragged() {
-            // TODO
+            let mut delta = response.drag_delta();
+            delta.x = delta.x.min(original_rect.max.x - curr_rect.max.x);
+            delta.x = delta.x.max(original_rect.min.x - curr_rect.min.x);
+            delta.y = delta.y.min(original_rect.max.y - curr_rect.max.y);
+            delta.y = delta.y.max(original_rect.min.y - curr_rect.min.y);
+
+            let new_rect = ui_state.crop_drag_state.rect.as_mut().unwrap();
+            new_rect.min.x += delta.x;
+            new_rect.max.x += delta.x;
+            new_rect.min.y += delta.y;
+            new_rect.max.y += delta.y;
         } else if response.drag_released() {
             ui_state.crop_drag_state.translation = false;
         }
@@ -229,6 +239,7 @@ fn handle_crop_and_rotate_response(
                     ui.output_mut(|out| out.cursor_icon = CursorIcon::Grab);
                     if response.drag_started() {
                         ui_state.crop_drag_state.translation = true;
+                        ui_state.crop_drag_state.rect = Some(curr_rect);
                     }
                 }
             }
