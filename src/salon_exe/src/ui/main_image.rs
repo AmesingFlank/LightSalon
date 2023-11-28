@@ -115,28 +115,30 @@ fn handle_crop_and_rotate_response(
     rect: egui::Rect,
     ui_state: &mut AppUiState,
 ) {
-    if let Some(hover_pos) = response.hover_pos() {
-        if let Some(edge_or_corner) = find_edge_or_corner(hover_pos, rect) {
-            if response.drag_started() {
-                ui_state.crop_drag_state.edge_or_corner = Some(edge_or_corner);
+    let mut edge_or_corner = ui_state.crop_drag_state.edge_or_corner;
+    if edge_or_corner.is_none() {
+        if let Some(hover_pos) = response.hover_pos() {
+            edge_or_corner = find_edge_or_corner(hover_pos, rect);
+        }
+    }
+    if let Some(ref edge_or_corner) = edge_or_corner {
+        match edge_or_corner {
+            CropDragEdgeOrCorner::Left | CropDragEdgeOrCorner::Right => {
+                ui.output_mut(|out| out.cursor_icon = CursorIcon::ResizeHorizontal);
             }
-            match edge_or_corner {
-                CropDragEdgeOrCorner::Left | CropDragEdgeOrCorner::Right => {
-                    ui.output_mut(|out| out.cursor_icon = CursorIcon::ResizeHorizontal);
-                }
-                CropDragEdgeOrCorner::Top | CropDragEdgeOrCorner::Bottom => {
-                    ui.output_mut(|out| out.cursor_icon = CursorIcon::ResizeVertical);
-                }
-                CropDragEdgeOrCorner::TopLeft | CropDragEdgeOrCorner::BottomRight => {
-                    ui.output_mut(|out| out.cursor_icon = CursorIcon::ResizeNwSe);
-                }
-                CropDragEdgeOrCorner::TopRight | CropDragEdgeOrCorner::BottomLeft => {
-                    ui.output_mut(|out| out.cursor_icon = CursorIcon::ResizeNeSw);
-                }
+            CropDragEdgeOrCorner::Top | CropDragEdgeOrCorner::Bottom => {
+                ui.output_mut(|out| out.cursor_icon = CursorIcon::ResizeVertical);
+            }
+            CropDragEdgeOrCorner::TopLeft | CropDragEdgeOrCorner::BottomRight => {
+                ui.output_mut(|out| out.cursor_icon = CursorIcon::ResizeNwSe);
+            }
+            CropDragEdgeOrCorner::TopRight | CropDragEdgeOrCorner::BottomLeft => {
+                ui.output_mut(|out| out.cursor_icon = CursorIcon::ResizeNeSw);
             }
         }
     }
     if response.drag_started() {
+        ui_state.crop_drag_state.edge_or_corner = edge_or_corner;
     } else if response.dragged() {
     } else if response.drag_released() {
         ui_state.crop_drag_state.edge_or_corner = None;
