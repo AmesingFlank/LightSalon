@@ -121,21 +121,19 @@ fn find_edge_or_corner(pos: egui::Pos2, rect: egui::Rect) -> Option<CropDragEdge
     None
 }
 
-fn set_cursor(ui: &mut Ui, edge_or_corner: &Option<CropDragEdgeOrCorner>) {
-    if let Some(ref edge_or_corner) = edge_or_corner {
-        match edge_or_corner {
-            CropDragEdgeOrCorner::Left | CropDragEdgeOrCorner::Right => {
-                ui.output_mut(|out| out.cursor_icon = CursorIcon::ResizeHorizontal);
-            }
-            CropDragEdgeOrCorner::Top | CropDragEdgeOrCorner::Bottom => {
-                ui.output_mut(|out| out.cursor_icon = CursorIcon::ResizeVertical);
-            }
-            CropDragEdgeOrCorner::TopLeft | CropDragEdgeOrCorner::BottomRight => {
-                ui.output_mut(|out| out.cursor_icon = CursorIcon::ResizeNwSe);
-            }
-            CropDragEdgeOrCorner::TopRight | CropDragEdgeOrCorner::BottomLeft => {
-                ui.output_mut(|out| out.cursor_icon = CursorIcon::ResizeNeSw);
-            }
+fn set_edge_or_corner_cursor(ui: &mut Ui, edge_or_corner: CropDragEdgeOrCorner) {
+    match edge_or_corner {
+        CropDragEdgeOrCorner::Left | CropDragEdgeOrCorner::Right => {
+            ui.output_mut(|out| out.cursor_icon = CursorIcon::ResizeHorizontal);
+        }
+        CropDragEdgeOrCorner::Top | CropDragEdgeOrCorner::Bottom => {
+            ui.output_mut(|out| out.cursor_icon = CursorIcon::ResizeVertical);
+        }
+        CropDragEdgeOrCorner::TopLeft | CropDragEdgeOrCorner::BottomRight => {
+            ui.output_mut(|out| out.cursor_icon = CursorIcon::ResizeNwSe);
+        }
+        CropDragEdgeOrCorner::TopRight | CropDragEdgeOrCorner::BottomLeft => {
+            ui.output_mut(|out| out.cursor_icon = CursorIcon::ResizeNeSw);
         }
     }
 }
@@ -147,18 +145,9 @@ fn handle_crop_and_rotate_response(
     original_rect: egui::Rect,
     ui_state: &mut AppUiState,
 ) {
-    let mut edge_or_corner = ui_state.crop_drag_state.edge_or_corner;
-    if edge_or_corner.is_none() {
-        if let Some(hover_pos) = response.hover_pos() {
-            edge_or_corner = find_edge_or_corner(hover_pos, curr_rect);
-        }
-    }
-    if let Some(ref edge_or_corner) = edge_or_corner {
-        set_cursor(ui, &ui_state.crop_drag_state.edge_or_corner);
-        if response.drag_started() {
-            ui_state.crop_drag_state.edge_or_corner = Some(*edge_or_corner);
-            ui_state.crop_drag_state.rect = Some(curr_rect);
-        } else if response.dragged() {
+    if let Some(ref edge_or_corner) = ui_state.crop_drag_state.edge_or_corner {
+        set_edge_or_corner_cursor(ui, *edge_or_corner);
+        if response.dragged() {
             let new_rect = ui_state.crop_drag_state.rect.as_mut().unwrap();
             let aspect_ratio = new_rect.height() / new_rect.width();
             let delta = response.drag_delta();
@@ -219,6 +208,20 @@ fn handle_crop_and_rotate_response(
             new_rect.max.y = new_rect.max.y.min(original_rect.max.y);
         } else if response.drag_released() {
             ui_state.crop_drag_state.edge_or_corner = None;
+        }
+    }
+    else if ui_state.crop_drag_state.translation {
+        // TODO
+    }
+    else {
+        if let Some(hover_pos) = response.hover_pos() {
+            if let Some(edge_or_corner) = find_edge_or_corner(hover_pos, curr_rect) {
+                set_edge_or_corner_cursor(ui, edge_or_corner);
+                if response.drag_started() {
+                    ui_state.crop_drag_state.edge_or_corner = Some(edge_or_corner);
+                    ui_state.crop_drag_state.rect = Some(curr_rect);
+                }
+            }
         }
     }
 }
