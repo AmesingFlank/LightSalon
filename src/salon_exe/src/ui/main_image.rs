@@ -14,6 +14,8 @@ use salon_core::runtime::{
 use salon_core::sampler::Sampler;
 use salon_core::session::Session;
 use salon_core::shader::{Shader, ShaderLibraryModule};
+use salon_core::utils::rectangle::Rectangle;
+use salon_core::utils::vec::vec2;
 use serde_json::de;
 
 use super::widgets::MainImageCallback;
@@ -70,6 +72,17 @@ pub fn main_image(
                     );
                     draw_drag_handles(ui, curr_rect, ui_state);
                     draw_grid_impl(ui, curr_rect, ui_state);
+                    if let Some(ref rect) = ui_state.crop_drag_state.rect {
+                        let min_x = (rect.min.x - original_rect.min.x) / original_rect.width();
+                        let min_y = (rect.min.y - original_rect.min.y) / original_rect.height();
+                        let max_x = (rect.max.x - original_rect.min.x) / original_rect.width();
+                        let max_y = (rect.max.y - original_rect.min.y) / original_rect.height();
+
+                        session.editor.current_edit.crop = Some(Rectangle {
+                            min: vec2((min_x, min_y)),
+                            max: vec2((max_x, max_y)),
+                        })
+                    }
                 }
                 if draw_grid {
                     draw_grid_impl(ui, rect, ui_state);

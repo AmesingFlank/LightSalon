@@ -22,7 +22,10 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     if(global_id.x >= output_size.x || global_id.y >= output_size.y){
         return;
     }
-    let source_coords = global_id.xy + vec2<u32>(min_x * input_size.x, min_y * input_size.x);
-    var c = textureLoad(input, source_coords, 0).rgb;
+    let x_scale = params.max_x - params.min_x;
+    let y_scale = params.max_y - params.min_y;
+
+    let source_coords = vec2<f32>(global_id.xy) * vec2(x_scale, y_scale) + vec2(params.min_x * f32(input_size.x), params.min_y * f32(input_size.x));
+    var c = textureLoad(input, vec2<u32>(source_coords), 0).rgb;
     textureStore(output, global_id.xy, vec4<f32>(c, 1.0));
 }
