@@ -5,9 +5,9 @@ use crate::{
     image::Image,
     ir::{
         AdjustContrastOp, AdjustExposureOp, AdjustHighlightsAndShadowsOp,
-        AdjustTemperatureAndTintOp, AdjustVibranceAndSaturationOp, ApplyCurveOp, ApplyDehazeOp,
-        CollectDataForEditorOp, ColorMixGroup, ColorMixOp, ComputeBasicStatisticsOp,
-        ComputeHistogramOp, Id, IdTag, Module, Op, PrepareDehazeOp, AdjustVignetteOp,
+        AdjustTemperatureAndTintOp, AdjustVibranceAndSaturationOp, AdjustVignetteOp, ApplyCurveOp,
+        ApplyDehazeOp, CollectDataForEditorOp, ColorMixGroup, ColorMixOp, ComputeBasicStatisticsOp,
+        ComputeHistogramOp, Id, IdTag, Module, Op, PrepareDehazeOp,
     },
 };
 
@@ -77,27 +77,10 @@ pub struct GlobalEdit {
     pub vibrance: f32,
     pub saturation: f32,
 
-    pub color_mixer_edits: [ColorMixerEdit; 8],
+    pub color_mixer_edits: [ColorMixGroup; 8],
 
     pub dehaze: f32,
     pub vignette: f32,
-}
-
-#[derive(Clone, Copy, PartialEq)]
-pub struct ColorMixerEdit {
-    pub hue: f32,
-    pub saturation: f32,
-    pub lightness: f32,
-}
-
-impl ColorMixerEdit {
-    pub fn new() -> Self {
-        Self {
-            hue: 0.0,
-            saturation: 0.0,
-            lightness: 0.0,
-        }
-    }
 }
 
 impl GlobalEdit {
@@ -118,7 +101,7 @@ impl GlobalEdit {
             vibrance: 0.0,
             saturation: 0.0,
 
-            color_mixer_edits: [ColorMixerEdit::new(); 8],
+            color_mixer_edits: [ColorMixGroup::new(); 8],
 
             dehaze: 0.0,
             vignette: 0.0,
@@ -269,7 +252,7 @@ impl GlobalEdit {
     }
 
     fn maybe_add_color_mix(&self, module: &mut Module, current_output_id: &mut Id) {
-        if self.color_mixer_edits != [ColorMixerEdit::new(); 8] {
+        if self.color_mixer_edits != [ColorMixGroup::new(); 8] {
             let mut groups = [ColorMixGroup {
                 hue: 0.0,
                 saturation: 0.0,

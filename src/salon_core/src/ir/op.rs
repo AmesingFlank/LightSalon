@@ -88,6 +88,16 @@ pub struct ColorMixGroup {
     pub lightness: f32,
 }
 
+impl ColorMixGroup {
+    pub fn new() -> Self {
+        Self {
+            hue: 0.0,
+            saturation: 0.0,
+            lightness: 0.0,
+        }
+    }
+}
+
 #[derive(Clone, PartialEq)]
 pub struct AdjustVignetteOp {
     pub result: Id,
@@ -134,5 +144,5 @@ pub struct CropOp {
     pub min_x: f32,
     pub min_y: f32,
     pub max_x: f32,
-    pub max_y: f32, 
+    pub max_y: f32,
 }
