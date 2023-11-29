@@ -16,6 +16,7 @@ pub enum Op {
     ComputeBasicStatistics(ComputeBasicStatisticsOp),
     ComputeHistogram(ComputeHistogramOp),
     CollectDataForEditor(CollectDataForEditorOp),
+    Crop(CropOp),
 }
 
 #[derive(Clone, PartialEq)]
@@ -124,4 +125,14 @@ pub struct ComputeHistogramOp {
 pub struct CollectDataForEditorOp {
     pub result: Id,
     pub histogram_final: Id,
+}
+
+#[derive(Clone, PartialEq)]
+pub struct CropOp {
+    pub result: Id,
+    pub arg: Id,
+    pub min_x: f32,
+    pub min_y: f32,
+    pub max_x: f32,
+    pub max_y: f32, 
 }

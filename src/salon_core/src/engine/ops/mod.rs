@@ -11,3 +11,4 @@ pub mod color_mix;
 pub mod vignette;
 pub mod dehaze_prepare;
 pub mod dehaze_apply;
+pub mod crop;

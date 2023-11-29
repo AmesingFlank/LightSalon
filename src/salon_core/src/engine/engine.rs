@@ -14,6 +14,7 @@ use super::{
         collect_data_for_editor::CollectDataForEditorImpl,
         color_mix::ColorMixImpl,
         contrast::AdjustContrastImpl,
+        crop::CropImpl,
         curve::ApplyCurveImpl,
         dehaze_apply::ApplyDehazeImpl,
         dehaze_prepare::PrepareDehazeImpl,
@@ -212,6 +213,13 @@ impl Engine {
                         .unwrap()
                         .encode_commands(&mut encoder, op, &mut execution_context.value_store);
                 }
+                Op::Crop(ref op) => {
+                    self.op_impls.crop.as_mut().unwrap().encode_commands(
+                        &mut encoder,
+                        op,
+                        &mut execution_context.value_store,
+                    );
+                }
             }
         }
 
@@ -325,6 +333,12 @@ impl Engine {
                         .as_mut()
                         .unwrap()
                         .reset();
+                }
+                Op::Crop(_) => {
+                    if self.op_impls.crop.is_none() {
+                        self.op_impls.crop = Some(CropImpl::new(self.runtime.clone()))
+                    }
+                    self.op_impls.crop.as_mut().unwrap().reset();
                 }
             }
         }

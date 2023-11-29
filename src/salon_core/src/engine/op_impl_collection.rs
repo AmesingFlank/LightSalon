@@ -5,7 +5,7 @@ use super::ops::{
     dehaze_prepare::PrepareDehazeImpl, exposure::AdjustExposureImpl,
     highlights_shadows::AdjustHighlightsAndShadowsImpl, histogram::ComputeHistogramImpl,
     temperature_tint::AdjustTemperatureAndTintImpl,
-    vibrance_saturation::AdjustVibranceAndSaturationImpl, vignette::AdjustVignetteImpl,
+    vibrance_saturation::AdjustVibranceAndSaturationImpl, vignette::AdjustVignetteImpl, crop::CropImpl,
 };
 
 #[derive(Default)]
@@ -23,6 +23,7 @@ pub struct OpImplCollection {
     pub basic_statistics: Option<ComputeBasicStatisticsImpl>,
     pub histogram: Option<ComputeHistogramImpl>,
     pub collect_data_for_editor: Option<CollectDataForEditorImpl>,
+    pub crop: Option<CropImpl>,
 }
 
 impl OpImplCollection {
