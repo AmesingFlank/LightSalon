@@ -56,8 +56,8 @@ impl CropImpl {
     ) {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
 
-        let x_scale = op.max_x - op.min_x;
-        let y_scale = op.max_y - op.min_y;
+        let x_scale = op.rect.max.x - op.rect.min.x;
+        let y_scale = op.rect.max.y - op.rect.min.y;
         let input_dimensions = input_img.properties.dimensions;
         let output_dimensions = (
             (input_dimensions.0 as f32 * x_scale) as u32,
@@ -79,7 +79,7 @@ impl CropImpl {
         self.runtime.queue.write_buffer(
             &buffer.buffer,
             0,
-            bytemuck::cast_slice(&[op.min_x, op.min_y, op.max_x, op.max_y]),
+            bytemuck::cast_slice(&[op.rect.min.x, op.rect.min.y, op.rect.max.x, op.rect.max.y]),
         );
 
         let bind_group = self.bind_group_manager.get_or_create(BindGroupDescriptor {

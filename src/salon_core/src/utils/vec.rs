@@ -2,7 +2,7 @@ use num::Num;
 use std::ops::{Add, Div, Mul, Sub};
 
 // these are deliberately similar to WGSL
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct Vec2<T: Num> {
     pub x: T,
     pub y: T,
@@ -80,7 +80,7 @@ impl<T: Num + Copy> Div<T> for Vec2<T> {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct Vec3<T: Num> {
     pub x: T,
     pub y: T,
@@ -167,7 +167,7 @@ impl<T: Num + Copy> Div<T> for Vec3<T> {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct Vec4<T: Num> {
     pub x: T,
     pub y: T,

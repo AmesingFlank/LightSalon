@@ -1,3 +1,5 @@
+use crate::utils::rectangle::Rectangle;
+
 use super::Id;
 
 #[derive(Clone, PartialEq)]
@@ -141,8 +143,5 @@ pub struct CollectDataForEditorOp {
 pub struct CropOp {
     pub result: Id,
     pub arg: Id,
-    pub min_x: f32,
-    pub min_y: f32,
-    pub max_x: f32,
-    pub max_y: f32,
+    pub rect: Rectangle,
 }
