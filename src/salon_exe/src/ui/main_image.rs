@@ -49,8 +49,6 @@ pub fn main_image(
 
             ui.centered_and_justified(|ui| {
                 let (rect, response) = ui.allocate_exact_size(size, egui::Sense::click_and_drag());
-                //let painter = egui::Painter::new(ctx.clone(), ui.layer_id(), rect);
-                let draw_grid = ui_state.show_grid;
                 ui.painter().add(egui_wgpu::Callback::new_paint_callback(
                     rect,
                     MainImageCallback {
@@ -70,8 +68,8 @@ pub fn main_image(
                         original_rect,
                         ui_state,
                     );
-                    draw_drag_handles(ui, curr_rect, ui_state);
-                    draw_grid_impl(ui, curr_rect, ui_state);
+                    draw_drag_handles(ui, curr_rect, original_rect, ui_state);
+                    draw_grid_impl(ui, curr_rect, original_rect, ui_state);
                     if let Some(ref rect) = ui_state.crop_drag_state.rect {
                         let min_x = (rect.min.x - original_rect.min.x) / original_rect.width();
                         let min_y = (rect.min.y - original_rect.min.y) / original_rect.height();
@@ -83,9 +81,8 @@ pub fn main_image(
                             max: vec2((max_x, max_y)),
                         })
                     }
-                }
-                if draw_grid {
-                    draw_grid_impl(ui, rect, ui_state);
+                } else if ui_state.show_grid {
+                    draw_grid_impl(ui, rect, rect, ui_state);
                 }
             });
         }
@@ -260,8 +257,13 @@ fn handle_crop_and_rotate_response(
     }
 }
 
-fn draw_drag_handles(ui: &mut Ui, rect: egui::Rect, ui_state: &mut AppUiState) {
-    let width = rect.width().min(rect.height()) * 0.005;
+fn draw_drag_handles(
+    ui: &mut Ui,
+    rect: egui::Rect,
+    original_rect: egui::Rect,
+    ui_state: &mut AppUiState,
+) {
+    let width = original_rect.width().min(original_rect.height()) * 0.005;
     let length = rect.width().min(rect.height()) * 0.1;
     let stroke_non_selected = egui::Stroke::new(width, Color32::from_gray(250));
     let stroke_selected = egui::Stroke::new(width, Color32::from_rgb(50, 150, 200));
@@ -394,8 +396,13 @@ fn draw_drag_handles(ui: &mut Ui, rect: egui::Rect, ui_state: &mut AppUiState) {
     );
 }
 
-fn draw_grid_impl(ui: &mut Ui, rect: egui::Rect, ui_state: &mut AppUiState) {
-    let width = rect.width().min(rect.height()) * 0.001;
+fn draw_grid_impl(
+    ui: &mut Ui,
+    rect: egui::Rect,
+    original_rect: egui::Rect,
+    ui_state: &mut AppUiState,
+) {
+    let width = original_rect.width().min(original_rect.height()) * 0.001;
     let stroke_non_selected = egui::Stroke::new(width, Color32::from_gray(200));
     let stroke_selected = egui::Stroke::new(width * 2.0, Color32::from_rgb(50, 150, 200));
     for t in [0.0, 1.0, 2.0, 3.0] {
