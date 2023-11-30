@@ -5,6 +5,11 @@ struct VertexOut {
 
 struct Params {
     image_color_space: u32,
+
+    crop_min_x: f32,
+    crop_min_y: f32,
+    crop_max_x: f32,
+    crop_max_y: f32,
 };
 
 @group(0) @binding(0)
@@ -37,10 +42,17 @@ fn vs_main(@builtin(vertex_index) v_idx: u32) -> VertexOut {
 
 @fragment
 fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
-    var color = textureSample(tex, tex_sampler, in.uv).rgb;
+    let uv = in.uv;
+    var color = textureSample(tex, tex_sampler, uv).rgb;
+
     let image_size = textureDimensions(tex);
     if (params.image_color_space == COLOR_SPACE_LINEAR_RGB) {
         color = linear_to_srgb(color);
     }
+
+    if (uv.x < params.crop_min_x || uv.x > params.crop_max_x || uv.y < params.crop_min_y || uv.y > params.crop_max_y){
+        color *= 0.3;
+    }
+
     return vec4(color, 1.0);
 }

@@ -58,6 +58,7 @@ pub fn main_image(
                     rect,
                     MainImageCallback {
                         image: original_image.clone(),
+                        crop_rect: session.editor.current_edit.crop.clone(),
                     },
                 ));
                 let original_rect = rect;
@@ -97,6 +98,7 @@ pub fn main_image(
                         rect,
                         MainImageCallback {
                             image: image.clone(),
+                            crop_rect: None,
                         },
                     ));
                     if ui_state.show_grid {

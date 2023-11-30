@@ -12,9 +12,11 @@ use salon_core::runtime::{
 };
 use salon_core::sampler::Sampler;
 use salon_core::shader::{Shader, ShaderLibraryModule};
+use salon_core::utils::rectangle::Rectangle;
 
 pub struct MainImageCallback {
     pub image: Arc<Image>,
+    pub crop_rect: Option<Rectangle>,
 }
 
 impl egui_wgpu::CallbackTrait for MainImageCallback {
@@ -26,7 +28,7 @@ impl egui_wgpu::CallbackTrait for MainImageCallback {
         resources: &mut egui_wgpu::CallbackResources,
     ) -> Vec<wgpu::CommandBuffer> {
         let mut resources: &mut MainImageRenderResources = resources.get_mut().unwrap();
-        resources.prepare(device, queue, self.image.as_ref());
+        resources.prepare(device, queue, self);
         Vec::new()
     }
 
@@ -63,7 +65,7 @@ impl MainImageRenderResources {
         let ring_buffer = RingBuffer::new(
             runtime.clone(),
             BufferProperties {
-                size: size_of::<u32>(),
+                size: size_of::<u32>() + 4 * size_of::<f32>(),
                 host_readable: false,
             },
         );
@@ -95,14 +97,27 @@ impl MainImageRenderResources {
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        image: &salon_core::image::Image,
+        render_call: &MainImageCallback,
     ) {
         let buffer = self.ring_buffer.get();
         queue.write_buffer(
             &buffer.buffer,
             0,
-            bytemuck::cast_slice(&[image.properties.color_space as u32]),
+            bytemuck::cast_slice(&[render_call.image.properties.color_space as u32]),
         );
+        if let Some(ref rect) = render_call.crop_rect {
+            queue.write_buffer(
+                &buffer.buffer,
+                size_of::<u32>() as u64,
+                bytemuck::cast_slice(&[rect.min.x, rect.min.y, rect.max.x, rect.max.y]),
+            );
+        } else {
+            queue.write_buffer(
+                &buffer.buffer,
+                size_of::<u32>() as u64,
+                bytemuck::cast_slice(&[0.0 as f32, 0.0, 1.0, 1.0]),
+            );
+        }
 
         let bind_group_desc = BindGroupDescriptor {
             entries: vec![
@@ -112,7 +127,7 @@ impl MainImageRenderResources {
                 },
                 BindGroupEntry {
                     binding: 1,
-                    resource: BindingResource::Texture(image),
+                    resource: BindingResource::Texture(&render_call.image),
                 },
                 BindGroupEntry {
                     binding: 2,
@@ -122,7 +137,8 @@ impl MainImageRenderResources {
         };
         let bind_group_key = bind_group_desc.to_key();
         self.bind_group_manager.ensure(bind_group_desc);
-        self.bind_group_key_cache.insert(image.uuid, bind_group_key);
+        self.bind_group_key_cache
+            .insert(render_call.image.uuid, bind_group_key);
     }
 
     fn paint<'rp>(&'rp self, render_pass: &mut wgpu::RenderPass<'rp>, image: &'rp Image) {
