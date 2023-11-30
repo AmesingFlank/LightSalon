@@ -77,7 +77,14 @@ pub fn main_image(
                     session.editor.current_edit.crop = Some(Rectangle {
                         min: vec2((min_x, min_y)),
                         max: vec2((max_x, max_y)),
-                    })
+                    });
+
+                    ui.input(|i| {
+                        if i.key_pressed(egui::Key::Enter) {
+                            ui_state.editor_panel = EditorPanel::LightAndColor;
+                            session.editor.execute_edit(&mut session.engine);
+                        }
+                    });
                 }
             }
         } else {

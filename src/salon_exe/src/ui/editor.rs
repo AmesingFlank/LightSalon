@@ -11,11 +11,14 @@ use super::{
 
 pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
     ui.horizontal(|ui| {
-        ui.selectable_value(
+        let response = ui.selectable_value(
             &mut ui_state.editor_panel,
             EditorPanel::LightAndColor,
             "Light and Color",
         );
+        if response.clicked() {
+            session.editor.execute_edit(&mut session.engine);
+        }
         ui.separator();
         ui.selectable_value(
             &mut ui_state.editor_panel,
