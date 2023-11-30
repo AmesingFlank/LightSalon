@@ -21,72 +21,84 @@ use serde_json::de;
 use super::widgets::MainImageCallback;
 use super::{AppUiState, CropDragEdgeOrCorner, EditorPanel};
 
+pub fn get_image_size(ui: &Ui, image: &Image) -> egui::Vec2 {
+    let max_x = ui.available_width();
+    let max_y = ui.available_height();
+    let ui_aspect_ratio = max_y / max_x;
+
+    let image_aspect_ratio = image.aspect_ratio();
+
+    let size = if image_aspect_ratio >= ui_aspect_ratio {
+        egui::Vec2 {
+            x: max_y / image_aspect_ratio,
+            y: max_y,
+        }
+    } else {
+        egui::Vec2 {
+            x: max_x,
+            y: max_x * image_aspect_ratio,
+        }
+    };
+    size
+}
+
 pub fn main_image(
     ctx: &egui::Context,
     ui: &mut Ui,
     session: &mut Session,
     ui_state: &mut AppUiState,
 ) {
-    if let Some(ref result) = session.editor.current_result {
-        let max_x = ui.available_width();
-        let max_y = ui.available_height();
-        let ui_aspect_ratio = max_y / max_x;
-
-        if let Some(ref image) = result.final_image.clone() {
-            let image_aspect_ratio = image.aspect_ratio();
-
-            let size = if image_aspect_ratio >= ui_aspect_ratio {
-                egui::Vec2 {
-                    x: max_y / image_aspect_ratio,
-                    y: max_y,
-                }
-            } else {
-                egui::Vec2 {
-                    x: max_x,
-                    y: max_x * image_aspect_ratio,
-                }
-            };
-
-            ui.centered_and_justified(|ui| {
+    ui.centered_and_justified(|ui| {
+        if ui_state.editor_panel == EditorPanel::CropAndRotate {
+            if let Some(ref original_image) = session.editor.current_input_image {
+                let size = get_image_size(ui, &original_image);
                 let (rect, response) = ui.allocate_exact_size(size, egui::Sense::click_and_drag());
+
                 ui.painter().add(egui_wgpu::Callback::new_paint_callback(
                     rect,
                     MainImageCallback {
-                        image: image.clone(),
+                        image: original_image.clone(),
                     },
                 ));
-                if ui_state.editor_panel == EditorPanel::CropAndRotate {
-                    let original_rect = rect;
-                    let mut curr_rect = original_rect;
-                    if let Some(ref rect) = ui_state.crop_drag_state.rect {
-                        curr_rect = rect.clone();
-                    }
-                    handle_crop_and_rotate_response(
-                        ui,
-                        &response,
-                        curr_rect,
-                        original_rect,
-                        ui_state,
-                    );
-                    draw_drag_handles(ui, curr_rect, original_rect, ui_state);
-                    draw_grid_impl(ui, curr_rect, original_rect, ui_state);
-                    if let Some(ref rect) = ui_state.crop_drag_state.rect {
-                        let min_x = (rect.min.x - original_rect.min.x) / original_rect.width();
-                        let min_y = (rect.min.y - original_rect.min.y) / original_rect.height();
-                        let max_x = (rect.max.x - original_rect.min.x) / original_rect.width();
-                        let max_y = (rect.max.y - original_rect.min.y) / original_rect.height();
-
-                        session.editor.current_edit.crop = Some(Rectangle {
-                            min: vec2((min_x, min_y)),
-                            max: vec2((max_x, max_y)),
-                        })
-                    }
-                } else if ui_state.show_grid {
-                    draw_grid_impl(ui, rect, rect, ui_state);
+                let original_rect = rect;
+                let mut curr_rect = original_rect;
+                if let Some(ref rect) = ui_state.crop_drag_state.rect {
+                    curr_rect = rect.clone();
                 }
-            });
+                handle_crop_and_rotate_response(ui, &response, curr_rect, original_rect, ui_state);
+                draw_drag_handles(ui, curr_rect, original_rect, ui_state);
+                draw_grid_impl(ui, curr_rect, original_rect, ui_state);
+                if let Some(ref rect) = ui_state.crop_drag_state.rect {
+                    let min_x = (rect.min.x - original_rect.min.x) / original_rect.width();
+                    let min_y = (rect.min.y - original_rect.min.y) / original_rect.height();
+                    let max_x = (rect.max.x - original_rect.min.x) / original_rect.width();
+                    let max_y = (rect.max.y - original_rect.min.y) / original_rect.height();
+
+                    session.editor.current_edit.crop = Some(Rectangle {
+                        min: vec2((min_x, min_y)),
+                        max: vec2((max_x, max_y)),
+                    })
+                }
+            }
+        } else {
+            if let Some(ref result) = session.editor.current_result {
+                if let Some(ref image) = result.final_image.clone() {
+                    let size = get_image_size(ui, image);
+                    let (rect, response) =
+                        ui.allocate_exact_size(size, egui::Sense::click_and_drag());
+                    ui.painter().add(egui_wgpu::Callback::new_paint_callback(
+                        rect,
+                        MainImageCallback {
+                            image: image.clone(),
+                        },
+                    ));
+                    if ui_state.show_grid {
+                        draw_grid_impl(ui, rect, rect, ui_state);
+                    }
+                }
+            }
         }
-    }
+    });
 }
 
 fn find_edge_or_corner(pos: egui::Pos2, rect: egui::Rect) -> Option<CropDragEdgeOrCorner> {
