@@ -6,7 +6,7 @@ use egui_plot::{Line, MarkerShape, Plot, Points};
 use salon_core::{editor::GlobalEdit, session::Session};
 
 use super::{
-    color_adjust, color_mixer, curve, effects, histogram, light_adjust, AppUiState, EditorPanel,
+    color_adjust, color_mixer, curve, effects, histogram, light_adjust, AppUiState, EditorPanel, masking,
 };
 
 pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
@@ -34,6 +34,8 @@ pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
     match ui_state.editor_panel {
         EditorPanel::LightAndColor => {
             histogram(ui, session, ui_state);
+            ui.separator();
+            masking(ui, session, ui_state);
             light_adjust(ui, session, ui_state, &mut edit.global);
             curve(ui, session, ui_state, &mut edit.global);
             color_adjust(ui, session, ui_state, &mut edit.global);
