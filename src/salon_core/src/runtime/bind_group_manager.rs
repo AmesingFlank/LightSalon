@@ -101,6 +101,7 @@ impl<'a> BindGroupEntry<'a> {
 pub enum BindingResource<'a> {
     Buffer(&'a Buffer),
     Texture(&'a Image),
+    TextureSingleMip(&'a Image, u32),
     TextureStorage(&'a Image, u32),
     Sampler(&'a Sampler),
 }
@@ -110,6 +111,9 @@ impl<'a> BindingResource<'a> {
         match *self {
             BindingResource::Buffer(buffer) => buffer.buffer.as_entire_binding(),
             BindingResource::Texture(img) => wgpu::BindingResource::TextureView(&img.texture_view),
+            BindingResource::TextureSingleMip(img, ref mip) => {
+                wgpu::BindingResource::TextureView(&img.texture_view_single_mip[*mip as usize])
+            }
             BindingResource::TextureStorage(img, ref mip) => {
                 wgpu::BindingResource::TextureView(&img.texture_view_single_mip[*mip as usize])
             }
@@ -121,6 +125,9 @@ impl<'a> BindingResource<'a> {
         match *self {
             BindingResource::Buffer(buffer) => BindingResourceKey::Buffer(buffer.uuid),
             BindingResource::Texture(img) => BindingResourceKey::Texture(img.uuid),
+            BindingResource::TextureSingleMip(img, ref mip) => {
+                BindingResourceKey::TextureSingleMip(img.uuid, *mip)
+            }
             BindingResource::TextureStorage(img, ref mip) => {
                 BindingResourceKey::TextureStorage(img.uuid, *mip)
             }
@@ -144,6 +151,7 @@ pub struct BindGroupEntryKey {
 pub enum BindingResourceKey {
     Buffer(u32),
     Texture(u32),
+    TextureSingleMip(u32, u32),
     TextureStorage(u32, u32),
     Sampler(u32),
 }

@@ -18,7 +18,7 @@ pub struct Session {
 impl Session {
     pub fn new(runtime: Arc<Runtime>) -> Self {
         let toolbox = Arc::new(ToolBox::new(runtime.clone()));
-        let engine = Engine::new(runtime.clone(), toolbox.clone());
+        let engine = Engine::new(runtime.clone());
         let library = LocalLibrary::new(runtime.clone(), toolbox.clone());
         Session {
             engine,

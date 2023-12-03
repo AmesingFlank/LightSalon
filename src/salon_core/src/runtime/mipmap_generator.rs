@@ -1,11 +1,13 @@
 use std::sync::Arc;
 
-use crate::{image::Image, runtime::Runtime};
+use crate::{image::Image, runtime::Runtime, sampler::Sampler};
+
+use super::{BindGroupManager, BindGroupEntry, BindingResource, BindGroupDescriptor};
 
 pub struct MipmapGenerator {
     pipeline: wgpu::RenderPipeline,
-    bind_group_layout: wgpu::BindGroupLayout,
-    sampler: wgpu::Sampler,
+    bind_group_manager: BindGroupManager,
+    sampler: Sampler,
     runtime: Arc<Runtime>,
 }
 
@@ -16,7 +18,8 @@ impl MipmapGenerator {
             include_str!("./mipmap_generator.wgsl"),
             wgpu::TextureFormat::Rgba16Float,
         );
-        let sampler = runtime.device.create_sampler(&wgpu::SamplerDescriptor {
+        let bind_group_manager = BindGroupManager::new(runtime.clone(), bind_group_layout);
+        let sampler = runtime.create_sampler(&wgpu::SamplerDescriptor {
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
             address_mode_w: wgpu::AddressMode::ClampToEdge,
@@ -27,39 +30,32 @@ impl MipmapGenerator {
         });
         MipmapGenerator {
             pipeline,
-            bind_group_layout,
+            bind_group_manager,
             sampler,
             runtime,
         }
     }
 
     pub fn encode_mipmap_generation_command(
-        &self,
+        &mut self,
         img: &Image,
         encoder: &mut wgpu::CommandEncoder,
     ) {
         let mip_count = Image::mip_level_count(&img.properties.dimensions);
 
         for target_mip in 1..mip_count as usize {
-            let bind_group = self
-                .runtime
-                .device
-                .create_bind_group(&wgpu::BindGroupDescriptor {
-                    layout: &self.bind_group_layout,
-                    entries: &[
-                        wgpu::BindGroupEntry {
-                            binding: 0,
-                            resource: wgpu::BindingResource::TextureView(
-                                &img.texture_view_single_mip[target_mip - 1],
-                            ),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 1,
-                            resource: wgpu::BindingResource::Sampler(&self.sampler),
-                        },
-                    ],
-                    label: None,
-                });
+            let bind_group = self.bind_group_manager.get_or_create(BindGroupDescriptor {
+                entries: vec![
+                    BindGroupEntry {
+                        binding: 0,
+                        resource: BindingResource::TextureSingleMip(&img, target_mip as u32 -1),
+                    },
+                    BindGroupEntry {
+                        binding: 1,
+                        resource: BindingResource::Sampler(&self.sampler),
+                    },
+                ],
+            });
 
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: None,
@@ -79,7 +75,7 @@ impl MipmapGenerator {
         }
     }
 
-    pub fn generate(&self, img: &Image) {
+    pub fn generate(&mut self, img: &Image) {
         let mut encoder = self
             .runtime
             .device

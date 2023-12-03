@@ -7,3 +7,5 @@ mod toolbox;
 pub use runtime::Runtime;
 pub use bind_group_manager::*;
 pub use toolbox::*;
+pub use mipmap_generator::*;
+pub use color_space_converter::*;

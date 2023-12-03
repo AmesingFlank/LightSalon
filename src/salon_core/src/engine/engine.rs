@@ -4,7 +4,7 @@ use crate::{
     engine::ImageHistogram,
     image::Image,
     ir::{Id, IdTag, InputOp, Module, Op, Value},
-    runtime::{Runtime, ToolBox},
+    runtime::{MipmapGenerator, Runtime, ToolBox},
 };
 
 use super::{
@@ -34,15 +34,16 @@ use super::{
 
 pub struct Engine {
     runtime: Arc<Runtime>,
-    toolbox: Arc<ToolBox>,
     op_impls: OpImplCollection,
+    mipmap_generator: MipmapGenerator,
 }
 
 impl Engine {
-    pub fn new(runtime: Arc<Runtime>, toolbox: Arc<ToolBox>) -> Self {
+    pub fn new(runtime: Arc<Runtime>) -> Self {
+        let mipmap_generator =  MipmapGenerator::new(runtime.clone());
         Engine {
             runtime,
-            toolbox,
+            mipmap_generator,
             op_impls: OpImplCollection::new(),
         }
     }
@@ -248,7 +249,7 @@ impl Engine {
             .get(&output_id)
             .expect("cannot find output");
         let output_image = output_value.as_image();
-        self.toolbox
+        self.mipmap_generator
             .encode_mipmap_generation_command(&output_image.as_ref(), &mut encoder);
 
         self.runtime.queue.submit(Some(encoder.finish()));

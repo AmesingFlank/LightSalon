@@ -19,12 +19,12 @@ impl ToolBox {
         }
     }
 
-    pub fn ensure_mipmap(&self, image: &Image) {
+    pub fn ensure_mipmap(&mut self, image: &Image) {
         self.mipmap_generator.generate(image);
     }
 
     pub fn encode_mipmap_generation_command(
-        &self,
+        &mut self,
         image: &Image,
         encoder: &mut wgpu::CommandEncoder,
     ) {
