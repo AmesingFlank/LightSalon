@@ -9,7 +9,6 @@ use salon_core::{
     editor::GlobalEdit,
     image::ColorSpace,
     session::Session,
-    utils::{color_spaces::hsl_to_rgb, vec::vec3},
 };
 
 use super::{
