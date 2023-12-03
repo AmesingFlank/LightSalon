@@ -1,20 +1,9 @@
-use std::{collections::HashMap, path::PathBuf, sync::Arc};
+use std::{path::PathBuf, collections::HashMap, sync::Arc};
 
-use crate::image::{ColorSpace, Image};
-use crate::runtime::{Runtime, ToolBox};
+use crate::{image::{Image, ColorSpace}, runtime::{Runtime, ToolBox}};
 
-pub trait Library {
-    fn num_images(&self) -> usize;
-    fn add(&mut self, resource: &str) -> AddImageResult;
-    fn get_image(&mut self, index: usize) -> Arc<Image>;
-    fn get_thumbnail(&mut self, index: usize) -> Arc<Image>;
-}
+use super::{AddImageResult, Library};
 
-pub enum AddImageResult {
-    AddedNewImage(usize),
-    ImageAlreadyExists(usize),
-    Error(String),
-}
 
 pub struct LocalLibrary {
     paths: Vec<PathBuf>,
