@@ -22,7 +22,7 @@ pub enum ColorSpace { // matches color_spaces.wgsl
 }
 
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ImageFormat {
     Rgba16Float,
 }
