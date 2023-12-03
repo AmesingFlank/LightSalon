@@ -11,9 +11,9 @@ pub struct Image {
     pub uuid: u32,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub enum ColorSpace { // matches color_spaces.wgsl
+pub enum ColorSpace {
+    // matches color_spaces.wgsl
     LinearRGB = 0,
     sRGB = 1,
     HSL = 2,
@@ -21,27 +21,30 @@ pub enum ColorSpace { // matches color_spaces.wgsl
     HSLuv = 4,
 }
 
-
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ImageFormat {
     Rgba16Float,
+    Rgba8Unorm,
 }
 
 impl ImageFormat {
     pub fn to_wgpu_texture_format(&self) -> wgpu::TextureFormat {
         match *self {
-            ImageFormat::Rgba16Float =>  wgpu::TextureFormat::Rgba16Float,
-        }       
+            ImageFormat::Rgba16Float => wgpu::TextureFormat::Rgba16Float,
+            ImageFormat::Rgba8Unorm => wgpu::TextureFormat::Rgba8Unorm,
+        }
     }
     pub fn bytes_per_channel(&self) -> u32 {
         match *self {
             ImageFormat::Rgba16Float => 2,
-        } 
+            ImageFormat::Rgba8Unorm => 1,
+        }
     }
     pub fn bytes_per_pixel(&self) -> u32 {
         match *self {
             ImageFormat::Rgba16Float => 8,
-        } 
+            ImageFormat::Rgba8Unorm => 4,
+        }
     }
 }
 
@@ -62,7 +65,10 @@ impl Image {
         levels
     }
 
-    pub fn get_lowest_rendered_mip(image_dimensions: (u32, u32), rendered_dimensions: (u32, u32)) -> u32 {
+    pub fn get_lowest_rendered_mip(
+        image_dimensions: (u32, u32),
+        rendered_dimensions: (u32, u32),
+    ) -> u32 {
         let x_ratio = image_dimensions.0 as f32 / rendered_dimensions.0 as f32;
         let x_lod = x_ratio.log2().floor() as u32;
         let y_ratio = image_dimensions.1 as f32 / rendered_dimensions.1 as f32;
