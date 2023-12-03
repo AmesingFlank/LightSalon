@@ -4,7 +4,7 @@ use crate::{
     engine::ImageHistogram,
     image::Image,
     ir::{Id, IdTag, InputOp, Module, Op, Value},
-    runtime::{MipmapGenerator, Runtime, ToolBox},
+    runtime::{MipmapGenerator, Runtime},
 };
 
 use super::{

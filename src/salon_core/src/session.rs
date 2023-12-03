@@ -5,27 +5,24 @@ use crate::engine::{Engine, ProcessResult};
 use crate::image::Image;
 use crate::ir::Module;
 use crate::library::{Library, LocalLibrary};
-use crate::runtime::{Runtime, ToolBox};
+use crate::runtime::{Runtime};
 
 pub struct Session {
     pub engine: Engine,
     pub library: Box<dyn Library>,
     pub editor: Editor,
     pub state: SessionState,
-    pub toolbox: Arc<ToolBox>,
 }
 
 impl Session {
     pub fn new(runtime: Arc<Runtime>) -> Self {
-        let toolbox = Arc::new(ToolBox::new(runtime.clone()));
         let engine = Engine::new(runtime.clone());
-        let library = LocalLibrary::new(runtime.clone(), toolbox.clone());
+        let library = LocalLibrary::new(runtime.clone());
         Session {
             engine,
             library: Box::new(library),
             editor: Editor::new(),
             state: SessionState::new(),
-            toolbox,
         }
     }
 
