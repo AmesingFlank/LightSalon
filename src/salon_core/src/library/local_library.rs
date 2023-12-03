@@ -1,6 +1,6 @@
 use std::{path::PathBuf, collections::HashMap, sync::Arc};
 
-use crate::{image::{Image, ColorSpace}, runtime::{Runtime, ToolBox}};
+use crate::{image::{Image, ColorSpace}, runtime::{Runtime, ToolBox, ColorSpaceConverter}};
 
 use super::{AddImageResult, Library};
 
@@ -9,16 +9,17 @@ pub struct LocalLibrary {
     paths: Vec<PathBuf>,
     images: HashMap<usize, Arc<Image>>,
     runtime: Arc<Runtime>,
-    toolbox: Arc<ToolBox>,
+    color_space_converter: ColorSpaceConverter,
 }
 
 impl LocalLibrary {
     pub fn new(runtime: Arc<Runtime>, toolbox: Arc<ToolBox>) -> Self {
+        let color_space_converter = ColorSpaceConverter::new(runtime.clone());
         Self {
             paths: Vec::new(),
             images: HashMap::new(),
             runtime,
-            toolbox,
+            color_space_converter,
         }
     }
 }
@@ -49,7 +50,7 @@ impl Library for LocalLibrary {
                 let path = &self.paths[index];
                 let img = self.runtime.create_image_from_path(path).unwrap();
                 let mut img = Arc::new(img);
-                img = self.toolbox.convert_color_space(img, ColorSpace::LinearRGB);
+                img = self.color_space_converter.convert(img, ColorSpace::LinearRGB);
                 self.images.insert(index, img.clone());
                 img.clone()
             }
