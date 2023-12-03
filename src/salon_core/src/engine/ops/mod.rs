@@ -12,3 +12,5 @@ pub mod vignette;
 pub mod dehaze_prepare;
 pub mod dehaze_apply;
 pub mod crop;
+pub mod global_mask;
+pub mod apply_masked_edits;

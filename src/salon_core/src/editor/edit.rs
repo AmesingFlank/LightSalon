@@ -1,21 +1,25 @@
-use crate::ir::{CollectDataForEditorOp, ComputeHistogramOp, CropOp, Id, IdTag, Module, Op};
+use crate::ir::{
+    CollectDataForEditorOp, ComputeHistogramOp, CropOp, GlobalMask, Id, IdTag, Mask, Module, Op,
+};
 
 use crate::utils::rectangle::Rectangle;
 
-use super::GlobalEdit;
+use super::{GlobalEdit, MaskedEdit};
 
 #[derive(Clone, PartialEq)]
 pub struct Edit {
     pub crop: Option<Rectangle>,
-    pub global: GlobalEdit,
-    // TODO: masks
+    pub masked_edits: Vec<MaskedEdit>,
 }
 
 impl Edit {
     pub fn new() -> Self {
         Self {
             crop: None,
-            global: GlobalEdit::new(),
+            masked_edits: vec![MaskedEdit::new(
+                Mask::Global(GlobalMask {}),
+                GlobalEdit::new(),
+            )],
         }
     }
 
@@ -24,7 +28,9 @@ impl Edit {
         let mut current_output_id = module.get_output_id().expect("expecting an output id");
 
         self.maybe_add_crop(&mut module, &mut current_output_id);
-        self.global.add_edits_to_ir_module(&mut module);
+        for edit in self.masked_edits.iter() {
+            edit.add_edits_to_ir_module(&mut module)
+        }
 
         add_collect_data_for_editor(&mut module, &mut current_output_id);
         module

@@ -5,7 +5,7 @@ use super::ops::{
     dehaze_prepare::PrepareDehazeImpl, exposure::AdjustExposureImpl,
     highlights_shadows::AdjustHighlightsAndShadowsImpl, histogram::ComputeHistogramImpl,
     temperature_tint::AdjustTemperatureAndTintImpl,
-    vibrance_saturation::AdjustVibranceAndSaturationImpl, vignette::AdjustVignetteImpl, crop::CropImpl,
+    vibrance_saturation::AdjustVibranceAndSaturationImpl, vignette::AdjustVignetteImpl, crop::CropImpl, global_mask::ComputeGlobalMaskImpl, apply_masked_edits::ApplyMaskedEditsImpl,
 };
 
 #[derive(Default)]
@@ -24,6 +24,8 @@ pub struct OpImplCollection {
     pub histogram: Option<ComputeHistogramImpl>,
     pub collect_data_for_editor: Option<CollectDataForEditorImpl>,
     pub crop: Option<CropImpl>,
+    pub global_mask: Option<ComputeGlobalMaskImpl>,
+    pub apply_masked_edits: Option<ApplyMaskedEditsImpl>,
 }
 
 impl OpImplCollection {

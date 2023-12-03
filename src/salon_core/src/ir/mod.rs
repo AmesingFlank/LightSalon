@@ -1,9 +1,11 @@
-mod value;
 mod id;
-mod op;
+mod mask;
 mod module;
+mod op;
+mod value;
 
-pub use value::Value;
 pub use id::*;
-pub use op::*;
+pub use mask::*;
 pub use module::Module;
+pub use op::*;
+pub use value::Value;

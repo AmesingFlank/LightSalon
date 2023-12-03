@@ -10,6 +10,7 @@ use crate::{
 use super::{
     op_impl_collection::OpImplCollection,
     ops::{
+        apply_masked_edits::ApplyMaskedEditsImpl,
         basic_statistics::ComputeBasicStatisticsImpl,
         collect_data_for_editor::CollectDataForEditorImpl,
         color_mix::ColorMixImpl,
@@ -19,6 +20,7 @@ use super::{
         dehaze_apply::ApplyDehazeImpl,
         dehaze_prepare::PrepareDehazeImpl,
         exposure::AdjustExposureImpl,
+        global_mask::ComputeGlobalMaskImpl,
         highlights_shadows::AdjustHighlightsAndShadowsImpl,
         histogram::{self, ComputeHistogramImpl},
         temperature_tint::AdjustTemperatureAndTintImpl,
@@ -220,6 +222,20 @@ impl Engine {
                         &mut execution_context.value_store,
                     );
                 }
+                Op::ComputeGlobalMask(ref op) => {
+                    self.op_impls.global_mask.as_mut().unwrap().encode_commands(
+                        &mut encoder,
+                        op,
+                        &mut execution_context.value_store,
+                    );
+                }
+                Op::ApplyMaskedEdits(ref op) => {
+                    self.op_impls
+                        .apply_masked_edits
+                        .as_mut()
+                        .unwrap()
+                        .encode_commands(&mut encoder, op, &mut execution_context.value_store);
+                }
             }
         }
 
@@ -339,6 +355,20 @@ impl Engine {
                         self.op_impls.crop = Some(CropImpl::new(self.runtime.clone()))
                     }
                     self.op_impls.crop.as_mut().unwrap().reset();
+                }
+                Op::ComputeGlobalMask(_) => {
+                    if self.op_impls.global_mask.is_none() {
+                        self.op_impls.global_mask =
+                            Some(ComputeGlobalMaskImpl::new(self.runtime.clone()))
+                    }
+                    self.op_impls.global_mask.as_mut().unwrap().reset();
+                }
+                Op::ApplyMaskedEdits(_) => {
+                    if self.op_impls.apply_masked_edits.is_none() {
+                        self.op_impls.apply_masked_edits =
+                            Some(ApplyMaskedEditsImpl::new(self.runtime.clone()))
+                    }
+                    self.op_impls.apply_masked_edits.as_mut().unwrap().reset();
                 }
             }
         }

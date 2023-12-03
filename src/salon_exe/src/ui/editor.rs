@@ -6,7 +6,8 @@ use egui_plot::{Line, MarkerShape, Plot, Points};
 use salon_core::{editor::GlobalEdit, session::Session};
 
 use super::{
-    color_adjust, color_mixer, curve, effects, histogram, light_adjust, AppUiState, EditorPanel, masking,
+    color_adjust, color_mixer, curve, effects, histogram, light_adjust, masking, AppUiState,
+    EditorPanel,
 };
 
 pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
@@ -30,21 +31,20 @@ pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
     ui.separator();
 
     let mut edit = session.editor.current_edit.clone();
+    let global_edit = &mut edit.masked_edits[ui_state.selected_mask_index].edit;
 
     match ui_state.editor_panel {
         EditorPanel::LightAndColor => {
             histogram(ui, session, ui_state);
             ui.separator();
             masking(ui, session, ui_state);
-            light_adjust(ui, session, ui_state, &mut edit.global);
-            curve(ui, session, ui_state, &mut edit.global);
-            color_adjust(ui, session, ui_state, &mut edit.global);
-            color_mixer(ui, session, ui_state, &mut edit.global);
-            effects(ui, session, ui_state, &mut edit.global);
+            light_adjust(ui, session, ui_state, global_edit);
+            curve(ui, session, ui_state, global_edit);
+            color_adjust(ui, session, ui_state, global_edit);
+            color_mixer(ui, session, ui_state, global_edit);
+            effects(ui, session, ui_state, global_edit);
         }
-        EditorPanel::CropAndRotate => {
-            
-        }
+        EditorPanel::CropAndRotate => {}
     }
 
     if session.state.current_image_index.is_none() {

@@ -1,6 +1,6 @@
 use crate::utils::rectangle::Rectangle;
 
-use super::Id;
+use super::{Id, Mask, GlobalMask};
 
 #[derive(Clone, PartialEq)]
 pub enum Op {
@@ -19,6 +19,8 @@ pub enum Op {
     ComputeHistogram(ComputeHistogramOp),
     CollectDataForEditor(CollectDataForEditorOp),
     Crop(CropOp),
+    ComputeGlobalMask(ComputeGlobalMaskOp),
+    ApplyMaskedEdits(ApplyMaskedEditsOp),
 }
 
 #[derive(Clone, PartialEq)]
@@ -144,4 +146,19 @@ pub struct CropOp {
     pub result: Id,
     pub arg: Id,
     pub rect: Rectangle,
+}
+
+#[derive(Clone, PartialEq)]
+pub struct ComputeGlobalMaskOp {
+    pub result: Id,
+    pub mask: GlobalMask,
+    pub target: Id,
+}
+
+#[derive(Clone, PartialEq)]
+pub struct ApplyMaskedEditsOp {
+    pub result: Id,
+    pub mask: Id,
+    pub original_target: Id,
+    pub edited: Id,
 }

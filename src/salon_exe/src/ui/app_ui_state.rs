@@ -16,6 +16,8 @@ pub struct AppUiState {
     pub color_mixer_color_index: usize,
 
     pub crop_drag_state: CropDragState,
+
+    pub selected_mask_index: usize,
 }
 
 impl AppUiState {
@@ -29,6 +31,7 @@ impl AppUiState {
             curve_scope: CurveScope::RGB,
             color_mixer_color_index: 0,
             crop_drag_state: CropDragState::new(),
+            selected_mask_index: 0,
         }
     }
 }
