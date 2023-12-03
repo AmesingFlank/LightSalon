@@ -1,14 +1,17 @@
+use std::sync::Arc;
+
 use crate::{image::Image, runtime::Runtime};
 
 pub struct MipmapGenerator {
     pipeline: wgpu::RenderPipeline,
     bind_group_layout: wgpu::BindGroupLayout,
     sampler: wgpu::Sampler,
+    runtime: Arc<Runtime>,
 }
 
 // https://github.com/gfx-rs/wgpu/blob/trunk/examples/mipmap/src/main.rs
 impl MipmapGenerator {
-    pub fn new(runtime: &Runtime) -> Self {
+    pub fn new(runtime: Arc<Runtime>) -> Self {
         let (pipeline, bind_group_layout) = runtime.create_render_pipeline(
             include_str!("./mipmap_generator.wgsl"),
             wgpu::TextureFormat::Rgba16Float,
@@ -26,26 +29,29 @@ impl MipmapGenerator {
             pipeline,
             bind_group_layout,
             sampler,
+            runtime,
         }
     }
 
     pub fn encode_mipmap_generation_command(
         &self,
-        runtime: &Runtime,
         img: &Image,
         encoder: &mut wgpu::CommandEncoder,
     ) {
         let mip_count = Image::mip_level_count(&img.properties.dimensions);
 
         for target_mip in 1..mip_count as usize {
-            let bind_group = runtime
+            let bind_group = self
+                .runtime
                 .device
                 .create_bind_group(&wgpu::BindGroupDescriptor {
                     layout: &self.bind_group_layout,
                     entries: &[
                         wgpu::BindGroupEntry {
                             binding: 0,
-                            resource: wgpu::BindingResource::TextureView(&img.texture_view_single_mip[target_mip - 1]),
+                            resource: wgpu::BindingResource::TextureView(
+                                &img.texture_view_single_mip[target_mip - 1],
+                            ),
                         },
                         wgpu::BindGroupEntry {
                             binding: 1,
@@ -73,11 +79,12 @@ impl MipmapGenerator {
         }
     }
 
-    pub fn generate(&self, runtime: &Runtime, img: &Image) {
-        let mut encoder = runtime
+    pub fn generate(&self, img: &Image) {
+        let mut encoder = self
+            .runtime
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-        self.encode_mipmap_generation_command(runtime, img, &mut encoder);
-        runtime.queue.submit(Some(encoder.finish()));
+        self.encode_mipmap_generation_command(img, &mut encoder);
+        self.runtime.queue.submit(Some(encoder.finish()));
     }
 }

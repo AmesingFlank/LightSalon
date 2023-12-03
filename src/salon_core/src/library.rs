@@ -1,7 +1,7 @@
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
-use crate::image::{Image, ColorSpace};
-use crate::runtime::Runtime;
+use crate::image::{ColorSpace, Image};
+use crate::runtime::{Runtime, ToolBox};
 
 pub trait Library {
     fn num_images(&self) -> usize;
@@ -20,14 +20,16 @@ pub struct LocalLibrary {
     paths: Vec<PathBuf>,
     images: HashMap<usize, Arc<Image>>,
     runtime: Arc<Runtime>,
+    toolbox: Arc<ToolBox>,
 }
 
 impl LocalLibrary {
-    pub fn new(runtime: Arc<Runtime>) -> Self {
+    pub fn new(runtime: Arc<Runtime>, toolbox: Arc<ToolBox>) -> Self {
         Self {
             paths: Vec::new(),
             images: HashMap::new(),
             runtime,
+            toolbox,
         }
     }
 }
@@ -58,13 +60,13 @@ impl Library for LocalLibrary {
                 let path = &self.paths[index];
                 let img = self.runtime.create_image_from_path(path).unwrap();
                 let mut img = Arc::new(img);
-                img = self.runtime.convert_color_space(img, ColorSpace::LinearRGB);
+                img = self.toolbox.convert_color_space(img, ColorSpace::LinearRGB);
                 self.images.insert(index, img.clone());
                 img.clone()
             }
         }
     }
-    fn get_thumbnail(&mut self, index: usize) -> Arc<Image>{
+    fn get_thumbnail(&mut self, index: usize) -> Arc<Image> {
         self.get_image(index)
     }
 }

@@ -11,19 +11,11 @@ use crate::{
 
 use half::prelude::*;
 
-use super::{mipmap_generator::MipmapGenerator, color_space_converter::ColorSpaceConverter};
 
 pub struct Runtime {
     pub adapter: Arc<wgpu::Adapter>,
     pub device: Arc<wgpu::Device>,
     pub queue: Arc<wgpu::Queue>,
-
-    toolbox: Option<ToolBox>,
-}
-
-struct ToolBox {
-    pub mipmap_generator: MipmapGenerator,
-    pub color_space_converter: ColorSpaceConverter,
 }
 
 impl Runtime {
@@ -36,34 +28,8 @@ impl Runtime {
             adapter,
             device,
             queue,
-            toolbox: None,
         };
-        let toolbox = ToolBox {
-            mipmap_generator: MipmapGenerator::new(&runtime),
-            color_space_converter: ColorSpaceConverter::new(&runtime),
-        };
-        runtime.toolbox = Some(toolbox);
         runtime
-    }
-
-    pub fn ensure_mipmap(&self, image: &Image) {
-        self.toolbox
-            .as_ref()
-            .unwrap()
-            .mipmap_generator
-            .generate(self, image);
-    }
-
-    pub fn encode_mipmap_generation_command(
-        &self,
-        image: &Image,
-        encoder: &mut wgpu::CommandEncoder,
-    ) {
-        self.toolbox
-            .as_ref()
-            .unwrap()
-            .mipmap_generator
-            .encode_mipmap_generation_command(self, image, encoder);
     }
 
     pub fn create_compute_pipeline(
@@ -317,7 +283,6 @@ impl Runtime {
             size,
         );
 
-        self.ensure_mipmap(&result);
         result
     }
 
@@ -353,18 +318,6 @@ impl Runtime {
         };
         encoder.copy_texture_to_texture(src_copy, dest_copy, size);
         self.queue.submit(Some(encoder.finish()));
-    }
-
-    pub fn convert_color_space(
-        &self,
-        input_img: Arc<Image>,
-        dest_color_space: ColorSpace,
-    ) -> Arc<Image> {
-        self.toolbox
-            .as_ref()
-            .unwrap()
-            .color_space_converter
-            .convert(self, input_img, dest_color_space)
     }
 
     pub fn create_sampler(&self, desc: &wgpu::SamplerDescriptor) -> Sampler {

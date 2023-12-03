@@ -10,9 +10,10 @@ pub struct ColorSpaceConverter {
     pipeline: wgpu::ComputePipeline,
     bind_group_layout: wgpu::BindGroupLayout,
     uniform_buffer: wgpu::Buffer,
+    runtime: Arc<Runtime>,
 }
 impl ColorSpaceConverter {
-    pub fn new(runtime: &Runtime) -> Self {
+    pub fn new(runtime: Arc<Runtime>) -> Self {
         let shader_code = Shader::from_code(include_str!("./color_space_converter.wgsl"))
             .with_library(ShaderLibraryModule::ColorSpaces)
             .full_code();
@@ -27,6 +28,7 @@ impl ColorSpaceConverter {
         });
 
         ColorSpaceConverter {
+            runtime,
             pipeline,
             bind_group_layout,
             uniform_buffer,
@@ -34,12 +36,7 @@ impl ColorSpaceConverter {
     }
 }
 impl ColorSpaceConverter {
-    pub fn convert(
-        &self,
-        runtime: &Runtime,
-        input_img: Arc<Image>,
-        dest_color_space: ColorSpace,
-    ) -> Arc<Image> {
+    pub fn convert(&self, input_img: Arc<Image>, dest_color_space: ColorSpace) -> Arc<Image> {
         if input_img.properties.color_space == dest_color_space {
             return input_img;
         }
@@ -47,18 +44,19 @@ impl ColorSpaceConverter {
         let mut properties = input_img.properties.clone();
         properties.color_space = dest_color_space;
 
-        let output_img = Arc::new(runtime.create_image_of_properties(properties));
+        let output_img = Arc::new(self.runtime.create_image_of_properties(properties));
 
         let src_color_space = input_img.properties.color_space as u32;
         let dest_color_space = dest_color_space as u32;
 
-        runtime.queue.write_buffer(
+        self.runtime.queue.write_buffer(
             &self.uniform_buffer,
             0,
             bytemuck::cast_slice(&[src_color_space, dest_color_space]),
         );
 
-        let bind_group = runtime
+        let bind_group = self
+            .runtime
             .device
             .create_bind_group(&wgpu::BindGroupDescriptor {
                 label: None,
@@ -81,7 +79,8 @@ impl ColorSpaceConverter {
                 ],
             });
 
-        let mut encoder = runtime
+        let mut encoder = self
+            .runtime
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
         {
@@ -96,8 +95,7 @@ impl ColorSpaceConverter {
                 1,
             );
         }
-        runtime.encode_mipmap_generation_command(output_img.as_ref(), &mut encoder);
-        runtime.queue.submit(Some(encoder.finish()));
+        self.runtime.queue.submit(Some(encoder.finish()));
         output_img
     }
 }
