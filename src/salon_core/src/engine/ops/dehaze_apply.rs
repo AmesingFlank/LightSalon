@@ -2,7 +2,7 @@ use std::{collections::HashMap, mem::size_of, sync::Arc};
 
 use crate::{
     buffer::{Buffer, BufferProperties, RingBuffer},
-    engine::value_store::ValueStore,
+    engine::{value_store::ValueStore, toolbox::Toolbox},
     image::ColorSpace,
     ir::{ApplyDehazeOp, Id},
     runtime::{
@@ -54,6 +54,7 @@ impl ApplyDehazeImpl {
         encoder: &mut wgpu::CommandEncoder,
         op: &ApplyDehazeOp,
         value_store: &mut ValueStore,
+        toolbox: &mut Toolbox,
     ) {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
         let dehazed_img = value_store.map.get(&op.dehazed).unwrap().as_image().clone();

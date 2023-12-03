@@ -2,7 +2,7 @@ use std::{collections::HashMap, mem::size_of, sync::Arc};
 
 use crate::{
     buffer::{BufferProperties, RingBuffer},
-    engine::{value_store::ValueStore, ImageHistogram},
+    engine::{value_store::ValueStore, ImageHistogram, toolbox::Toolbox},
     image::{ColorSpace, Image},
     ir::{ComputeHistogramOp, Id},
     runtime::{
@@ -70,6 +70,7 @@ impl ComputeHistogramImpl {
         encoder: &mut wgpu::CommandEncoder,
         op: &ComputeHistogramOp,
         value_store: &mut ValueStore,
+        toolbox: &mut Toolbox,
     ) {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
 

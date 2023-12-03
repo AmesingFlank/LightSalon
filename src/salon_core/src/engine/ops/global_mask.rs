@@ -2,7 +2,7 @@ use std::{collections::HashMap, mem::size_of, sync::Arc};
 
 use crate::{
     buffer::{Buffer, BufferProperties, RingBuffer},
-    engine::value_store::ValueStore,
+    engine::{toolbox::Toolbox, value_store::ValueStore},
     image::ColorSpace,
     ir::{ComputeGlobalMaskOp, Id},
     runtime::{
@@ -43,6 +43,7 @@ impl ComputeGlobalMaskImpl {
         encoder: &mut wgpu::CommandEncoder,
         op: &ComputeGlobalMaskOp,
         value_store: &mut ValueStore,
+        toolbox: &mut Toolbox,
     ) {
         let target_img = value_store.map.get(&op.target).unwrap().as_image().clone();
         let output_img = value_store.ensure_value_at_id_is_image_of_properties(
@@ -69,5 +70,9 @@ impl ComputeGlobalMaskImpl {
             compute_pass.set_bind_group(0, &bind_group, &[]);
             compute_pass.dispatch_workgroups(num_workgroups_x, num_workgroups_y, 1);
         }
+
+        toolbox
+            .mipmap_generator
+            .encode_mipmap_generation_command(&output_img, encoder);
     }
 }

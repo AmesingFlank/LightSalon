@@ -28,6 +28,7 @@ use super::{
         vignette::AdjustVignetteImpl,
     },
     result::ProcessResult,
+    toolbox::Toolbox,
     value_store::ValueStore,
     DataForEditor, ExecutionContext,
 };
@@ -35,15 +36,15 @@ use super::{
 pub struct Engine {
     runtime: Arc<Runtime>,
     op_impls: OpImplCollection,
-    mipmap_generator: MipmapGenerator,
+    toolbox: Toolbox,
 }
 
 impl Engine {
     pub fn new(runtime: Arc<Runtime>) -> Self {
-        let mipmap_generator =  MipmapGenerator::new(runtime.clone());
+        let toolbox = Toolbox::new(runtime.clone());
         Engine {
             runtime,
-            mipmap_generator,
+            toolbox,
             op_impls: OpImplCollection::new(),
         }
     }
@@ -132,6 +133,7 @@ impl Engine {
                         &mut encoder,
                         op,
                         &mut execution_context.value_store,
+                        &mut self.toolbox,
                     );
                 }
                 Op::AdjustContrast(ref op) => {
@@ -139,6 +141,7 @@ impl Engine {
                         &mut encoder,
                         op,
                         &mut execution_context.value_store,
+                        &mut self.toolbox,
                     );
                 }
                 Op::AdjustHighlightsAndShadows(ref op) => {
@@ -146,13 +149,19 @@ impl Engine {
                         .highlights_shadows
                         .as_mut()
                         .unwrap()
-                        .encode_commands(&mut encoder, op, &mut execution_context.value_store);
+                        .encode_commands(
+                            &mut encoder,
+                            op,
+                            &mut execution_context.value_store,
+                            &mut self.toolbox,
+                        );
                 }
                 Op::ApplyCurve(ref op) => {
                     self.op_impls.curve.as_mut().unwrap().encode_commands(
                         &mut encoder,
                         op,
                         &mut execution_context.value_store,
+                        &mut self.toolbox,
                     );
                 }
                 Op::AdjustTemperatureAndTint(ref op) => {
@@ -160,20 +169,31 @@ impl Engine {
                         .temperature_tint
                         .as_mut()
                         .unwrap()
-                        .encode_commands(&mut encoder, op, &mut execution_context.value_store);
+                        .encode_commands(
+                            &mut encoder,
+                            op,
+                            &mut execution_context.value_store,
+                            &mut self.toolbox,
+                        );
                 }
                 Op::AdjustVibranceAndSaturation(ref op) => {
                     self.op_impls
                         .vibrance_saturation
                         .as_mut()
                         .unwrap()
-                        .encode_commands(&mut encoder, op, &mut execution_context.value_store);
+                        .encode_commands(
+                            &mut encoder,
+                            op,
+                            &mut execution_context.value_store,
+                            &mut self.toolbox,
+                        );
                 }
                 Op::ColorMix(ref op) => {
                     self.op_impls.color_mix.as_mut().unwrap().encode_commands(
                         &mut encoder,
                         op,
                         &mut execution_context.value_store,
+                        &mut self.toolbox,
                     );
                 }
                 Op::AdjustVignette(ref op) => {
@@ -181,6 +201,7 @@ impl Engine {
                         &mut encoder,
                         op,
                         &mut execution_context.value_store,
+                        &mut self.toolbox,
                     );
                 }
                 Op::PrepareDehaze(ref op) => {
@@ -188,27 +209,43 @@ impl Engine {
                         .prepare_dehaze
                         .as_mut()
                         .unwrap()
-                        .encode_commands(&mut encoder, op, &mut execution_context.value_store);
+                        .encode_commands(
+                            &mut encoder,
+                            op,
+                            &mut execution_context.value_store,
+                            &mut self.toolbox,
+                        );
                 }
                 Op::ApplyDehaze(ref op) => {
                     self.op_impls
                         .apply_dehaze
                         .as_mut()
                         .unwrap()
-                        .encode_commands(&mut encoder, op, &mut execution_context.value_store);
+                        .encode_commands(
+                            &mut encoder,
+                            op,
+                            &mut execution_context.value_store,
+                            &mut self.toolbox,
+                        );
                 }
                 Op::ComputeBasicStatistics(ref op) => {
                     self.op_impls
                         .basic_statistics
                         .as_mut()
                         .unwrap()
-                        .encode_commands(&mut encoder, op, &mut execution_context.value_store);
+                        .encode_commands(
+                            &mut encoder,
+                            op,
+                            &mut execution_context.value_store,
+                            &mut self.toolbox,
+                        );
                 }
                 Op::ComputeHistogram(ref op) => {
                     self.op_impls.histogram.as_mut().unwrap().encode_commands(
                         &mut encoder,
                         op,
                         &mut execution_context.value_store,
+                        &mut self.toolbox,
                     );
                 }
                 Op::CollectDataForEditor(ref op) => {
@@ -216,13 +253,19 @@ impl Engine {
                         .collect_data_for_editor
                         .as_mut()
                         .unwrap()
-                        .encode_commands(&mut encoder, op, &mut execution_context.value_store);
+                        .encode_commands(
+                            &mut encoder,
+                            op,
+                            &mut execution_context.value_store,
+                            &mut self.toolbox,
+                        );
                 }
                 Op::Crop(ref op) => {
                     self.op_impls.crop.as_mut().unwrap().encode_commands(
                         &mut encoder,
                         op,
                         &mut execution_context.value_store,
+                        &mut self.toolbox,
                     );
                 }
                 Op::ComputeGlobalMask(ref op) => {
@@ -230,6 +273,7 @@ impl Engine {
                         &mut encoder,
                         op,
                         &mut execution_context.value_store,
+                        &mut self.toolbox,
                     );
                 }
                 Op::ApplyMaskedEdits(ref op) => {
@@ -237,7 +281,12 @@ impl Engine {
                         .apply_masked_edits
                         .as_mut()
                         .unwrap()
-                        .encode_commands(&mut encoder, op, &mut execution_context.value_store);
+                        .encode_commands(
+                            &mut encoder,
+                            op,
+                            &mut execution_context.value_store,
+                            &mut self.toolbox,
+                        );
                 }
             }
         }
@@ -249,7 +298,8 @@ impl Engine {
             .get(&output_id)
             .expect("cannot find output");
         let output_image = output_value.as_image();
-        self.mipmap_generator
+        self.toolbox
+            .mipmap_generator
             .encode_mipmap_generation_command(&output_image.as_ref(), &mut encoder);
 
         self.runtime.queue.submit(Some(encoder.finish()));

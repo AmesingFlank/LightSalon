@@ -2,7 +2,7 @@ use std::{collections::HashMap, mem::size_of, sync::Arc};
 
 use crate::{
     buffer::{Buffer, BufferProperties, RingBuffer},
-    engine::value_store::ValueStore,
+    engine::{value_store::ValueStore, toolbox::Toolbox},
     image::ColorSpace,
     ir::{AdjustExposureOp, Id},
     runtime::{
@@ -54,6 +54,7 @@ impl AdjustExposureImpl {
         encoder: &mut wgpu::CommandEncoder,
         op: &AdjustExposureOp,
         value_store: &mut ValueStore,
+        toolbox: &mut Toolbox,
     ) {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
         let output_img = value_store.ensure_value_at_id_is_image_of_properties(

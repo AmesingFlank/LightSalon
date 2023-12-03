@@ -2,7 +2,7 @@ use std::{collections::HashMap, mem::size_of, sync::Arc};
 
 use crate::{
     buffer::{Buffer, BufferProperties, RingBuffer},
-    engine::value_store::ValueStore,
+    engine::{value_store::ValueStore, toolbox::Toolbox},
     image::ColorSpace,
     ir::{CollectDataForEditorOp, Id},
     runtime::{
@@ -28,6 +28,7 @@ impl CollectDataForEditorImpl {
         encoder: &mut wgpu::CommandEncoder,
         op: &CollectDataForEditorOp,
         value_store: &mut ValueStore,
+        toolbox: &mut Toolbox,
     ) {
         let histogram_buffer = value_store
             .map

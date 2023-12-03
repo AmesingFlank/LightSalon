@@ -2,7 +2,7 @@ use std::{collections::HashMap, mem::size_of, sync::Arc};
 
 use crate::{
     buffer::{Buffer, BufferProperties, RingBuffer},
-    engine::value_store::ValueStore,
+    engine::{value_store::ValueStore, toolbox::{self, Toolbox}},
     image::ColorSpace,
     ir::{AdjustVibranceAndSaturationOp, Id},
     runtime::{
@@ -55,6 +55,7 @@ impl AdjustVibranceAndSaturationImpl {
         encoder: &mut wgpu::CommandEncoder,
         op: &AdjustVibranceAndSaturationOp,
         value_store: &mut ValueStore,
+        toolbox: &mut Toolbox,
     ) {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
         let output_img = value_store.ensure_value_at_id_is_image_of_properties(

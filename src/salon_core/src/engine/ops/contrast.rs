@@ -2,7 +2,7 @@ use std::{collections::HashMap, mem::size_of, sync::Arc};
 
 use crate::{
     buffer::{Buffer, BufferProperties, RingBuffer},
-    engine::value_store::ValueStore,
+    engine::{value_store::ValueStore, toolbox::{self, Toolbox}},
     image::{ColorSpace, Image},
     ir::{AdjustContrastOp, Id},
     runtime::{
@@ -56,6 +56,7 @@ impl AdjustContrastImpl {
         encoder: &mut wgpu::CommandEncoder,
         op: &AdjustContrastOp,
         value_store: &mut ValueStore,
+        toolbox: &mut Toolbox,
     ) {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
         let input_basic_stats = value_store

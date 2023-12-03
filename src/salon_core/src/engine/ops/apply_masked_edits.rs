@@ -2,7 +2,7 @@ use std::{collections::HashMap, mem::size_of, sync::Arc};
 
 use crate::{
     buffer::{Buffer, BufferProperties, RingBuffer},
-    engine::value_store::ValueStore,
+    engine::{value_store::ValueStore, toolbox::Toolbox},
     image::ColorSpace,
     ir::{ApplyMaskedEditsOp, Id},
     runtime::{
@@ -43,6 +43,7 @@ impl ApplyMaskedEditsImpl {
         encoder: &mut wgpu::CommandEncoder,
         op: &ApplyMaskedEditsOp,
         value_store: &mut ValueStore,
+        toolbox: &mut Toolbox,
     ) {
         let original_img = value_store
             .map

@@ -2,7 +2,7 @@ use std::{collections::HashMap, mem::size_of, sync::Arc};
 
 use crate::{
     buffer::{BufferProperties, RingBuffer},
-    engine::value_store::ValueStore,
+    engine::{value_store::ValueStore, toolbox::Toolbox},
     image::{ColorSpace, Image},
     ir::{ComputeBasicStatisticsOp, Id},
     runtime::{
@@ -79,6 +79,7 @@ impl ComputeBasicStatisticsImpl {
         encoder: &mut wgpu::CommandEncoder,
         op: &ComputeBasicStatisticsOp,
         value_store: &mut ValueStore,
+        toolbox: &mut Toolbox,
     ) {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
 
