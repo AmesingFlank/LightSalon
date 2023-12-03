@@ -1,15 +1,20 @@
 use std::{mem::size_of, sync::Arc};
 
 use crate::{
+    buffer::{BufferProperties, Buffer},
     image::{ColorSpace, Image},
     runtime::Runtime,
     shader::{Shader, ShaderLibraryModule},
 };
 
+use super::{
+    bind_group_manager, BindGroupDescriptor, BindGroupEntry, BindGroupManager, BindingResource,
+};
+
 pub struct ColorSpaceConverter {
     pipeline: wgpu::ComputePipeline,
-    bind_group_layout: wgpu::BindGroupLayout,
-    uniform_buffer: wgpu::Buffer,
+    bind_group_manager: BindGroupManager,
+    uniform_buffer: Buffer,
     runtime: Arc<Runtime>,
 }
 impl ColorSpaceConverter {
@@ -19,24 +24,23 @@ impl ColorSpaceConverter {
             .full_code();
 
         let (pipeline, bind_group_layout) = runtime.create_compute_pipeline(shader_code.as_str());
+        let bind_group_manager = BindGroupManager::new(runtime.clone(), bind_group_layout);
 
-        let uniform_buffer = runtime.device.create_buffer(&wgpu::BufferDescriptor {
-            label: None,
-            size: (size_of::<u32>() * 2) as u64,
-            mapped_at_creation: false,
-            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM,
+        let uniform_buffer = runtime.create_buffer_of_properties(BufferProperties {
+            size: size_of::<u32>() * 2,
+            host_readable: false,
         });
 
         ColorSpaceConverter {
             runtime,
             pipeline,
-            bind_group_layout,
+            bind_group_manager,
             uniform_buffer,
         }
     }
 }
 impl ColorSpaceConverter {
-    pub fn convert(&self, input_img: Arc<Image>, dest_color_space: ColorSpace) -> Arc<Image> {
+    pub fn convert(&mut self, input_img: Arc<Image>, dest_color_space: ColorSpace) -> Arc<Image> {
         if input_img.properties.color_space == dest_color_space {
             return input_img;
         }
@@ -50,34 +54,27 @@ impl ColorSpaceConverter {
         let dest_color_space = dest_color_space as u32;
 
         self.runtime.queue.write_buffer(
-            &self.uniform_buffer,
+            &self.uniform_buffer.buffer,
             0,
             bytemuck::cast_slice(&[src_color_space, dest_color_space]),
         );
 
-        let bind_group = self
-            .runtime
-            .device
-            .create_bind_group(&wgpu::BindGroupDescriptor {
-                label: None,
-                layout: &self.bind_group_layout,
-                entries: &[
-                    wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: wgpu::BindingResource::TextureView(&input_img.texture_view),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: wgpu::BindingResource::TextureView(
-                            &output_img.texture_view_single_mip[0],
-                        ),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 2,
-                        resource: self.uniform_buffer.as_entire_binding(),
-                    },
-                ],
-            });
+        let bind_group = self.bind_group_manager.get_or_create(BindGroupDescriptor {
+            entries: vec![
+                BindGroupEntry {
+                    binding: 0,
+                    resource: BindingResource::Texture(&input_img),
+                },
+                BindGroupEntry {
+                    binding: 1,
+                    resource: BindingResource::TextureStorage(&output_img, 0),
+                },
+                BindGroupEntry {
+                    binding: 2,
+                    resource: BindingResource::Buffer(&self.uniform_buffer),
+                },
+            ],
+        });
 
         let mut encoder = self
             .runtime
