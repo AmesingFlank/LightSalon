@@ -1,7 +1,8 @@
 use crate::ui::{
     self, file_menu,
     widgets::{
-        EditorSliderRectRenderResources, MainImageRenderResources, ThumbnailRenderResources,
+        EditorSliderRectRenderResources, MainImageRenderResources, MaskIndicatorRenderResources,
+        ThumbnailRenderResources,
     },
     AppUiState,
 };
@@ -81,6 +82,10 @@ impl App {
             EditorSliderRectRenderResources::new(runtime.clone(), wgpu_render_state.target_format);
         renderer.callback_resources.insert(resources);
 
+        let resources =
+            MaskIndicatorRenderResources::new(runtime.clone(), wgpu_render_state.target_format);
+        renderer.callback_resources.insert(resources);
+
         Self {
             session,
             ui_state: AppUiState::new(),
@@ -121,6 +126,10 @@ impl eframe::App for App {
             resources.reset();
 
             let resources: &mut EditorSliderRectRenderResources =
+                renderer.callback_resources.get_mut().unwrap();
+            resources.reset();
+
+            let resources: &mut MaskIndicatorRenderResources =
                 renderer.callback_resources.get_mut().unwrap();
             resources.reset();
         }
