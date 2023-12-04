@@ -104,20 +104,13 @@ impl Engine {
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
-        let has_prev_execution = execution_context.last_input_image_uuid.is_some()
-            && execution_context.last_module.is_some();
-        let mut can_reuse_prev_value =
-            has_prev_execution && execution_context.last_input_image_uuid == Some(input_img.uuid);
+        let reusable_ids_set = execution_context.compute_reusable_ids_set(module, input_img.uuid);
 
         for i in 0..ops.len() {
             let op = &ops[i];
 
-            if can_reuse_prev_value {
-                let last_module = execution_context.last_module.as_ref().unwrap();
-                can_reuse_prev_value = i < last_module.ops().len() && *op == last_module.ops()[i];
-            }
-
-            if can_reuse_prev_value {
+            let result_id = op.get_result_id();
+            if reusable_ids_set.contains(&result_id) {
                 continue;
             }
 
@@ -304,8 +297,7 @@ impl Engine {
 
         self.runtime.queue.submit(Some(encoder.finish()));
 
-        execution_context.last_module = Some(module.clone());
-        execution_context.last_input_image_uuid = Some(input_img.uuid);
+        execution_context.set_last(module.clone(), input_img.uuid);
     }
 
     fn reset_op_impls(&mut self, module: &Module) {

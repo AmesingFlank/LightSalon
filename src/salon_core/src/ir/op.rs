@@ -1,6 +1,6 @@
 use crate::utils::rectangle::Rectangle;
 
-use super::{Id, Mask, GlobalMask};
+use super::{GlobalMask, Id, Mask};
 
 #[derive(Clone, PartialEq)]
 pub enum Op {
@@ -21,6 +21,52 @@ pub enum Op {
     Crop(CropOp),
     ComputeGlobalMask(ComputeGlobalMaskOp),
     ApplyMaskedEdits(ApplyMaskedEditsOp),
+}
+
+impl Op {
+    pub fn get_arg_ids(&self) -> Vec<Id> {
+        match self {
+            Op::Input(ref o) => vec![],
+            Op::AdjustExposure(ref o) => vec![o.arg],
+            Op::AdjustContrast(ref o) => vec![o.arg, o.basic_stats],
+            Op::AdjustHighlightsAndShadows(ref o) => vec![o.arg],
+            Op::ApplyCurve(ref o) => vec![o.arg],
+            Op::AdjustTemperatureAndTint(ref o) => vec![o.arg],
+            Op::AdjustVibranceAndSaturation(ref o) => vec![o.arg],
+            Op::ColorMix(ref o) => vec![o.arg],
+            Op::PrepareDehaze(ref o) => vec![o.arg],
+            Op::AdjustVignette(ref o) => vec![o.arg],
+            Op::ApplyDehaze(ref o) => vec![o.arg],
+            Op::ComputeBasicStatistics(ref o) => vec![o.arg],
+            Op::ComputeHistogram(ref o) => vec![o.arg],
+            Op::CollectDataForEditor(ref o) => vec![o.histogram_final],
+            Op::Crop(ref o) => vec![o.arg],
+            Op::ComputeGlobalMask(ref o) => vec![o.target],
+            Op::ApplyMaskedEdits(ref o) => vec![o.original_target, o.edited, o.mask],
+        }
+    }
+
+    pub fn get_result_id(&self) -> Id {
+        match self {
+            Op::Input(ref o) => o.result,
+            Op::AdjustExposure(ref o) => o.result,
+            Op::AdjustContrast(ref o) => o.result,
+            Op::AdjustHighlightsAndShadows(ref o) => o.result,
+            Op::ApplyCurve(ref o) => o.result,
+            Op::AdjustTemperatureAndTint(ref o) => o.result,
+            Op::AdjustVibranceAndSaturation(ref o) => o.result,
+            Op::ColorMix(ref o) => o.result,
+            Op::PrepareDehaze(ref o) => o.result,
+            Op::AdjustVignette(ref o) => o.result,
+            Op::ApplyDehaze(ref o) => o.result,
+            Op::ComputeBasicStatistics(ref o) => o.result,
+            Op::ComputeHistogram(ref o) => o.result,
+            Op::CollectDataForEditor(ref o) => o.result,
+            Op::Crop(ref o) => o.result,
+            Op::ComputeGlobalMask(ref o) => o.result,
+            Op::ApplyMaskedEdits(ref o) => o.result,
+        }
+    }
 }
 
 #[derive(Clone, PartialEq)]

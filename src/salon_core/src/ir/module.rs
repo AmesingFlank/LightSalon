@@ -48,4 +48,13 @@ impl Module {
 
         module
     }
+
+    pub fn get_result_id_to_op_index(&self) -> HashMap<Id, usize> {
+        let mut mapping = HashMap::new();
+        for i in 0..self.ops().len() {
+            let result_id = self.ops()[i].get_result_id();
+            mapping.insert(result_id, i);
+        }
+        mapping
+    }
 }
