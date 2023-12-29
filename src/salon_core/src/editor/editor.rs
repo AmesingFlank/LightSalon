@@ -61,9 +61,17 @@ impl Editor {
 
         let final_hist = ImageHistogram::from_u32_slice(final_histogram_buffer_data.as_slice());
 
+        let mut masks = Vec::new();
+
+        for mask_id in id_store.masks.iter() {
+            let mask_image = value_map.get(&mask_id).expect("cannot find mask").as_image().clone();
+            masks.push(mask_image)
+        }
+
         let result = EditResult {
             final_image: output_image,
             histogram_final: final_hist,
+            masks
         };
 
         self.current_result = Some(result);
