@@ -5,7 +5,6 @@ pub mod temperature_tint;
 pub mod vibrance_saturation;
 pub mod basic_statistics;
 pub mod histogram;
-pub mod collect_data_for_editor;
 pub mod curve;
 pub mod color_mix;
 pub mod vignette;

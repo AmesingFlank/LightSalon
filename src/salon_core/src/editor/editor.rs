@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
 use crate::{
-    engine::{Engine, ExecutionContext},
+    engine::{common::ImageHistogram, Engine, ExecutionContext},
     image::Image,
     runtime::{MipmapGenerator, Runtime},
 };
 
 use super::{
     ir_generator::{to_ir_module, IdStore},
-    DataForEditor, Edit, EditResult,
+    Edit, EditResult,
 };
 
 pub struct Editor {
@@ -48,34 +48,23 @@ impl Editor {
     fn collect_result(&mut self, id_store: &IdStore) {
         let value_map = &self.engine_execution_context.value_store.map;
 
-        let output_value = value_map
-            .get(&id_store.output)
-            .expect("cannot find output");
+        let output_value = value_map.get(&id_store.output).expect("cannot find output");
         let output_image = output_value.as_image().clone();
         self.mipmap_generator.generate(&output_image);
 
-
-        let editor_data_buffer = value_map
-            .get(&id_store.data_for_editor)
+        let final_histogram_buffer = value_map
+            .get(&id_store.final_histogram)
             .expect("cannot find data for editor")
             .as_buffer();
+        let final_histogram_buffer_data: Vec<u32> =
+            self.runtime.read_buffer(&final_histogram_buffer);
 
-        let mut result = EditResult::new_empty();
+        let final_hist = ImageHistogram::from_u32_slice(final_histogram_buffer_data.as_slice());
 
-        let data_for_editor = DataForEditor::from_buffer(&editor_data_buffer, &self.runtime);
-        // println!("");
-        // let mut sum = 0u32;
-        // for i in 0..stats.histogram_final.num_bins as usize {
-        //     print!("{x} ", x=stats.histogram_final.r[i]);
-        //     sum = sum + stats.histogram_final.r[i];
-        // }
-        // println!("");
-        // println!("num_bins={num_bins}",num_bins=stats.histogram_final.num_bins);
-        // println!("sum={sum}",sum=sum);
-        // println!("");
-        result.data_for_editor = Some(data_for_editor);
-
-        result.final_image = Some(output_image);
+        let result = EditResult {
+            final_image: output_image,
+            histogram_final: final_hist,
+        };
 
         self.current_result = Some(result);
     }

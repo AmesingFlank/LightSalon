@@ -17,7 +17,6 @@ pub enum Op {
     ApplyDehaze(ApplyDehazeOp),
     ComputeBasicStatistics(ComputeBasicStatisticsOp),
     ComputeHistogram(ComputeHistogramOp),
-    CollectDataForEditor(CollectDataForEditorOp),
     Crop(CropOp),
     ComputeGlobalMask(ComputeGlobalMaskOp),
     ApplyMaskedEdits(ApplyMaskedEditsOp),
@@ -39,7 +38,6 @@ impl Op {
             Op::ApplyDehaze(ref o) => vec![o.arg],
             Op::ComputeBasicStatistics(ref o) => vec![o.arg],
             Op::ComputeHistogram(ref o) => vec![o.arg],
-            Op::CollectDataForEditor(ref o) => vec![o.histogram_final],
             Op::Crop(ref o) => vec![o.arg],
             Op::ComputeGlobalMask(ref o) => vec![o.target],
             Op::ApplyMaskedEdits(ref o) => vec![o.original_target, o.edited, o.mask],
@@ -61,7 +59,6 @@ impl Op {
             Op::ApplyDehaze(ref o) => o.result,
             Op::ComputeBasicStatistics(ref o) => o.result,
             Op::ComputeHistogram(ref o) => o.result,
-            Op::CollectDataForEditor(ref o) => o.result,
             Op::Crop(ref o) => o.result,
             Op::ComputeGlobalMask(ref o) => o.result,
             Op::ApplyMaskedEdits(ref o) => o.result,
@@ -179,12 +176,6 @@ pub struct ComputeBasicStatisticsOp {
 pub struct ComputeHistogramOp {
     pub result: Id,
     pub arg: Id,
-}
-
-#[derive(Clone, PartialEq)]
-pub struct CollectDataForEditorOp {
-    pub result: Id,
-    pub histogram_final: Id,
 }
 
 #[derive(Clone, PartialEq)]

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::{CollectDataForEditorOp, ComputeHistogramOp, Id, InputOp, Op};
+use super::{Id, Op};
 
 #[derive(Clone)]
 pub struct Module {

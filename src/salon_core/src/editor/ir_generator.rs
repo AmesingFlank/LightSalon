@@ -6,17 +6,16 @@ use crate::{
     ir::{
         AdjustContrastOp, AdjustExposureOp, AdjustHighlightsAndShadowsOp,
         AdjustTemperatureAndTintOp, AdjustVibranceAndSaturationOp, AdjustVignetteOp, ApplyCurveOp,
-        ApplyDehazeOp, ApplyMaskedEditsOp, CollectDataForEditorOp, ColorMixGroup, ColorMixOp,
-        ComputeBasicStatisticsOp, ComputeHistogramOp, CropOp, Id, InputOp, Module, Op,
-        PrepareDehazeOp,
+        ApplyDehazeOp, ApplyMaskedEditsOp, ColorMixGroup, ColorMixOp, ComputeBasicStatisticsOp,
+        ComputeHistogramOp, CropOp, Id, InputOp, Module, Op, PrepareDehazeOp,
     },
     utils::rectangle::Rectangle,
 };
 
 pub struct IdStore {
     pub output: Id,
-    pub data_for_editor: Id,
-    pub masks: Vec<Id>
+    pub final_histogram: Id,
+    pub masks: Vec<Id>,
 }
 
 pub fn to_ir_module(edit: &Edit) -> (Module, IdStore) {
@@ -36,10 +35,10 @@ pub fn to_ir_module(edit: &Edit) -> (Module, IdStore) {
         mask_ids.push(mask_id);
     }
 
-    let data_for_editor_id = add_collect_data_for_editor(&mut module, &current_output_id);
+    let final_histogram_id = add_final_histogram(&mut module, &current_output_id);
     let id_store = IdStore {
         output: current_output_id,
-        data_for_editor:data_for_editor_id,
+        final_histogram: final_histogram_id,
         masks: mask_ids,
     };
     (module, id_store)
@@ -57,20 +56,14 @@ fn maybe_add_crop(edit: &Edit, module: &mut Module, current_output_id: &mut Id) 
     }
 }
 
-fn add_collect_data_for_editor(module: &mut Module, current_output_id: &Id) -> Id {
+fn add_final_histogram(module: &mut Module, current_output_id: &Id) -> Id {
     let histogram_id = module.alloc_id();
     module.push_op(Op::ComputeHistogram(ComputeHistogramOp {
         result: histogram_id,
         arg: *current_output_id,
     }));
 
-    let data_for_editor_id = module.alloc_id();
-    module.push_op(Op::CollectDataForEditor(CollectDataForEditorOp {
-        result: data_for_editor_id,
-        histogram_final: histogram_id,
-    }));
-
-    data_for_editor_id
+    histogram_id
 }
 
 fn add_masked_edit(masked_edit: &MaskedEdit, module: &mut Module, target_id: Id) -> (Id, Id) {

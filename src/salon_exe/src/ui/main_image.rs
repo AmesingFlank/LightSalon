@@ -90,20 +90,17 @@ pub fn main_image(
             }
         } else {
             if let Some(ref result) = session.editor.current_result {
-                if let Some(ref image) = result.final_image.clone() {
-                    let size = get_image_size(ui, image);
-                    let (rect, response) =
-                        ui.allocate_exact_size(size, egui::Sense::click_and_drag());
-                    ui.painter().add(egui_wgpu::Callback::new_paint_callback(
-                        rect,
-                        MainImageCallback {
-                            image: image.clone(),
-                            crop_rect: None,
-                        },
-                    ));
-                    if ui_state.show_grid {
-                        draw_grid_impl(ui, rect, rect, ui_state);
-                    }
+                let size = get_image_size(ui, &result.final_image);
+                let (rect, response) = ui.allocate_exact_size(size, egui::Sense::click_and_drag());
+                ui.painter().add(egui_wgpu::Callback::new_paint_callback(
+                    rect,
+                    MainImageCallback {
+                        image: result.final_image.clone(),
+                        crop_rect: None,
+                    },
+                ));
+                if ui_state.show_grid {
+                    draw_grid_impl(ui, rect, rect, ui_state);
                 }
             }
         }

@@ -11,7 +11,6 @@ use super::{
     ops::{
         apply_masked_edits::ApplyMaskedEditsImpl,
         basic_statistics::ComputeBasicStatisticsImpl,
-        collect_data_for_editor::CollectDataForEditorImpl,
         color_mix::ColorMixImpl,
         contrast::AdjustContrastImpl,
         crop::CropImpl,
@@ -206,18 +205,6 @@ impl Engine {
                         &mut self.toolbox,
                     );
                 }
-                Op::CollectDataForEditor(ref op) => {
-                    self.op_impls
-                        .collect_data_for_editor
-                        .as_mut()
-                        .unwrap()
-                        .encode_commands(
-                            &mut encoder,
-                            op,
-                            &mut execution_context.value_store,
-                            &mut self.toolbox,
-                        );
-                }
                 Op::Crop(ref op) => {
                     self.op_impls.crop.as_mut().unwrap().encode_commands(
                         &mut encoder,
@@ -337,17 +324,6 @@ impl Engine {
                             Some(ComputeHistogramImpl::new(self.runtime.clone()))
                     }
                     self.op_impls.histogram.as_mut().unwrap().reset();
-                }
-                Op::CollectDataForEditor(_) => {
-                    if self.op_impls.collect_data_for_editor.is_none() {
-                        self.op_impls.collect_data_for_editor =
-                            Some(CollectDataForEditorImpl::new(self.runtime.clone()))
-                    }
-                    self.op_impls
-                        .collect_data_for_editor
-                        .as_mut()
-                        .unwrap()
-                        .reset();
                 }
                 Op::Crop(_) => {
                     if self.op_impls.crop.is_none() {

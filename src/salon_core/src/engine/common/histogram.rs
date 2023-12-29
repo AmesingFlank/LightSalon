@@ -30,4 +30,21 @@ impl ImageHistogram {
         }
         max
     }
+
+    pub fn from_u32_slice(data: &[u32]) -> Self {
+        let r = data[ImageHistogram::max_bins() * 0..ImageHistogram::max_bins() * 1].to_vec();
+        let g = data[ImageHistogram::max_bins() * 1..ImageHistogram::max_bins() * 2].to_vec();
+        let b = data[ImageHistogram::max_bins() * 2..ImageHistogram::max_bins() * 3].to_vec();
+        let luma = data[ImageHistogram::max_bins() * 3..ImageHistogram::max_bins() * 4].to_vec();
+
+        let num_bins = data[ImageHistogram::max_bins() * 4];
+
+        ImageHistogram {
+            r,
+            g,
+            b,
+            luma,
+            num_bins,
+        }
+    }
 }
