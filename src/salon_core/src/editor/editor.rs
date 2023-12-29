@@ -49,14 +49,14 @@ impl Editor {
         let value_map = &self.engine_execution_context.value_store.map;
 
         let output_value = value_map
-            .get(&id_store.output_id)
+            .get(&id_store.output)
             .expect("cannot find output");
         let output_image = output_value.as_image().clone();
         self.mipmap_generator.generate(&output_image);
 
 
         let editor_data_buffer = value_map
-            .get(&id_store.data_for_editor_id)
+            .get(&id_store.data_for_editor)
             .expect("cannot find data for editor")
             .as_buffer();
 

@@ -14,8 +14,9 @@ use crate::{
 };
 
 pub struct IdStore {
-    pub output_id: Id,
-    pub data_for_editor_id: Id,
+    pub output: Id,
+    pub data_for_editor: Id,
+    pub masks: Vec<Id>
 }
 
 pub fn to_ir_module(edit: &Edit) -> (Module, IdStore) {
@@ -27,14 +28,19 @@ pub fn to_ir_module(edit: &Edit) -> (Module, IdStore) {
     let mut current_output_id = input_id;
 
     maybe_add_crop(edit, &mut module, &mut current_output_id);
+
+    let mut mask_ids = Vec::new();
     for edit in edit.masked_edits.iter() {
-        current_output_id = add_masked_edit(edit, &mut module, current_output_id)
+        let (mask_id, result_id) = add_masked_edit(edit, &mut module, current_output_id);
+        current_output_id = result_id;
+        mask_ids.push(mask_id);
     }
 
     let data_for_editor_id = add_collect_data_for_editor(&mut module, &current_output_id);
     let id_store = IdStore {
-        output_id: current_output_id,
-        data_for_editor_id,
+        output: current_output_id,
+        data_for_editor:data_for_editor_id,
+        masks: mask_ids,
     };
     (module, id_store)
 }
@@ -67,20 +73,20 @@ fn add_collect_data_for_editor(module: &mut Module, current_output_id: &Id) -> I
     data_for_editor_id
 }
 
-fn add_masked_edit(masked_edit: &MaskedEdit, module: &mut Module, target_id: Id) -> Id {
+fn add_masked_edit(masked_edit: &MaskedEdit, module: &mut Module, target_id: Id) -> (Id, Id) {
     let mask_id = masked_edit.mask.create_compute_mask_ops(target_id, module);
     let edited_id = add_global_edit(&masked_edit.edit, module, target_id);
 
-    let result = module.alloc_id();
+    let result_id = module.alloc_id();
 
     module.push_op(Op::ApplyMaskedEdits(ApplyMaskedEditsOp {
-        result,
+        result: result_id,
         mask: mask_id,
         original_target: target_id,
         edited: edited_id,
     }));
 
-    result
+    (mask_id, result_id)
 }
 
 pub fn add_global_edit(edit: &GlobalEdit, module: &mut Module, target_id: Id) -> Id {
