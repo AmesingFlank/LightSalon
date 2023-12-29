@@ -1,29 +1,42 @@
 use super::{Edit, GlobalEdit, MaskedEdit};
 
 use crate::{
-    engine::{Engine, ExecutionContext, ProcessResult},
+    engine::{Engine, ExecutionContext},
     image::Image,
     ir::{
         AdjustContrastOp, AdjustExposureOp, AdjustHighlightsAndShadowsOp,
         AdjustTemperatureAndTintOp, AdjustVibranceAndSaturationOp, AdjustVignetteOp, ApplyCurveOp,
         ApplyDehazeOp, ApplyMaskedEditsOp, CollectDataForEditorOp, ColorMixGroup, ColorMixOp,
-        ComputeBasicStatisticsOp, ComputeHistogramOp, CropOp, Id, IdTag, Module, Op,
+        ComputeBasicStatisticsOp, ComputeHistogramOp, CropOp, Id, InputOp, Module, Op,
         PrepareDehazeOp,
     },
     utils::rectangle::Rectangle,
 };
 
-pub fn to_ir_module(edit: &Edit) -> Module {
-    let mut module = Module::new_trivial();
-    let mut current_output_id = module.get_output_id().expect("expecting an output id");
+pub struct IdStore {
+    pub output_id: Id,
+    pub data_for_editor_id: Id,
+}
+
+pub fn to_ir_module(edit: &Edit) -> (Module, IdStore) {
+    let mut module = Module::new_empty();
+
+    let input_id = module.alloc_id();
+    module.push_op(Op::Input(InputOp { result: input_id }));
+
+    let mut current_output_id = input_id;
 
     maybe_add_crop(edit, &mut module, &mut current_output_id);
     for edit in edit.masked_edits.iter() {
-        add_masked_edit(edit, &mut module)
+        current_output_id = add_masked_edit(edit, &mut module, current_output_id)
     }
 
-    add_collect_data_for_editor(&mut module, &mut current_output_id);
-    module
+    let data_for_editor_id = add_collect_data_for_editor(&mut module, &current_output_id);
+    let id_store = IdStore {
+        output_id: current_output_id,
+        data_for_editor_id,
+    };
+    (module, id_store)
 }
 
 fn maybe_add_crop(edit: &Edit, module: &mut Module, current_output_id: &mut Id) {
@@ -34,12 +47,11 @@ fn maybe_add_crop(edit: &Edit, module: &mut Module, current_output_id: &mut Id) 
             arg: *current_output_id,
             rect: crop.clone(),
         }));
-        module.set_output_id(cropped_image_id);
         *current_output_id = cropped_image_id;
     }
 }
 
-fn add_collect_data_for_editor(module: &mut Module, current_output_id: &mut Id) {
+fn add_collect_data_for_editor(module: &mut Module, current_output_id: &Id) -> Id {
     let histogram_id = module.alloc_id();
     module.push_op(Op::ComputeHistogram(ComputeHistogramOp {
         result: histogram_id,
@@ -52,16 +64,12 @@ fn add_collect_data_for_editor(module: &mut Module, current_output_id: &mut Id) 
         histogram_final: histogram_id,
     }));
 
-    module.set_tagged_id(IdTag::DataForEditor, data_for_editor_id)
+    data_for_editor_id
 }
 
-fn add_masked_edit(masked_edit: &MaskedEdit, module: &mut Module) {
-    let target_id: i32 = module.get_output_id().expect("expecting an output id");
-
+fn add_masked_edit(masked_edit: &MaskedEdit, module: &mut Module, target_id: Id) -> Id {
     let mask_id = masked_edit.mask.create_compute_mask_ops(target_id, module);
-    add_global_edit(&masked_edit.edit, module);
-
-    let edited_id: i32 = module.get_output_id().expect("expecting an output id");
+    let edited_id = add_global_edit(&masked_edit.edit, module, target_id);
 
     let result = module.alloc_id();
 
@@ -72,13 +80,12 @@ fn add_masked_edit(masked_edit: &MaskedEdit, module: &mut Module) {
         edited: edited_id,
     }));
 
-    module.set_output_id(result);
+    result
 }
 
-pub fn add_global_edit(edit: &GlobalEdit, module: &mut Module) {
-    let mut current_output_id = module.get_output_id().expect("expecting an output id");
-
+pub fn add_global_edit(edit: &GlobalEdit, module: &mut Module, target_id: Id) -> Id {
     // do dehaze first, because `PrepareDehaze` is expensive
+    let mut current_output_id = target_id;
     maybe_add_dehaze(edit, module, &mut current_output_id);
 
     maybe_add_exposure(edit, module, &mut current_output_id);
@@ -93,6 +100,7 @@ pub fn add_global_edit(edit: &GlobalEdit, module: &mut Module) {
     maybe_add_color_mix(edit, module, &mut current_output_id);
 
     maybe_add_vignette(edit, module, &mut current_output_id);
+    current_output_id
 }
 
 pub fn maybe_add_exposure(edit: &GlobalEdit, module: &mut Module, current_output_id: &mut Id) {
@@ -103,7 +111,6 @@ pub fn maybe_add_exposure(edit: &GlobalEdit, module: &mut Module, current_output
             arg: *current_output_id,
             exposure: edit.exposure,
         }));
-        module.set_output_id(exposure_adjusted_image_id);
         *current_output_id = exposure_adjusted_image_id;
     }
 }
@@ -123,7 +130,6 @@ fn maybe_add_contrast(edit: &GlobalEdit, module: &mut Module, current_output_id:
             basic_stats: basic_stats_id,
             contrast: edit.contrast,
         }));
-        module.set_output_id(contrast_adjusted_image_id);
         *current_output_id = contrast_adjusted_image_id;
     }
 }
@@ -143,7 +149,6 @@ fn maybe_add_highlights_shadows(
                 shadows: edit.shadows,
             },
         ));
-        module.set_output_id(adjusted_image_id);
         *current_output_id = adjusted_image_id;
     }
 }
@@ -160,7 +165,6 @@ fn maybe_add_curves(edit: &GlobalEdit, module: &mut Module, current_output_id: &
                 apply_g: g,
                 apply_b: b,
             }));
-            module.set_output_id(adjusted_image_id);
             *current_output_id = adjusted_image_id;
         }
     };
@@ -179,7 +183,6 @@ fn maybe_add_temperature_tint(edit: &GlobalEdit, module: &mut Module, current_ou
             temperature: edit.temperature,
             tint: edit.tint,
         }));
-        module.set_output_id(temperature_tint_adjusted_image_id);
         *current_output_id = temperature_tint_adjusted_image_id;
     }
 }
@@ -199,7 +202,6 @@ fn maybe_add_vibrance_saturation(
                 saturation: edit.saturation,
             },
         ));
-        module.set_output_id(adjusted_image_id);
         *current_output_id = adjusted_image_id;
     }
 }
@@ -222,7 +224,6 @@ fn maybe_add_color_mix(edit: &GlobalEdit, module: &mut Module, current_output_id
             arg: *current_output_id,
             groups,
         }));
-        module.set_output_id(adjusted_image_id);
         *current_output_id = adjusted_image_id;
     }
 }
@@ -235,7 +236,6 @@ fn maybe_add_vignette(edit: &GlobalEdit, module: &mut Module, current_output_id:
             arg: *current_output_id,
             vignette: edit.vignette,
         }));
-        module.set_output_id(adjusted_image_id);
         *current_output_id = adjusted_image_id;
     }
 }
@@ -255,7 +255,6 @@ fn maybe_add_dehaze(edit: &GlobalEdit, module: &mut Module, current_output_id: &
             dehazed: dehazed_id,
             amount: edit.dehaze,
         }));
-        module.set_output_id(dehaze_applied_id);
         *current_output_id = dehaze_applied_id;
     }
 }

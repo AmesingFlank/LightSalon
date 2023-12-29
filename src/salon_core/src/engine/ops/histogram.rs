@@ -2,7 +2,7 @@ use std::{collections::HashMap, mem::size_of, sync::Arc};
 
 use crate::{
     buffer::{BufferProperties, RingBuffer},
-    engine::{value_store::ValueStore, ImageHistogram, toolbox::Toolbox},
+    engine::{common::ImageHistogram, toolbox::Toolbox, value_store::ValueStore},
     image::{ColorSpace, Image},
     ir::{ComputeHistogramOp, Id},
     runtime::{
@@ -26,8 +26,8 @@ pub struct ComputeHistogramImpl {
 }
 impl ComputeHistogramImpl {
     pub fn new(runtime: Arc<Runtime>) -> Self {
-        let shader_clear = Shader::from_code(include_str!("shaders/histogram_clear.wgsl"))
-            .full_code();
+        let shader_clear =
+            Shader::from_code(include_str!("shaders/histogram_clear.wgsl")).full_code();
         let (pipeline_clear, bind_group_layout_clear) =
             runtime.create_compute_pipeline(shader_clear.as_str());
         let bind_group_manager_clear =

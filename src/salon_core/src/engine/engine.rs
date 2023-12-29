@@ -1,9 +1,8 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    engine::ImageHistogram,
     image::Image,
-    ir::{Id, IdTag, InputOp, Module, Op, Value},
+    ir::{Id, InputOp, Module, Op, Value},
     runtime::{MipmapGenerator, Runtime},
 };
 
@@ -27,10 +26,9 @@ use super::{
         vibrance_saturation::AdjustVibranceAndSaturationImpl,
         vignette::AdjustVignetteImpl,
     },
-    result::ProcessResult,
     toolbox::Toolbox,
     value_store::ValueStore,
-    DataForEditor, ExecutionContext,
+    ExecutionContext,
 };
 
 pub struct Engine {
@@ -54,42 +52,9 @@ impl Engine {
         module: &Module,
         input_img: Arc<Image>,
         execution_context: &mut ExecutionContext,
-    ) -> ProcessResult {
-        let mut result = ProcessResult::new_empty();
+    ) {
         self.reset_op_impls(module);
         self.apply_ops(module, input_img, execution_context);
-
-        let output_id = module.get_output_id().expect("expecting an output id");
-        let output_value = execution_context
-            .value_store
-            .map
-            .get(&output_id)
-            .expect("cannot find output");
-        let output_image = output_value.as_image().clone();
-
-        if let Some(editor_data_id) = module.get_tagged_id(IdTag::DataForEditor) {
-            let editor_data_buffer = execution_context
-                .value_store
-                .map
-                .get(&editor_data_id)
-                .expect("cannot find stats")
-                .as_buffer();
-            let data_for_editor = DataForEditor::from_buffer(&editor_data_buffer, &self.runtime);
-            // println!("");
-            // let mut sum = 0u32;
-            // for i in 0..stats.histogram_final.num_bins as usize {
-            //     print!("{x} ", x=stats.histogram_final.r[i]);
-            //     sum = sum + stats.histogram_final.r[i];
-            // }
-            // println!("");
-            // println!("num_bins={num_bins}",num_bins=stats.histogram_final.num_bins);
-            // println!("sum={sum}",sum=sum);
-            // println!("");
-            result.data_for_editor = Some(data_for_editor)
-        }
-
-        result.final_image = Some(output_image);
-        result
     }
 
     fn apply_ops(
@@ -283,17 +248,6 @@ impl Engine {
                 }
             }
         }
-
-        let output_id = module.get_output_id().expect("expecting an output id");
-        let output_value = execution_context
-            .value_store
-            .map
-            .get(&output_id)
-            .expect("cannot find output");
-        let output_image = output_value.as_image();
-        self.toolbox
-            .mipmap_generator
-            .encode_mipmap_generation_command(&output_image.as_ref(), &mut encoder);
 
         self.runtime.queue.submit(Some(encoder.finish()));
 
