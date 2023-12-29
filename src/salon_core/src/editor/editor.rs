@@ -12,7 +12,7 @@ use crate::{
     utils::rectangle::Rectangle,
 };
 
-use super::Edit;
+use super::{Edit, ir_generator::to_ir_module};
 
 pub struct Editor {
     pub current_edit: Edit,
@@ -37,7 +37,7 @@ impl Editor {
 
     pub fn execute_edit(&mut self, engine: &mut Engine) {
         if let Some(ref img) = self.current_input_image {
-            let module = self.current_edit.to_ir_module();
+            let module = to_ir_module(&self.current_edit);
             let result =
                 engine.execute_module(&module, img.clone(), &mut self.engine_execution_context);
             self.current_result = Some(result);

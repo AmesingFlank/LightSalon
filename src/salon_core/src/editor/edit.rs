@@ -1,10 +1,8 @@
 use crate::ir::{
-    CollectDataForEditorOp, ComputeHistogramOp, CropOp, GlobalMask, Id, IdTag, Mask, Module, Op,
+    CollectDataForEditorOp, ComputeHistogramOp, CropOp, GlobalMask, Id, IdTag, Mask, Module, Op, ColorMixGroup,
 };
 
 use crate::utils::rectangle::Rectangle;
-
-use super::{GlobalEdit, MaskedEdit};
 
 #[derive(Clone, PartialEq)]
 pub struct Edit {
@@ -22,46 +20,69 @@ impl Edit {
             )],
         }
     }
+}
 
-    pub fn to_ir_module(&self) -> Module {
-        let mut module = Module::new_trivial();
-        let mut current_output_id = module.get_output_id().expect("expecting an output id");
+#[derive(Clone, PartialEq)]
+pub struct MaskedEdit {
+    pub mask: Mask,
+    pub edit: GlobalEdit,
+}
 
-        self.maybe_add_crop(&mut module, &mut current_output_id);
-        for edit in self.masked_edits.iter() {
-            edit.add_edits_to_ir_module(&mut module)
-        }
-
-        add_collect_data_for_editor(&mut module, &mut current_output_id);
-        module
-    }
-
-    pub fn maybe_add_crop(&self, module: &mut Module, current_output_id: &mut Id) {
-        if let Some(ref crop) = self.crop {
-            let cropped_image_id = module.alloc_id();
-            module.push_op(Op::Crop(CropOp {
-                result: cropped_image_id,
-                arg: *current_output_id,
-                rect: crop.clone(),
-            }));
-            module.set_output_id(cropped_image_id);
-            *current_output_id = cropped_image_id;
-        }
+impl MaskedEdit {
+    pub fn new(mask: Mask, edit: GlobalEdit) -> Self {
+        Self { mask, edit }
     }
 }
 
-fn add_collect_data_for_editor(module: &mut Module, current_output_id: &mut Id) {
-    let histogram_id = module.alloc_id();
-    module.push_op(Op::ComputeHistogram(ComputeHistogramOp {
-        result: histogram_id,
-        arg: *current_output_id,
-    }));
+#[derive(Clone, PartialEq)]
+pub struct GlobalEdit {
+    pub exposure: f32,
+    pub contrast: f32,
+    pub highlights: f32,
+    pub shadows: f32,
 
-    let data_for_editor_id = module.alloc_id();
-    module.push_op(Op::CollectDataForEditor(CollectDataForEditorOp {
-        result: data_for_editor_id,
-        histogram_final: histogram_id,
-    }));
+    pub curve_control_points_all: Vec<(f32, f32)>,
+    pub curve_control_points_r: Vec<(f32, f32)>,
+    pub curve_control_points_g: Vec<(f32, f32)>,
+    pub curve_control_points_b: Vec<(f32, f32)>,
 
-    module.set_tagged_id(IdTag::DataForEditor, data_for_editor_id)
+    pub temperature: f32,
+    pub tint: f32,
+    pub vibrance: f32,
+    pub saturation: f32,
+
+    pub color_mixer_edits: [ColorMixGroup; 8],
+
+    pub dehaze: f32,
+    pub vignette: f32,
+}
+
+impl GlobalEdit {
+    pub fn new() -> Self {
+        GlobalEdit {
+            exposure: 0.0,
+            contrast: 0.0,
+            highlights: 0.0,
+            shadows: 0.0,
+
+            curve_control_points_all: GlobalEdit::initial_control_points(),
+            curve_control_points_r: GlobalEdit::initial_control_points(),
+            curve_control_points_g: GlobalEdit::initial_control_points(),
+            curve_control_points_b: GlobalEdit::initial_control_points(),
+
+            temperature: 0.0,
+            tint: 0.0,
+            vibrance: 0.0,
+            saturation: 0.0,
+
+            color_mixer_edits: [ColorMixGroup::new(); 8],
+
+            dehaze: 0.0,
+            vignette: 0.0,
+        }
+    }
+
+    pub fn initial_control_points() -> Vec<(f32, f32)> {
+        vec![(0.0, 0.0), (1.0, 1.0)]
+    }
 }
