@@ -3,7 +3,7 @@ use eframe::{
     epaint::Color32,
 };
 use egui_plot::{Line, MarkerShape, Plot, Points};
-use salon_core::{editor::GlobalEdit, image::ColorSpace, session::Session};
+use salon_core::{editor::GlobalEdit, runtime::ColorSpace, session::Session};
 
 use super::{widgets::EditorSlider, AppUiState};
 

@@ -1,9 +1,9 @@
 use std::{collections::HashMap, mem::size_of, sync::Arc};
 
 use crate::{
-    buffer::{Buffer, BufferProperties, RingBuffer},
+    runtime::{Buffer, BufferProperties, RingBuffer},
     engine::{toolbox::Toolbox, value_store::ValueStore},
-    image::{ColorSpace, ImageProperties, ImageFormat},
+    runtime::{ColorSpace, ImageProperties, ImageFormat},
     ir::{ComputeGlobalMaskOp, Id},
     runtime::{
         BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager,

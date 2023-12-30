@@ -12,7 +12,7 @@ use eframe::{
     emath::{self, lerp, remap, remap_clamp, NumExt, Rangef},
     epaint::{self, pos2, vec2, Color32, Pos2, Rect, Rounding},
 };
-use salon_core::image::ColorSpace;
+use salon_core::runtime::ColorSpace;
 
 use crate::*;
 

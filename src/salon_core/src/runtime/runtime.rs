@@ -3,14 +3,13 @@ use std::{io::Cursor, path::PathBuf, sync::Arc};
 use bytemuck::Pod;
 use image::{imageops, DynamicImage, GenericImageView, ImageBuffer, Rgb};
 
-use crate::{
+use crate::runtime::{
     buffer::{Buffer, BufferProperties},
     image::{ColorSpace, Image, ImageFormat, ImageProperties},
     sampler::Sampler,
 };
 
 use half::prelude::*;
-
 
 pub struct Runtime {
     pub adapter: Arc<wgpu::Adapter>,
@@ -383,7 +382,7 @@ impl Runtime {
         buffer_slice.map_async(wgpu::MapMode::Read, move |_| {});
         // hacky
         while !self.device.poll(wgpu::Maintain::Wait) {}
-        let mapped_range= buffer_slice.get_mapped_range();
+        let mapped_range = buffer_slice.get_mapped_range();
         // Since contents are got in bytes, this converts these bytes back to u32
         let result = bytemuck::cast_slice(&mapped_range).to_vec();
         drop(mapped_range);

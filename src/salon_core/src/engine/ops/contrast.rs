@@ -1,15 +1,17 @@
 use std::{collections::HashMap, mem::size_of, sync::Arc};
 
 use crate::{
-    buffer::{Buffer, BufferProperties, RingBuffer},
-    engine::{value_store::ValueStore, toolbox::{self, Toolbox}},
-    image::{ColorSpace, Image},
+    engine::{
+        toolbox::{self, Toolbox},
+        value_store::ValueStore,
+    },
     ir::{AdjustContrastOp, Id},
     runtime::{
         BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager,
-        BindingResource, Runtime,
+        BindingResource, Runtime, Sampler,
     },
-    sampler::Sampler,
+    runtime::{Buffer, BufferProperties, RingBuffer},
+    runtime::{ColorSpace, Image},
     shader::{Shader, ShaderLibraryModule},
     utils::math::div_up,
 };

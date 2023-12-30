@@ -7,7 +7,7 @@ use eframe::{
 use egui_plot::{Line, MarkerShape, Plot, Points};
 use salon_core::{
     editor::GlobalEdit,
-    image::ColorSpace,
+    runtime::ColorSpace,
     session::Session,
 };
 

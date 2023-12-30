@@ -2,8 +2,6 @@ use std::sync::Arc;
 
 use crate::editor::Editor;
 use crate::engine::{Engine};
-use crate::image::Image;
-use crate::ir::Module;
 use crate::library::{Library, LocalLibrary};
 use crate::runtime::{Runtime};
 

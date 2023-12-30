@@ -1,11 +1,8 @@
 use std::{mem::size_of, sync::Arc};
 
-use crate::{
-    buffer::{BufferProperties, Buffer},
-    image::{ColorSpace, Image},
-    runtime::Runtime,
-    shader::{Shader, ShaderLibraryModule},
-};
+use crate::runtime::{Buffer, BufferProperties, ColorSpace, Image, ImageFormat, Runtime};
+
+use crate::shader::{Shader, ShaderLibraryModule};
 
 use super::{
     bind_group_manager, BindGroupDescriptor, BindGroupEntry, BindGroupManager, BindingResource,

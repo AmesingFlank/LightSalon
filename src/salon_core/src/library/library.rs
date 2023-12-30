@@ -1,7 +1,7 @@
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
-use crate::image::{ColorSpace, Image};
-use crate::runtime::{Runtime};
+use crate::runtime::Runtime;
+use crate::runtime::{ColorSpace, Image};
 
 pub trait Library {
     fn num_images(&self) -> usize;

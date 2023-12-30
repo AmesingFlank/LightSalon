@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{buffer::Buffer, image::Image};
+use crate::runtime::{Buffer, Image};
 
 pub enum Value {
     Image(Arc<Image>),

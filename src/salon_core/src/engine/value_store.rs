@@ -1,10 +1,8 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    buffer::{Buffer, BufferProperties},
-    image::{Image, ImageProperties},
     ir::{Id, Value},
-    runtime::Runtime,
+    runtime::{Runtime, ImageProperties, Image, BufferProperties, Buffer},
 };
 
 pub struct ValueStore {

@@ -1,15 +1,10 @@
 use super::{Edit, GlobalEdit, MaskedEdit};
 
-use crate::{
-    engine::{Engine, ExecutionContext},
-    image::Image,
-    ir::{
-        AdjustContrastOp, AdjustExposureOp, AdjustHighlightsAndShadowsOp,
-        AdjustTemperatureAndTintOp, AdjustVibranceAndSaturationOp, AdjustVignetteOp, ApplyCurveOp,
-        ApplyDehazeOp, ApplyMaskedEditsOp, ColorMixGroup, ColorMixOp, ComputeBasicStatisticsOp,
-        ComputeHistogramOp, CropOp, Id, InputOp, Module, Op, PrepareDehazeOp,
-    },
-    utils::rectangle::Rectangle,
+use crate::ir::{
+    AdjustContrastOp, AdjustExposureOp, AdjustHighlightsAndShadowsOp, AdjustTemperatureAndTintOp,
+    AdjustVibranceAndSaturationOp, AdjustVignetteOp, ApplyCurveOp, ApplyDehazeOp,
+    ApplyMaskedEditsOp, ColorMixGroup, ColorMixOp, ComputeBasicStatisticsOp, ComputeHistogramOp,
+    CropOp, Id, InputOp, Module, Op, PrepareDehazeOp,
 };
 
 pub struct IdStore {

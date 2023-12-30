@@ -1,7 +1,6 @@
 use std::{collections::HashMap, hash::Hash, sync::Arc};
 
-use crate::{buffer::Buffer, image::Image, sampler::Sampler, runtime::Runtime};
-
+use crate::runtime::{Buffer, Image, Runtime, Sampler};
 
 pub struct BindGroupManager {
     layout: wgpu::BindGroupLayout,

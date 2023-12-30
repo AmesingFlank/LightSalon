@@ -1,9 +1,8 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    image::Image,
     ir::{Id, InputOp, Module, Op, Value},
-    runtime::{MipmapGenerator, Runtime},
+    runtime::{Image, MipmapGenerator, Runtime},
 };
 
 use super::{

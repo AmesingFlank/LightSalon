@@ -3,13 +3,13 @@ use std::sync::Arc;
 use std::{collections::HashMap, num::NonZeroU64};
 
 use eframe::{egui, egui_wgpu};
-use salon_core::buffer::{Buffer, BufferProperties, RingBuffer};
-use salon_core::image::{Image, ColorSpace};
+use salon_core::runtime::{Buffer, BufferProperties, RingBuffer};
+use salon_core::runtime::{Image, ColorSpace};
 use salon_core::runtime::{
     BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager, BindingResource,
     Runtime,
 };
-use salon_core::sampler::Sampler;
+use salon_core::runtime::Sampler;
 use salon_core::shader::{Shader, ShaderLibraryModule};
 use wgpu::util::DeviceExt;
 

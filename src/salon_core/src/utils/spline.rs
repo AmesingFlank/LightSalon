@@ -1,6 +1,6 @@
 use std::mem::size_of;
 
-use crate::{buffer::Buffer, runtime::Runtime};
+use crate::{runtime::{Runtime, Buffer}};
 
 use super::{vec::{vec2, vec4, Vec2}, math::dot_vec4};
 

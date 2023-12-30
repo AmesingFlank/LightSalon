@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
-use crate::{
+use crate::runtime::{
     image::{Image, ImageFormat},
     runtime::Runtime,
     sampler::Sampler,

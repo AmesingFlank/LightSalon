@@ -2,8 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     engine::{common::ImageHistogram, Engine, ExecutionContext},
-    image::Image,
-    runtime::{MipmapGenerator, Runtime},
+    runtime::{Buffer, Image, MipmapGenerator, Runtime},
 };
 
 use super::{
@@ -64,14 +63,18 @@ impl Editor {
         let mut masks = Vec::new();
 
         for mask_id in id_store.masks.iter() {
-            let mask_image = value_map.get(&mask_id).expect("cannot find mask").as_image().clone();
+            let mask_image = value_map
+                .get(&mask_id)
+                .expect("cannot find mask")
+                .as_image()
+                .clone();
             masks.push(mask_image)
         }
 
         let result = EditResult {
             final_image: output_image,
             histogram_final: final_hist,
-            masks
+            masks,
         };
 
         self.current_result = Some(result);
