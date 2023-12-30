@@ -1,6 +1,6 @@
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
-use crate::runtime::{ColorSpace, ColorSpaceConverter, Image, Runtime};
+use crate::runtime::{ColorSpace, ColorSpaceConverter, Image, MipmapGenerator, Runtime};
 
 use super::{AddImageResult, Library};
 
@@ -9,16 +9,19 @@ pub struct LocalLibrary {
     images: HashMap<usize, Arc<Image>>,
     runtime: Arc<Runtime>,
     color_space_converter: ColorSpaceConverter,
+    mipmap_generator: MipmapGenerator,
 }
 
 impl LocalLibrary {
     pub fn new(runtime: Arc<Runtime>) -> Self {
         let color_space_converter = ColorSpaceConverter::new(runtime.clone());
+        let mipmap_generator = MipmapGenerator::new(runtime.clone());
         Self {
             paths: Vec::new(),
             images: HashMap::new(),
             runtime,
             color_space_converter,
+            mipmap_generator,
         }
     }
 }
@@ -52,6 +55,7 @@ impl Library for LocalLibrary {
                 img = self
                     .color_space_converter
                     .convert(img, ColorSpace::LinearRGB);
+                self.mipmap_generator.generate(&img);
                 self.images.insert(index, img.clone());
                 img.clone()
             }
