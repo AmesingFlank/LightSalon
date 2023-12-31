@@ -18,29 +18,9 @@ use salon_core::utils::rectangle::Rectangle;
 use salon_core::utils::vec::vec2;
 use serde_json::de;
 
+use super::utils::get_image_size_in_ui;
 use super::widgets::MainImageCallback;
 use super::{AppUiState, CropDragEdgeOrCorner, EditorPanel};
-
-pub fn get_image_size(ui: &Ui, image: &Image) -> egui::Vec2 {
-    let max_x = ui.available_width();
-    let max_y = ui.available_height();
-    let ui_aspect_ratio = max_y / max_x;
-
-    let image_aspect_ratio = image.aspect_ratio();
-
-    let size = if image_aspect_ratio >= ui_aspect_ratio {
-        egui::Vec2 {
-            x: max_y / image_aspect_ratio,
-            y: max_y,
-        }
-    } else {
-        egui::Vec2 {
-            x: max_x,
-            y: max_x * image_aspect_ratio,
-        }
-    };
-    size
-}
 
 pub fn main_image(
     ctx: &egui::Context,
@@ -51,7 +31,7 @@ pub fn main_image(
     ui.centered_and_justified(|ui| {
         if ui_state.editor_panel == EditorPanel::CropAndRotate {
             if let Some(ref original_image) = session.editor.current_input_image {
-                let size = get_image_size(ui, &original_image);
+                let size = get_image_size_in_ui(ui, &original_image);
                 let (rect, response) = ui.allocate_exact_size(size, egui::Sense::click_and_drag());
 
                 ui.painter().add(egui_wgpu::Callback::new_paint_callback(
@@ -90,7 +70,7 @@ pub fn main_image(
             }
         } else {
             if let Some(ref result) = session.editor.current_result {
-                let size = get_image_size(ui, &result.final_image);
+                let size = get_image_size_in_ui(ui, &result.final_image);
                 let (rect, response) = ui.allocate_exact_size(size, egui::Sense::click_and_drag());
                 ui.painter().add(egui_wgpu::Callback::new_paint_callback(
                     rect,

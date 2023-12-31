@@ -8,9 +8,10 @@ use crate::ui::{
 };
 use eframe::{
     egui::{self, Visuals},
+    egui_wgpu,
     epaint::Color32,
 };
-use salon_core::{session::Session, runtime::Runtime};
+use salon_core::{runtime::Runtime, session::Session};
 
 use std::sync::Arc;
 
@@ -34,7 +35,7 @@ impl App {
         );
     }
 
-    pub fn new<'a>(cc: &'a eframe::CreationContext<'a>) -> Self {
+    pub fn new(cc: &eframe::CreationContext) -> Self {
         // Get the WGPU render state from the eframe creation context. This can also be retrieved
         // from `eframe::Frame` when you don't have a `CreationContext` available.
         let wgpu_render_state = cc.wgpu_render_state.as_ref().unwrap();
@@ -71,6 +72,26 @@ impl App {
         }
     }
 
+    fn reset_widget_render_resources(&mut self, frame: &mut eframe::Frame) {
+        let mut renderer = frame.wgpu_render_state().unwrap().renderer.write();
+
+        let resources: &mut MainImageRenderResources =
+            renderer.callback_resources.get_mut().unwrap();
+        resources.reset();
+
+        let resources: &mut ThumbnailRenderResources =
+            renderer.callback_resources.get_mut().unwrap();
+        resources.reset();
+
+        let resources: &mut EditorSliderRectRenderResources =
+            renderer.callback_resources.get_mut().unwrap();
+        resources.reset();
+
+        let resources: &mut MaskIndicatorRenderResources =
+            renderer.callback_resources.get_mut().unwrap();
+        resources.reset();
+    }
+
     fn get_visuals(&self) -> Visuals {
         Visuals {
             panel_fill: Color32::from_gray(32),
@@ -93,25 +114,7 @@ impl eframe::App for App {
             return;
         }
 
-        {
-            let mut renderer = frame.wgpu_render_state().unwrap().renderer.write();
-
-            let resources: &mut MainImageRenderResources =
-                renderer.callback_resources.get_mut().unwrap();
-            resources.reset();
-
-            let resources: &mut ThumbnailRenderResources =
-                renderer.callback_resources.get_mut().unwrap();
-            resources.reset();
-
-            let resources: &mut EditorSliderRectRenderResources =
-                renderer.callback_resources.get_mut().unwrap();
-            resources.reset();
-
-            let resources: &mut MaskIndicatorRenderResources =
-                renderer.callback_resources.get_mut().unwrap();
-            resources.reset();
-        }
+        self.reset_widget_render_resources(frame);
 
         egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
             ui.horizontal_wrapped(|ui| {
