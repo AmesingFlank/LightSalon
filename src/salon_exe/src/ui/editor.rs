@@ -1,5 +1,5 @@
 use eframe::{
-    egui::{self, CollapsingHeader, Ui},
+    egui::{self, CollapsingHeader, ScrollArea, Ui},
     epaint::Color32,
 };
 use egui_plot::{Line, MarkerShape, Plot, Points};
@@ -37,12 +37,14 @@ pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
         EditorPanel::LightAndColor => {
             histogram(ui, session, ui_state);
             ui.separator();
-            masking(ui, session, ui_state);
-            light_adjust(ui, session, ui_state, global_edit);
-            curve(ui, session, ui_state, global_edit);
-            color_adjust(ui, session, ui_state, global_edit);
-            color_mixer(ui, session, ui_state, global_edit);
-            effects(ui, session, ui_state, global_edit);
+            ScrollArea::vertical().show(ui, |ui| {
+                masking(ui, session, ui_state);
+                light_adjust(ui, session, ui_state, global_edit);
+                curve(ui, session, ui_state, global_edit);
+                color_adjust(ui, session, ui_state, global_edit);
+                color_mixer(ui, session, ui_state, global_edit);
+                effects(ui, session, ui_state, global_edit);
+            });
         }
         EditorPanel::CropAndRotate => {}
     }
