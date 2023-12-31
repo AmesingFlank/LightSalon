@@ -11,6 +11,8 @@ mod bottom_bar;
 mod color_mixer;
 mod effects;
 mod masking;
+mod app_ui;
+
 mod utils;
 
 pub mod widgets;
@@ -28,3 +30,4 @@ pub use bottom_bar::*;
 pub use color_mixer::*;
 pub use effects::*;
 pub use masking::*;
+pub use app_ui::*;

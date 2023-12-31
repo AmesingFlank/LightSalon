@@ -47,7 +47,18 @@ impl App {
         ));
 
         let session = Session::new(runtime.clone());
+        App::create_widget_render_resources(wgpu_render_state, runtime);
 
+        Self {
+            session,
+            ui_state: AppUiState::new(),
+        }
+    }
+
+    fn create_widget_render_resources(
+        wgpu_render_state: &egui_wgpu::RenderState,
+        runtime: Arc<Runtime>,
+    ) {
         let mut renderer = wgpu_render_state.renderer.write();
 
         let resources =
@@ -65,11 +76,6 @@ impl App {
         let resources =
             MaskIndicatorRenderResources::new(runtime.clone(), wgpu_render_state.target_format);
         renderer.callback_resources.insert(resources);
-
-        Self {
-            session,
-            ui_state: AppUiState::new(),
-        }
     }
 
     fn reset_widget_render_resources(&mut self, frame: &mut eframe::Frame) {
@@ -115,35 +121,8 @@ impl eframe::App for App {
         }
 
         self.reset_widget_render_resources(frame);
+        ui::app_ui(ctx, &mut self.session, &mut self.ui_state);
 
-        egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
-            ui.horizontal_wrapped(|ui| {
-                file_menu(ui, &mut self.session);
-                ui.with_layout(egui::Layout::right_to_left(egui::Align::RIGHT), |ui| {
-                    ui.checkbox(&mut self.ui_state.show_grid, "Show Grid");
-                })
-            });
-        });
-        egui::TopBottomPanel::bottom("bottom_bar").show(ctx, |ui| {
-            ui::bottom_bar(ui, &mut self.session, &mut self.ui_state);
-        });
-        egui::SidePanel::left("library_panel")
-            .default_width(last_frame_size.x * 0.2)
-            .resizable(true)
-            .show(ctx, |ui| {
-                // ui.set_width(ui.available_width());
-                ui::image_library(ui, &mut self.session, &mut self.ui_state);
-            });
-        egui::SidePanel::right("editor_panel")
-            .default_width(last_frame_size.x * 0.2)
-            .resizable(true)
-            .show(ctx, |ui| {
-                ui.set_width(ui.available_width());
-                ui::editor(ui, &mut self.session, &mut self.ui_state);
-            });
-        egui::CentralPanel::default().show(ctx, |ui| {
-            ui::main_image(ctx, ui, &mut self.session, &mut self.ui_state);
-        });
         //egui::Context::request_repaint(ctx);
     }
 }
