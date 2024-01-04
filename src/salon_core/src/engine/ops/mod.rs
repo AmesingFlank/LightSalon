@@ -12,4 +12,7 @@ pub mod dehaze_prepare;
 pub mod dehaze_apply;
 pub mod crop;
 pub mod global_mask;
+pub mod add_mask;
+pub mod subtract_mask;
+pub mod invert_mask;
 pub mod apply_masked_edits;

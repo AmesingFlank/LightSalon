@@ -14,7 +14,7 @@ pub fn masking(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
                 egui::Grid::new("my_grid").num_columns(1).show(ui, |ui| {
                     for i in 0..session.editor.current_edit.masked_edits.len() {
                         if let Some(ref result) = session.editor.current_result {
-                            let mask_img = result.masks[i].clone();
+                            let mask_img = result.masked_edit_results[i].mask.clone();
 
                             let size = get_image_size_in_ui(ui, &mask_img);
                             let (rect, response) =

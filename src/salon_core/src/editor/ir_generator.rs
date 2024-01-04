@@ -10,7 +10,13 @@ use crate::ir::{
 pub struct IdStore {
     pub output: Id,
     pub final_histogram: Id,
-    pub masks: Vec<Id>,
+    pub masked_edit_id_stores: Vec<MaskedEditIdStore>,
+}
+
+pub struct MaskedEditIdStore {
+    pub mask_id: Id,
+    pub term_ids: Vec<Id>,
+    pub result_image_id: Id,
 }
 
 pub fn to_ir_module(edit: &Edit) -> (Module, IdStore) {
@@ -23,18 +29,18 @@ pub fn to_ir_module(edit: &Edit) -> (Module, IdStore) {
 
     maybe_add_crop(edit, &mut module, &mut current_output_id);
 
-    let mut mask_ids = Vec::new();
+    let mut masked_edit_id_stores = Vec::new();
     for edit in edit.masked_edits.iter() {
-        let (mask_id, result_id) = add_masked_edit(edit, &mut module, current_output_id);
-        current_output_id = result_id;
-        mask_ids.push(mask_id);
+        let masked_id_store = add_masked_edit(edit, &mut module, current_output_id);
+        current_output_id = masked_id_store.result_image_id;
+        masked_edit_id_stores.push(masked_id_store);
     }
 
     let final_histogram_id = add_final_histogram(&mut module, &current_output_id);
     let id_store = IdStore {
         output: current_output_id,
         final_histogram: final_histogram_id,
-        masks: mask_ids,
+        masked_edit_id_stores
     };
     (module, id_store)
 }
@@ -61,20 +67,24 @@ fn add_final_histogram(module: &mut Module, current_output_id: &Id) -> Id {
     histogram_id
 }
 
-fn add_masked_edit(masked_edit: &MaskedEdit, module: &mut Module, target_id: Id) -> (Id, Id) {
-    let mask_id = masked_edit.mask.create_compute_mask_ops(target_id, module);
+fn add_masked_edit(masked_edit: &MaskedEdit, module: &mut Module, target_id: Id) -> MaskedEditIdStore {
+    let (mask_id, term_ids) = masked_edit.mask.create_compute_mask_ops(target_id, module);
     let edited_id = add_global_edit(&masked_edit.edit, module, target_id);
 
-    let result_id = module.alloc_id();
+    let result_image_id = module.alloc_id();
 
     module.push_op(Op::ApplyMaskedEdits(ApplyMaskedEditsOp {
-        result: result_id,
+        result: result_image_id,
         mask: mask_id,
         original_target: target_id,
         edited: edited_id,
     }));
 
-    (mask_id, result_id)
+    MaskedEditIdStore {
+        mask_id,
+        term_ids,
+        result_image_id
+    }
 }
 
 pub fn add_global_edit(edit: &GlobalEdit, module: &mut Module, target_id: Id) -> Id {

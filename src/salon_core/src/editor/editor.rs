@@ -7,7 +7,7 @@ use crate::{
 
 use super::{
     ir_generator::{to_ir_module, IdStore},
-    Edit, EditResult,
+    Edit, EditResult, MaskedEditResult,
 };
 
 pub struct Editor {
@@ -60,21 +60,39 @@ impl Editor {
 
         let final_hist = ImageHistogram::from_u32_slice(final_histogram_buffer_data.as_slice());
 
-        let mut masks = Vec::new();
+        let mut masked_edit_results = Vec::new();
 
-        for mask_id in id_store.masks.iter() {
-            let mask_image = value_map
-                .get(&mask_id)
+        for masked_edit_id_store in id_store.masked_edit_id_stores.iter() {
+            let mask = value_map
+                .get(&masked_edit_id_store.mask_id)
                 .expect("cannot find mask")
                 .as_image()
                 .clone();
-            masks.push(mask_image)
+            let result_image = value_map
+                .get(&masked_edit_id_store.result_image_id)
+                .expect("cannot find result image")
+                .as_image()
+                .clone();
+            let mut mask_terms = Vec::new();
+            for term_id in masked_edit_id_store.term_ids.iter() {
+                let term = value_map
+                    .get(&term_id)
+                    .expect("cannot find term")
+                    .as_image()
+                    .clone();
+                mask_terms.push(term)
+            }
+            masked_edit_results.push(MaskedEditResult {
+                mask,
+                mask_terms,
+                result_image,
+            })
         }
 
         let result = EditResult {
             final_image: output_image,
             histogram_final: final_hist,
-            masks,
+            masked_edit_results,
         };
 
         self.current_result = Some(result);

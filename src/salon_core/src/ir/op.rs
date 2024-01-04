@@ -19,6 +19,9 @@ pub enum Op {
     ComputeHistogram(ComputeHistogramOp),
     Crop(CropOp),
     ComputeGlobalMask(ComputeGlobalMaskOp),
+    AddMask(AddMaskOp),
+    SubtractMask(SubtractMaskOp),
+    InvertMask(InvertMaskOp),
     ApplyMaskedEdits(ApplyMaskedEditsOp),
 }
 
@@ -40,6 +43,9 @@ impl Op {
             Op::ComputeHistogram(ref o) => vec![o.arg],
             Op::Crop(ref o) => vec![o.arg],
             Op::ComputeGlobalMask(ref o) => vec![o.target],
+            Op::AddMask(ref o) => vec![o.mask_0, o.mask_1],
+            Op::SubtractMask(ref o) => vec![o.mask_0, o.mask_1],
+            Op::InvertMask(ref o) => vec![o.mask_0],
             Op::ApplyMaskedEdits(ref o) => vec![o.original_target, o.edited, o.mask],
         }
     }
@@ -61,6 +67,9 @@ impl Op {
             Op::ComputeHistogram(ref o) => o.result,
             Op::Crop(ref o) => o.result,
             Op::ComputeGlobalMask(ref o) => o.result,
+            Op::AddMask(ref o) => o.result,
+            Op::SubtractMask(ref o) => o.result,
+            Op::InvertMask(ref o) => o.result,
             Op::ApplyMaskedEdits(ref o) => o.result,
         }
     }
@@ -190,6 +199,26 @@ pub struct ComputeGlobalMaskOp {
     pub result: Id,
     pub mask: GlobalMask,
     pub target: Id,
+}
+
+#[derive(Clone, PartialEq)]
+pub struct AddMaskOp {
+    pub result: Id,
+    pub mask_0: Id,
+    pub mask_1: Id,
+}
+
+#[derive(Clone, PartialEq)]
+pub struct SubtractMaskOp {
+    pub result: Id,
+    pub mask_0: Id,
+    pub mask_1: Id,
+}
+
+#[derive(Clone, PartialEq)]
+pub struct InvertMaskOp {
+    pub result: Id,
+    pub mask_0: Id,
 }
 
 #[derive(Clone, PartialEq)]

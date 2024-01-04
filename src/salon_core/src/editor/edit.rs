@@ -1,4 +1,4 @@
-use crate::ir::{ColorMixGroup, GlobalMask, Mask};
+use crate::ir::{ColorMixGroup, GlobalMask, Mask, MaskPrimitive, MaskTerm};
 
 use crate::utils::rectangle::Rectangle;
 
@@ -13,7 +13,13 @@ impl Edit {
         Self {
             crop: None,
             masked_edits: vec![MaskedEdit::new(
-                Mask::Global(GlobalMask {}),
+                Mask {
+                    terms: vec![MaskTerm {
+                        primitive: MaskPrimitive::Global(GlobalMask {}),
+                        inverted: false,
+                        subtracted: false,
+                    }],
+                },
                 GlobalEdit::new(),
             )],
         }

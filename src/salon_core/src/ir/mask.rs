@@ -1,29 +1,80 @@
+use crate::ir::{AddMaskOp, InvertMaskOp, SubtractMaskOp};
+
 use super::{ComputeGlobalMaskOp, Id, Module, Op};
 
 #[derive(Clone, PartialEq)]
-pub enum Mask {
+pub enum MaskPrimitive {
     Global(GlobalMask),
     //RadialGradient(RadialGradientMask),
 }
 
-#[derive(Clone, PartialEq)]
-pub struct GlobalMask {}
-
-#[derive(Clone, PartialEq)]
-pub struct RadialGradientMask {
-    pub center: (f32, f32),
-    pub radius_x: f32,
-    pub radius_y: f32,
-    pub inner_radius_x: f32,
-}
-
-impl Mask {
+impl MaskPrimitive {
     pub fn create_compute_mask_ops(&self, target: Id, module: &mut Module) -> Id {
         match self {
-            Mask::Global(ref m) => m.create_compute_mask_ops(target, module)
+            MaskPrimitive::Global(ref m) => m.create_compute_mask_ops(target, module),
         }
     }
 }
+
+#[derive(Clone, PartialEq)]
+pub struct MaskTerm {
+    pub primitive: MaskPrimitive,
+    pub inverted: bool,
+    pub subtracted: bool,
+}
+
+#[derive(Clone, PartialEq)]
+pub struct Mask {
+    pub terms: Vec<MaskTerm>,
+}
+
+impl Mask {
+    pub fn create_compute_mask_ops(&self, target: Id, module: &mut Module) -> (Id, Vec<Id>) {
+        assert!(self.terms.len() > 0usize, "mask has no terms!");
+
+        let mut term_ids = Vec::new();
+        for term in self.terms.iter() {
+            let primitive_id = term.primitive.create_compute_mask_ops(target, module);
+            let mut term_id = primitive_id;
+            if term.inverted {
+                term_id = module.alloc_id();
+                module.push_op(Op::InvertMask(InvertMaskOp {
+                    result: term_id,
+                    mask_0: primitive_id,
+                }));
+            }
+            term_ids.push(term_id);
+        }
+
+        assert!(
+            !self.terms[0].subtracted,
+            "first mask term cannot be subtracted!"
+        );
+
+        let mut result_id = term_ids[0];
+        for i in 1..term_ids.len() - 1 {
+            let new_result = module.alloc_id();
+            if self.terms[i].subtracted {
+                module.push_op(Op::SubtractMask(SubtractMaskOp {
+                    result: new_result,
+                    mask_0: result_id,
+                    mask_1: term_ids[i],
+                }));
+            } else {
+                module.push_op(Op::AddMask(AddMaskOp {
+                    result: new_result,
+                    mask_0: result_id,
+                    mask_1: term_ids[i],
+                }));
+            }
+            result_id = new_result
+        }
+        (result_id, term_ids)
+    }
+}
+
+#[derive(Clone, PartialEq)]
+pub struct GlobalMask {}
 
 impl GlobalMask {
     pub fn create_compute_mask_ops(&self, target: Id, module: &mut Module) -> Id {
@@ -35,4 +86,12 @@ impl GlobalMask {
         }));
         result
     }
+}
+
+#[derive(Clone, PartialEq)]
+pub struct RadialGradientMask {
+    pub center: (f32, f32),
+    pub radius_x: f32,
+    pub radius_y: f32,
+    pub inner_radius_x: f32,
 }

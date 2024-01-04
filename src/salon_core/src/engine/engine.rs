@@ -1,5 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
+use exif::In;
+
 use crate::{
     ir::{Id, InputOp, Module, Op, Value},
     runtime::{Image, MipmapGenerator, Runtime},
@@ -8,6 +10,7 @@ use crate::{
 use super::{
     op_impl_collection::OpImplCollection,
     ops::{
+        add_mask::AddMaskImpl,
         apply_masked_edits::ApplyMaskedEditsImpl,
         basic_statistics::ComputeBasicStatisticsImpl,
         color_mix::ColorMixImpl,
@@ -20,6 +23,8 @@ use super::{
         global_mask::ComputeGlobalMaskImpl,
         highlights_shadows::AdjustHighlightsAndShadowsImpl,
         histogram::{self, ComputeHistogramImpl},
+        invert_mask::InvertMaskImpl,
+        subtract_mask::{self, SubtractMaskImpl},
         temperature_tint::AdjustTemperatureAndTintImpl,
         vibrance_saturation::AdjustVibranceAndSaturationImpl,
         vignette::AdjustVignetteImpl,
@@ -220,6 +225,34 @@ impl Engine {
                         &mut self.toolbox,
                     );
                 }
+                Op::AddMask(ref op) => {
+                    self.op_impls.add_mask.as_mut().unwrap().encode_commands(
+                        &mut encoder,
+                        op,
+                        &mut execution_context.value_store,
+                        &mut self.toolbox,
+                    );
+                }
+                Op::SubtractMask(ref op) => {
+                    self.op_impls
+                        .subtract_mask
+                        .as_mut()
+                        .unwrap()
+                        .encode_commands(
+                            &mut encoder,
+                            op,
+                            &mut execution_context.value_store,
+                            &mut self.toolbox,
+                        );
+                }
+                Op::InvertMask(ref op) => {
+                    self.op_impls.invert_mask.as_mut().unwrap().encode_commands(
+                        &mut encoder,
+                        op,
+                        &mut execution_context.value_store,
+                        &mut self.toolbox,
+                    );
+                }
                 Op::ApplyMaskedEdits(ref op) => {
                     self.op_impls
                         .apply_masked_edits
@@ -336,6 +369,25 @@ impl Engine {
                             Some(ComputeGlobalMaskImpl::new(self.runtime.clone()))
                     }
                     self.op_impls.global_mask.as_mut().unwrap().reset();
+                }
+                Op::AddMask(_) => {
+                    if self.op_impls.add_mask.is_none() {
+                        self.op_impls.add_mask = Some(AddMaskImpl::new(self.runtime.clone()))
+                    }
+                    self.op_impls.add_mask.as_mut().unwrap().reset();
+                }
+                Op::SubtractMask(_) => {
+                    if self.op_impls.subtract_mask.is_none() {
+                        self.op_impls.subtract_mask =
+                            Some(SubtractMaskImpl::new(self.runtime.clone()))
+                    }
+                    self.op_impls.subtract_mask.as_mut().unwrap().reset();
+                }
+                Op::InvertMask(_) => {
+                    if self.op_impls.invert_mask.is_none() {
+                        self.op_impls.invert_mask = Some(InvertMaskImpl::new(self.runtime.clone()))
+                    }
+                    self.op_impls.invert_mask.as_mut().unwrap().reset();
                 }
                 Op::ApplyMaskedEdits(_) => {
                     if self.op_impls.apply_masked_edits.is_none() {
