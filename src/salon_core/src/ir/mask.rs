@@ -1,17 +1,18 @@
 use crate::ir::{AddMaskOp, InvertMaskOp, SubtractMaskOp};
 
-use super::{ComputeGlobalMaskOp, Id, Module, Op};
+use super::{ComputeGlobalMaskOp, Id, Module, Op, ComputeRadialGradientMaskOp};
 
 #[derive(Clone, PartialEq)]
 pub enum MaskPrimitive {
     Global(GlobalMask),
-    //RadialGradient(RadialGradientMask),
+    RadialGradient(RadialGradientMask),
 }
 
 impl MaskPrimitive {
     pub fn create_compute_mask_ops(&self, target: Id, module: &mut Module) -> Id {
         match self {
             MaskPrimitive::Global(ref m) => m.create_compute_mask_ops(target, module),
+            MaskPrimitive::RadialGradient(ref m) => m.create_compute_mask_ops(target, module),
         }
     }
 }
@@ -90,8 +91,33 @@ impl GlobalMask {
 
 #[derive(Clone, PartialEq)]
 pub struct RadialGradientMask {
-    pub center: (f32, f32),
+    pub center_x: f32,
+    pub center_y: f32,
     pub radius_x: f32,
     pub radius_y: f32,
-    pub inner_radius_x: f32,
+    pub inner_ellipse_ratio: f32,
+    pub rotation: f32,
+}
+
+impl RadialGradientMask {
+    pub fn default() -> Self {
+        Self {
+            center_x: 0.5,
+            center_y: 0.5,
+            radius_x: 0.1,
+            radius_y: 0.1,
+            inner_ellipse_ratio: 0.8,
+            rotation: 0.0
+        }
+    }
+
+    pub fn create_compute_mask_ops(&self, target: Id, module: &mut Module) -> Id {
+        let result = module.alloc_id();
+        module.push_op(Op::ComputeRadialGradientMask(ComputeRadialGradientMaskOp {
+            result,
+            mask: self.clone(),
+            target,
+        }));
+        result
+    }
 }

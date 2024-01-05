@@ -2,7 +2,7 @@ use eframe::{
     egui::{self, CollapsingHeader, Ui},
     egui_wgpu,
 };
-use salon_core::session::Session;
+use salon_core::{session::Session, editor::MaskedEdit, ir::{Mask, MaskTerm, MaskPrimitive}};
 
 use super::{utils::get_image_size_in_ui, widgets::MaskIndicatorCallback, AppUiState};
 
@@ -28,6 +28,21 @@ pub fn masking(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
                         }
                         ui.label("Mask");
                         ui.end_row()
+                    }
+                });
+                ui.menu_button("Create New Mask", |ui| {
+                    if ui.button("Radial Gradient").clicked() {
+                        // session.editor.current_edit.masked_edits.push(MaskedEdit{
+                        //     mask: Mask {
+                        //         terms: vec![MaskTerm {
+                        //             primitive: MaskPrimitive::R
+                        //         }]
+                        //     }
+                        // });
+                        ui.close_menu();
+                    }
+                    if ui.button("Linear Gradient").clicked() {
+                        ui.close_menu();
                     }
                 });
             })

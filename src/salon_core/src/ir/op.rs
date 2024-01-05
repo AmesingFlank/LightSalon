@@ -1,6 +1,6 @@
 use crate::utils::rectangle::Rectangle;
 
-use super::{GlobalMask, Id, Mask};
+use super::{GlobalMask, Id, Mask, RadialGradientMask};
 
 #[derive(Clone, PartialEq)]
 pub enum Op {
@@ -19,6 +19,7 @@ pub enum Op {
     ComputeHistogram(ComputeHistogramOp),
     Crop(CropOp),
     ComputeGlobalMask(ComputeGlobalMaskOp),
+    ComputeRadialGradientMask(ComputeRadialGradientMaskOp),
     AddMask(AddMaskOp),
     SubtractMask(SubtractMaskOp),
     InvertMask(InvertMaskOp),
@@ -43,6 +44,7 @@ impl Op {
             Op::ComputeHistogram(ref o) => vec![o.arg],
             Op::Crop(ref o) => vec![o.arg],
             Op::ComputeGlobalMask(ref o) => vec![o.target],
+            Op::ComputeRadialGradientMask(ref o) => vec![o.target],
             Op::AddMask(ref o) => vec![o.mask_0, o.mask_1],
             Op::SubtractMask(ref o) => vec![o.mask_0, o.mask_1],
             Op::InvertMask(ref o) => vec![o.mask_0],
@@ -67,6 +69,7 @@ impl Op {
             Op::ComputeHistogram(ref o) => o.result,
             Op::Crop(ref o) => o.result,
             Op::ComputeGlobalMask(ref o) => o.result,
+            Op::ComputeRadialGradientMask(ref o) => o.result,
             Op::AddMask(ref o) => o.result,
             Op::SubtractMask(ref o) => o.result,
             Op::InvertMask(ref o) => o.result,
@@ -198,6 +201,13 @@ pub struct CropOp {
 pub struct ComputeGlobalMaskOp {
     pub result: Id,
     pub mask: GlobalMask,
+    pub target: Id,
+}
+
+#[derive(Clone, PartialEq)]
+pub struct ComputeRadialGradientMaskOp {
+    pub result: Id,
+    pub mask: RadialGradientMask,
     pub target: Id,
 }
 

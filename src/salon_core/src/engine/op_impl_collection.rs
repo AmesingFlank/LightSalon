@@ -4,7 +4,7 @@ use super::ops::{
     dehaze_apply::ApplyDehazeImpl, dehaze_prepare::PrepareDehazeImpl, exposure::AdjustExposureImpl,
     global_mask::ComputeGlobalMaskImpl, highlights_shadows::AdjustHighlightsAndShadowsImpl,
     histogram::ComputeHistogramImpl, temperature_tint::AdjustTemperatureAndTintImpl,
-    vibrance_saturation::AdjustVibranceAndSaturationImpl, vignette::AdjustVignetteImpl, add_mask::AddMaskImpl, subtract_mask::SubtractMaskImpl, invert_mask::InvertMaskImpl,
+    vibrance_saturation::AdjustVibranceAndSaturationImpl, vignette::AdjustVignetteImpl, add_mask::AddMaskImpl, subtract_mask::SubtractMaskImpl, invert_mask::InvertMaskImpl, radial_gradient_mask::ComputeRadialGradientMaskImpl,
 };
 
 #[derive(Default)]
@@ -23,6 +23,7 @@ pub struct OpImplCollection {
     pub histogram: Option<ComputeHistogramImpl>,
     pub crop: Option<CropImpl>,
     pub global_mask: Option<ComputeGlobalMaskImpl>,
+    pub radial_gradient_mask: Option<ComputeRadialGradientMaskImpl>,
     pub add_mask: Option<AddMaskImpl>,
     pub subtract_mask: Option<SubtractMaskImpl>,
     pub invert_mask: Option<InvertMaskImpl>,
