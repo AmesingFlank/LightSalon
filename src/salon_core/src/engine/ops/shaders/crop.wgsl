@@ -23,8 +23,8 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         return;
     }
     
-    let x_offset = params.min_x * f32(input_size.x);
-    let y_offset = params.min_y * f32(input_size.y);
+    let x_offset = params.min_x * f32(input_size.x - 1u);
+    let y_offset = params.min_y * f32(input_size.y - 1u);
 
     let source_coords = vec2(u32(x_offset), u32(y_offset)) + global_id.xy;
     var c = textureLoad(input, source_coords, 0).rgb;
