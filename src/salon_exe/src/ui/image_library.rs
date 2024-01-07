@@ -1,9 +1,11 @@
-use eframe::{egui::{Ui, self}, egui_wgpu};
+use eframe::{
+    egui::{self, Ui},
+    egui_wgpu,
+};
 use egui_extras::{Column, TableBuilder};
 use salon_core::session::Session;
 
-use super::{AppUiState, widgets::ThumbnailCallback};
-
+use super::{widgets::ThumbnailCallback, AppUiState};
 
 pub fn image_library(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
     let mut table = TableBuilder::new(ui).column(Column::auto()).cell_layout(
@@ -15,7 +17,8 @@ pub fn image_library(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiSta
         body.rows(
             row_height,
             session.library.num_images() as usize,
-            |row_index, mut row| {
+            |mut row| {
+                let row_index = row.index();
                 row.col(|ui| {
                     let image = session.library.get_image(row_index);
                     let aspect_ratio = image.aspect_ratio();

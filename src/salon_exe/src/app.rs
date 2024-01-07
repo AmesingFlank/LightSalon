@@ -24,7 +24,7 @@ impl App {
     pub fn main() {
         env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
         let options = eframe::NativeOptions {
-            initial_window_size: Some(egui::vec2(1920.0, 1080.0)),
+            viewport: egui::ViewportBuilder::default().with_inner_size(egui::vec2(1920.0, 1080.0)),
             renderer: eframe::Renderer::Wgpu,
             ..Default::default()
         };
@@ -111,7 +111,7 @@ impl eframe::App for App {
         ctx.set_visuals(self.get_visuals());
 
         let is_first_frame = self.ui_state.last_frame_size.is_none();
-        let last_frame_size = frame.info().window_info.size; // egui has a 1-frame delay
+        let last_frame_size = ctx.input(|i| i.viewport().inner_rect.unwrap().size()); // egui has a 1-frame delay
         self.ui_state.last_frame_size = Some((last_frame_size.x, last_frame_size.y));
 
         if is_first_frame {

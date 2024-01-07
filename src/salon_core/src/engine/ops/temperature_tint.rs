@@ -1,14 +1,17 @@
 use std::{collections::HashMap, mem::size_of, sync::Arc};
 
 use crate::{
-    runtime::{Buffer, BufferProperties, RingBuffer},
-    engine::{value_store::ValueStore, toolbox::{self, Toolbox}},
-    runtime::ColorSpace,
+    engine::{
+        toolbox::{self, Toolbox},
+        value_store::ValueStore,
+    },
     ir::{AdjustTemperatureAndTintOp, Id},
+    runtime::ColorSpace,
     runtime::{
         BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager,
         BindingResource, Runtime,
     },
+    runtime::{Buffer, BufferProperties, RingBuffer},
     shader::{Shader, ShaderLibraryModule},
     utils::math::div_up,
 };
@@ -66,9 +69,11 @@ impl AdjustTemperatureAndTintImpl {
 
         let buffer = self.ring_buffer.get();
 
-        self.runtime
-            .queue
-            .write_buffer(&buffer.buffer, 0, bytemuck::cast_slice(&[op.temperature, op.tint]));
+        self.runtime.queue.write_buffer(
+            &buffer.buffer,
+            0,
+            bytemuck::cast_slice(&[op.temperature, op.tint]),
+        );
 
         let bind_group = self.bind_group_manager.get_or_create(BindGroupDescriptor {
             entries: vec![
@@ -88,8 +93,9 @@ impl AdjustTemperatureAndTintImpl {
         });
 
         {
-            let mut compute_pass =
-                encoder.begin_compute_pass(&wgpu::ComputePassDescriptor { label: None });
+            let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                ..Default::default()
+            });
             compute_pass.set_pipeline(&self.pipeline);
 
             let num_workgroups_x = div_up(input_img.properties.dimensions.0, 16);

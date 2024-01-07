@@ -1,18 +1,14 @@
 use eframe::{
     egui::{self, CollapsingHeader, Ui},
+    emath::Vec2b,
     epaint::Color32,
 };
 use egui_plot::{Line, MarkerShape, Plot, Points};
 use salon_core::{editor::GlobalEdit, session::Session, utils::spline::EvaluatedSpline};
 
-use super::{AppUiState, CurveScope, widgets::ColoredRadioButton};
+use super::{widgets::ColoredRadioButton, AppUiState, CurveScope};
 
-pub fn curve(
-    ui: &mut Ui,
-    session: &mut Session,
-    ui_state: &mut AppUiState,
-    edit: &mut GlobalEdit,
-) {
+pub fn curve(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState, edit: &mut GlobalEdit) {
     CollapsingHeader::new("Curve")
         .default_open(true)
         .show(ui, |ui| {
@@ -30,13 +26,13 @@ pub fn curve(
                     Color32::from_rgb(20, 250, 20),
                     Color32::from_rgb(50, 80, 255),
                 ];
-                for i in 0..4usize  {
+                for i in 0..4usize {
                     let scope = scopes[i];
                     let response = ui.add(ColoredRadioButton::new(
                         ui_state.curve_scope == scope,
                         scope.to_string(),
                         base_colors[i],
-                        checked_colors[i]
+                        checked_colors[i],
                     ));
                     if response.clicked() {
                         ui_state.curve_scope = scope;
@@ -64,6 +60,7 @@ pub fn curve(
                 .allow_scroll(false)
                 .allow_double_click_reset(false)
                 .allow_drag(false)
+                .auto_bounds(Vec2b { x: false, y: false })
                 .include_x(0.0 - margin)
                 .include_x(1.0 + margin)
                 .include_y(0.0 - margin)

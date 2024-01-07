@@ -78,16 +78,17 @@ impl MipmapGenerator {
                     });
 
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: None,
+                occlusion_query_set: None,
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &img.texture_view_single_mip[target_mip],
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color::WHITE),
-                        store: true,
+                        store: wgpu::StoreOp::Store,
                     },
                 })],
                 depth_stencil_attachment: None,
+                ..Default::default()
             });
             rpass.set_pipeline(pipeline);
             rpass.set_bind_group(0, &bind_group, &[]);

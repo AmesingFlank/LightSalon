@@ -79,7 +79,9 @@ impl ColorSpaceConverter {
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
         {
             let mut cpass =
-                encoder.begin_compute_pass(&wgpu::ComputePassDescriptor { label: None });
+                encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                ..Default::default()
+            });
             cpass.set_pipeline(&self.pipeline);
 
             cpass.set_bind_group(0, &bind_group, &[]);

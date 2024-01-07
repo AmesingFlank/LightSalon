@@ -25,7 +25,8 @@ pub fn masking(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState, ed
                 let row_height = ui_state.last_frame_size.unwrap().1 * 0.04;
                 let image_height = row_height * 0.8;
                 table.body(|mut body| {
-                    body.rows(row_height, edit.masked_edits.len(), |i, mut row| {
+                    body.rows(row_height, edit.masked_edits.len(), |mut row| {
+                        let i = row.index();
                         row.col(|ui| {
                             if ui.radio(ui_state.selected_mask_index == i, "").clicked() {
                                 ui_state.selected_mask_index = i;

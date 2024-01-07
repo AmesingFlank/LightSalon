@@ -102,8 +102,9 @@ impl AdjustContrastImpl {
         });
 
         {
-            let mut compute_pass =
-                encoder.begin_compute_pass(&wgpu::ComputePassDescriptor { label: None });
+            let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                ..Default::default()
+            });
             compute_pass.set_pipeline(&self.pipeline);
 
             let num_workgroups_x = div_up(input_img.properties.dimensions.0, 16);

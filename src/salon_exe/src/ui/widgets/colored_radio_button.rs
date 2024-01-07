@@ -1,4 +1,8 @@
-use eframe::{egui::{WidgetText, Widget, Response, Ui, TextStyle, Sense, WidgetInfo, WidgetType}, epaint::{vec2, Vec2, self, pos2, Color32}, emath::NumExt};
+use eframe::{
+    egui::{Response, Sense, TextStyle, Ui, Widget, WidgetInfo, WidgetText, WidgetType},
+    emath::NumExt,
+    epaint::{self, pos2, vec2, Color32, Vec2},
+};
 
 #[must_use = "You should put this widget in an ui with `ui.add(widget);`"]
 pub struct ColoredRadioButton {
@@ -9,7 +13,12 @@ pub struct ColoredRadioButton {
 }
 
 impl ColoredRadioButton {
-    pub fn new(checked: bool, text: impl Into<WidgetText>, base_color: Color32, checked_color: Color32) -> Self {
+    pub fn new(
+        checked: bool,
+        text: impl Into<WidgetText>,
+        base_color: Color32,
+        checked_color: Color32,
+    ) -> Self {
         Self {
             checked,
             text: text.into(),
@@ -21,7 +30,12 @@ impl ColoredRadioButton {
 
 impl Widget for ColoredRadioButton {
     fn ui(self, ui: &mut Ui) -> Response {
-        let ColoredRadioButton { checked, text, base_color, checked_color } = self;
+        let ColoredRadioButton {
+            checked,
+            text,
+            base_color,
+            checked_color,
+        } = self;
 
         let spacing = &ui.spacing();
         let icon_width = spacing.icon_width;
@@ -77,12 +91,12 @@ impl Widget for ColoredRadioButton {
                 });
             }
 
-            if let Some(text) = text {
+            if let Some(galley) = text {
                 let text_pos = pos2(
                     rect.min.x + icon_width + icon_spacing,
-                    rect.center().y - 0.5 * text.size().y,
+                    rect.center().y - 0.5 * galley.size().y,
                 );
-                text.paint_with_visuals(ui.painter(), text_pos, visuals);
+                ui.painter().galley(text_pos, galley, visuals.text_color());
             }
         }
 

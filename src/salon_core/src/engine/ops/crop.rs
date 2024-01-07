@@ -1,14 +1,14 @@
 use std::{collections::HashMap, mem::size_of, sync::Arc};
 
 use crate::{
-    runtime::{Buffer, BufferProperties, RingBuffer},
-    engine::{value_store::ValueStore, toolbox::Toolbox},
-    runtime::{ColorSpace, ImageProperties},
+    engine::{toolbox::Toolbox, value_store::ValueStore},
     ir::{CropOp, Id},
     runtime::{
         BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager,
         BindingResource, Runtime,
     },
+    runtime::{Buffer, BufferProperties, RingBuffer},
+    runtime::{ColorSpace, ImageProperties},
     shader::{Shader, ShaderLibraryModule},
     utils::math::div_up,
 };
@@ -101,8 +101,9 @@ impl CropImpl {
         });
 
         {
-            let mut compute_pass =
-                encoder.begin_compute_pass(&wgpu::ComputePassDescriptor { label: None });
+            let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                ..Default::default()
+            });
             compute_pass.set_pipeline(&self.pipeline);
 
             let num_workgroups_x = div_up(output_dimensions.0, 16);

@@ -1,15 +1,16 @@
 use std::{collections::HashMap, mem::size_of, sync::Arc};
 
 use crate::{
-    runtime::{Buffer, BufferProperties, RingBuffer},
-    engine::{value_store::ValueStore, toolbox::Toolbox},
-    runtime::ColorSpace,
+    engine::{toolbox::Toolbox, value_store::ValueStore},
     ir::{ApplyDehazeOp, Id},
+    runtime::ColorSpace,
     runtime::{
         BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager,
         BindingResource, Runtime,
     },
-    shader::{Shader, ShaderLibraryModule}, utils::math::div_up,
+    runtime::{Buffer, BufferProperties, RingBuffer},
+    shader::{Shader, ShaderLibraryModule},
+    utils::math::div_up,
 };
 
 pub struct ApplyDehazeImpl {
@@ -92,8 +93,9 @@ impl ApplyDehazeImpl {
         });
 
         {
-            let mut compute_pass =
-                encoder.begin_compute_pass(&wgpu::ComputePassDescriptor { label: None });
+            let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                ..Default::default()
+            });
             compute_pass.set_pipeline(&self.pipeline);
 
             let num_workgroups_x = div_up(input_img.properties.dimensions.0, 16);

@@ -1,14 +1,14 @@
 use std::{collections::HashMap, mem::size_of, sync::Arc};
 
 use crate::{
-    runtime::{Buffer, BufferProperties, RingBuffer},
-    engine::{value_store::ValueStore, toolbox::Toolbox},
-    runtime::ColorSpace,
+    engine::{toolbox::Toolbox, value_store::ValueStore},
     ir::{Id, PrepareDehazeOp},
+    runtime::ColorSpace,
     runtime::{
         BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager,
         BindingResource, Runtime,
     },
+    runtime::{Buffer, BufferProperties, RingBuffer},
     shader::{Shader, ShaderLibraryModule},
     utils::math::div_up,
 };
@@ -169,8 +169,9 @@ impl PrepareDehazeImpl {
                 });
 
         {
-            let mut compute_pass =
-                encoder.begin_compute_pass(&wgpu::ComputePassDescriptor { label: None });
+            let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                ..Default::default()
+            });
 
             compute_pass.set_pipeline(&self.pipeline_clear_histogram);
             compute_pass.set_bind_group(0, &bind_group_clear_histogram, &[]);
@@ -182,7 +183,6 @@ impl PrepareDehazeImpl {
             compute_pass.set_bind_group(0, &bind_group_compute_histogram, &[]);
             compute_pass.dispatch_workgroups(num_workgroups_x, num_workgroups_y, 1);
 
-            
             compute_pass.set_pipeline(&self.pipeline_estimate_airlight);
             compute_pass.set_bind_group(0, &bind_group_compute_histogram, &[]);
             compute_pass.dispatch_workgroups(num_workgroups_x, num_workgroups_y, 1);

@@ -1,14 +1,14 @@
 use std::{collections::HashMap, mem::size_of, sync::Arc};
 
 use crate::{
-    runtime::{BufferProperties, RingBuffer},
     engine::{common::ImageHistogram, toolbox::Toolbox, value_store::ValueStore},
-    runtime::{ColorSpace, Image},
     ir::{ComputeHistogramOp, Id},
     runtime::{
         BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager,
         BindingResource, Runtime,
     },
+    runtime::{BufferProperties, RingBuffer},
+    runtime::{ColorSpace, Image},
     shader::{Shader, ShaderLibraryModule},
     utils::math::div_up,
 };
@@ -122,8 +122,9 @@ impl ComputeHistogramImpl {
                 });
 
         {
-            let mut compute_pass =
-                encoder.begin_compute_pass(&wgpu::ComputePassDescriptor { label: None });
+            let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                ..Default::default()
+            });
 
             compute_pass.set_pipeline(&self.pipeline_clear);
             compute_pass.set_bind_group(0, &bind_group_clear, &[]);

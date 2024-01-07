@@ -1,6 +1,6 @@
 use eframe::{
     egui::{CollapsingHeader, Ui},
-    epaint::Color32,
+    epaint::Color32, emath::Vec2b,
 };
 use egui_plot::{Line, Plot};
 use salon_core::session::Session;
@@ -51,6 +51,7 @@ pub fn histogram(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) 
                     .allow_scroll(false)
                     .allow_double_click_reset(false)
                     .allow_drag(false)
+                    .auto_bounds(Vec2b { x: false, y: false })
                     .include_x(0.0)
                     .include_x(1.0)
                     .include_y(0.0)
