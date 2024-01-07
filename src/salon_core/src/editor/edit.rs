@@ -21,6 +21,7 @@ impl Edit {
                     }],
                 },
                 GlobalEdit::new(),
+                "Global".to_string(),
             )],
         }
     }
@@ -30,11 +31,12 @@ impl Edit {
 pub struct MaskedEdit {
     pub mask: Mask,
     pub edit: GlobalEdit,
+    pub name: String,
 }
 
 impl MaskedEdit {
-    pub fn new(mask: Mask, edit: GlobalEdit) -> Self {
-        Self { mask, edit }
+    pub fn new(mask: Mask, edit: GlobalEdit, name: String) -> Self {
+        Self { mask, edit, name }
     }
 }
 
