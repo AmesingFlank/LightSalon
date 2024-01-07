@@ -21,8 +21,34 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         return;
     }
 
-    let x = f32(global_id.x) / f32(output_size.x - 1u);
-    let y = f32(global_id.y) / f32(output_size.y - 1u);
+    var xy = vec2(
+        f32(global_id.x) / f32(output_size.x - 1u),
+        f32(global_id.y) / f32(output_size.y - 1u)
+    );
 
-    textureStore(output, global_id.xy, vec4<f32>(1.0));
+    xy = xy - vec2(mask.center_x, mask.center_y);
+
+    let rotation_col0 = vec2 (
+        cos(mask.rotation),
+        sin(mask.rotation)
+    );
+    let rotation_col1 = vec2 (
+        -sin(mask.rotation),
+        cos(mask.rotation)
+    );
+    let rotation = mat2x2(rotation_col0, rotation_col1); 
+    xy = rotation * xy;
+
+    let r = (xy.x / mask.radius_x) * (xy.x / mask.radius_x) + (xy.y / mask.radius_y) * (xy.y / mask.radius_y);
+
+    var result = 0.0;
+
+    if (r < mask.inner_ellipse_ratio) {
+        result = 1.0;
+    }
+    else if (r < 1.0) {
+        result = (1.0 - r) / (1.0 - mask.inner_ellipse_ratio);
+    }
+
+    textureStore(output, global_id.xy, vec4<f32>(result));
 }

@@ -31,14 +31,17 @@ pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
     ui.separator();
 
     let mut edit = session.editor.current_edit.clone();
-    let global_edit = &mut edit.masked_edits[ui_state.selected_mask_index].edit;
 
     match ui_state.editor_panel {
         EditorPanel::LightAndColor => {
             histogram(ui, session, ui_state);
             ui.separator();
             ScrollArea::vertical().show(ui, |ui| {
-                masking(ui, session, ui_state);
+                masking(ui, session, ui_state, &mut edit);
+
+                let global_edit: &mut GlobalEdit =
+                    &mut edit.masked_edits[ui_state.selected_mask_index].edit;
+
                 light_adjust(ui, session, ui_state, global_edit);
                 curve(ui, session, ui_state, global_edit);
                 color_adjust(ui, session, ui_state, global_edit);
