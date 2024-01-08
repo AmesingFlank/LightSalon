@@ -24,6 +24,7 @@ pub fn masking(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState, ed
                 if ui.button("Radial Gradient").clicked() {
                     add_masked_edit(
                         edit,
+                        ui_state,
                         MaskPrimitive::RadialGradient(RadialGradientMask::default()),
                     );
                     ui.close_menu();
@@ -95,6 +96,9 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                     let term = &edit.masked_edits[mask_index].mask.terms[term_index];
                     let row_height = image_height * 1.2;
                     body.row(row_height, |mut row| {
+                        if ui_state.selected_mask_term_index == Some(term_index) {
+                            row.set_selected(true);
+                        }
                         row.col(|ui| {});
                         row.col(|ui| {
                             ui.horizontal_centered(|mut ui| {
@@ -129,6 +133,13 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                                 ui.label(&term_str);
                             });
                         });
+                        if row.response().clicked() {
+                            if ui_state.selected_mask_term_index == Some(term_index) {
+                                ui_state.selected_mask_term_index = None;
+                            } else {
+                                ui_state.selected_mask_term_index = Some(term_index);
+                            }
+                        }
                     });
                 }
             }
@@ -136,7 +147,7 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
     });
 }
 
-fn add_masked_edit(edit: &mut Edit, primitive: MaskPrimitive) {
+fn add_masked_edit(edit: &mut Edit, ui_state: &mut AppUiState, primitive: MaskPrimitive) {
     let added_index = edit.masked_edits.len();
     let name = "Mask ".to_string() + added_index.to_string().as_str();
     edit.masked_edits.push(MaskedEdit {
@@ -150,6 +161,8 @@ fn add_masked_edit(edit: &mut Edit, primitive: MaskPrimitive) {
         edit: GlobalEdit::new(),
         name,
     });
+    ui_state.selected_mask_index = added_index;
+    ui_state.selected_mask_term_index = Some(0);
 }
 
 fn mask_primtive_type_str(primitive: &MaskPrimitive) -> &str {
