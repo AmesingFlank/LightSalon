@@ -39,6 +39,7 @@ pub fn main_image(
                     MainImageCallback {
                         image: original_image.clone(),
                         crop_rect: session.editor.current_edit.crop.clone(),
+                        mask: None
                     },
                 ));
                 let original_rect = rect;
@@ -72,11 +73,16 @@ pub fn main_image(
             if let Some(ref result) = session.editor.current_result {
                 let size = get_image_size_in_ui(ui, &result.final_image);
                 let (rect, response) = ui.allocate_exact_size(size, egui::Sense::click_and_drag());
+                let mut mask = None;
+                if let Some(term_index) = ui_state.selected_mask_term_index {
+                    mask = Some(result.masked_edit_results[ui_state.selected_mask_index].mask_terms[term_index].clone());
+                }
                 ui.painter().add(egui_wgpu::Callback::new_paint_callback(
                     rect,
                     MainImageCallback {
                         image: result.final_image.clone(),
                         crop_rect: None,
+                        mask
                     },
                 ));
                 if ui_state.show_grid {

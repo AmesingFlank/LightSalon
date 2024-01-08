@@ -116,7 +116,7 @@ impl RadialGradientMask {
             center_y: 0.5,
             radius_x: 0.1,
             radius_y: 0.1,
-            inner_ellipse_ratio: 0.8,
+            inner_ellipse_ratio: 0.5,
             rotation: 0.0,
         }
     }

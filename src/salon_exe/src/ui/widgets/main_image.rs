@@ -4,19 +4,20 @@ use std::{collections::HashMap, num::NonZeroU64};
 
 use eframe::egui::Ui;
 use eframe::{egui, egui_wgpu};
-use salon_core::runtime::{Buffer, BufferProperties, RingBuffer};
 use salon_core::runtime::Image;
+use salon_core::runtime::Sampler;
 use salon_core::runtime::{
     BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager, BindingResource,
     Runtime,
 };
-use salon_core::runtime::Sampler;
+use salon_core::runtime::{Buffer, BufferProperties, RingBuffer};
 use salon_core::shader::{Shader, ShaderLibraryModule};
 use salon_core::utils::rectangle::Rectangle;
 
 pub struct MainImageCallback {
     pub image: Arc<Image>,
     pub crop_rect: Option<Rectangle>,
+    pub mask: Option<Arc<Image>>,
 }
 
 impl egui_wgpu::CallbackTrait for MainImageCallback {
@@ -65,7 +66,7 @@ impl MainImageRenderResources {
         let ring_buffer = RingBuffer::new(
             runtime.clone(),
             BufferProperties {
-                size: size_of::<u32>() + 4 * size_of::<f32>(),
+                size: size_of::<u32>() * 2 + 4 * size_of::<f32>(),
                 host_readable: false,
             },
         );
@@ -103,18 +104,21 @@ impl MainImageRenderResources {
         queue.write_buffer(
             &buffer.buffer,
             0,
-            bytemuck::cast_slice(&[render_call.image.properties.color_space as u32]),
+            bytemuck::cast_slice(&[
+                render_call.image.properties.color_space as u32,
+                render_call.mask.is_some() as u32,
+            ]),
         );
         if let Some(ref rect) = render_call.crop_rect {
             queue.write_buffer(
                 &buffer.buffer,
-                size_of::<u32>() as u64,
+                size_of::<u32>() as u64 * 2,
                 bytemuck::cast_slice(&[rect.min.x, rect.min.y, rect.max.x, rect.max.y]),
             );
         } else {
             queue.write_buffer(
                 &buffer.buffer,
-                size_of::<u32>() as u64,
+                size_of::<u32>() as u64 * 2,
                 bytemuck::cast_slice(&[0.0 as f32, 0.0, 1.0, 1.0]),
             );
         }
@@ -132,6 +136,14 @@ impl MainImageRenderResources {
                 BindGroupEntry {
                     binding: 2,
                     resource: BindingResource::Sampler(&self.texture_sampler),
+                },
+                BindGroupEntry {
+                    binding: 3,
+                    resource: if let Some(ref m) = render_call.mask {
+                        BindingResource::Texture(&m)
+                    } else {
+                        BindingResource::Texture(&render_call.image)
+                    },
                 },
             ],
         };

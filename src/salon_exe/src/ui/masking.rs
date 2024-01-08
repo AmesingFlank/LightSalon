@@ -121,6 +121,9 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                                             image: mask_img.clone(),
                                         },
                                     ));
+                                    if response.clicked() {
+                                        maybe_select_term(ui_state, term_index);
+                                    }
                                 }
                                 let mut term_str =
                                     mask_primtive_type_str(&term.primitive).to_string();
@@ -134,11 +137,7 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                             });
                         });
                         if row.response().clicked() {
-                            if ui_state.selected_mask_term_index == Some(term_index) {
-                                ui_state.selected_mask_term_index = None;
-                            } else {
-                                ui_state.selected_mask_term_index = Some(term_index);
-                            }
+                            maybe_select_term(ui_state, term_index);
                         }
                     });
                 }
@@ -175,4 +174,12 @@ fn mask_primtive_type_str(primitive: &MaskPrimitive) -> &str {
 fn select_mask(ui_state: &mut AppUiState, mask_index: usize) {
     ui_state.selected_mask_index = mask_index;
     ui_state.selected_mask_term_index = None;
+}
+
+fn maybe_select_term(ui_state: &mut AppUiState, term_index: usize) {
+    if ui_state.selected_mask_term_index == Some(term_index) {
+        ui_state.selected_mask_term_index = None;
+    } else {
+        ui_state.selected_mask_term_index = Some(term_index);
+    }
 }
