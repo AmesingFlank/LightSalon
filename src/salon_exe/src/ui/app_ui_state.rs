@@ -18,6 +18,7 @@ pub struct AppUiState {
     pub crop_drag_state: CropDragState,
 
     pub selected_mask_index: usize,
+    pub selected_mask_term_index: Option<usize>,
 }
 
 impl AppUiState {
@@ -32,6 +33,7 @@ impl AppUiState {
             color_mixer_color_index: 0,
             crop_drag_state: CropDragState::new(),
             selected_mask_index: 0,
+            selected_mask_term_index: None,
         }
     }
 }

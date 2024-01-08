@@ -1,4 +1,4 @@
-use std::primitive;
+use std::{primitive, thread::yield_now};
 
 use eframe::{
     egui::{self, CollapsingHeader, Ui},
@@ -57,7 +57,7 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                 //row.set_selected(ui_state.selected_mask_index == i);
                 row.col(|ui| {
                     if ui.radio(is_selected, "").clicked() {
-                        ui_state.selected_mask_index = mask_index;
+                        select_mask(ui_state, mask_index);
                     }
                 });
                 row.col(|ui| {
@@ -78,17 +78,21 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                                     image: mask_img.clone(),
                                 },
                             ));
+                            if response.clicked() {
+                                select_mask(ui_state, mask_index);
+                            }
                         }
                         ui.label(&edit.masked_edits[mask_index].name);
                     });
                 });
                 if row.response().clicked() {
-                    ui_state.selected_mask_index = mask_index;
+                    select_mask(ui_state, mask_index);
                 }
             });
 
             if !edit.masked_edits[mask_index].mask.is_global() && is_selected {
                 for term_index in 0..edit.masked_edits[mask_index].mask.terms.len() {
+                    let term = &edit.masked_edits[mask_index].mask.terms[term_index];
                     let row_height = image_height * 1.2;
                     body.row(row_height, |mut row| {
                         row.col(|ui| {});
@@ -114,6 +118,15 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                                         },
                                     ));
                                 }
+                                let mut term_str =
+                                    mask_primtive_type_str(&term.primitive).to_string();
+                                if term.subtracted {
+                                    term_str += " (Subtracted)"
+                                }
+                                if term.inverted {
+                                    term_str += " (Inverted)"
+                                }
+                                ui.label(&term_str);
                             });
                         });
                     });
@@ -125,7 +138,7 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
 
 fn add_masked_edit(edit: &mut Edit, primitive: MaskPrimitive) {
     let added_index = edit.masked_edits.len();
-    let name = "Custom Mask ".to_string() + added_index.to_string().as_str();
+    let name = "Mask ".to_string() + added_index.to_string().as_str();
     edit.masked_edits.push(MaskedEdit {
         mask: Mask {
             terms: vec![MaskTerm {
@@ -137,4 +150,16 @@ fn add_masked_edit(edit: &mut Edit, primitive: MaskPrimitive) {
         edit: GlobalEdit::new(),
         name,
     });
+}
+
+fn mask_primtive_type_str(primitive: &MaskPrimitive) -> &str {
+    match primitive {
+        MaskPrimitive::Global(_) => "Global",
+        MaskPrimitive::RadialGradient(_) => "Radial",
+    }
+}
+
+fn select_mask(ui_state: &mut AppUiState, mask_index: usize) {
+    ui_state.selected_mask_index = mask_index;
+    ui_state.selected_mask_term_index = None;
 }
