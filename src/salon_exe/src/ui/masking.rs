@@ -18,15 +18,19 @@ pub fn masking(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState, ed
         .default_open(true)
         .show(ui, |ui| {
             ui.group(|ui| {
-                let mut table = TableBuilder::new(ui).column(Column::auto()).cell_layout(
-                    egui::Layout::left_to_right(egui::Align::LEFT)
-                        .with_cross_align(egui::Align::Center),
-                );
+                let mut table = TableBuilder::new(ui)
+                    .column(Column::auto())
+                    .sense(egui::Sense::click())
+                    .cell_layout(
+                        egui::Layout::left_to_right(egui::Align::LEFT)
+                            .with_cross_align(egui::Align::Center),
+                    );
                 let row_height = ui_state.last_frame_size.unwrap().1 * 0.04;
                 let image_height = row_height * 0.8;
                 table.body(|mut body| {
                     body.rows(row_height, edit.masked_edits.len(), |mut row| {
                         let i = row.index();
+                        //row.set_selected(ui_state.selected_mask_index == i);
                         row.col(|ui| {
                             if ui.radio(ui_state.selected_mask_index == i, "").clicked() {
                                 ui_state.selected_mask_index = i;
@@ -50,6 +54,9 @@ pub fn masking(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState, ed
                             }
                             ui.label(&edit.masked_edits[i].name);
                         });
+                        if row.response().clicked() {
+                            ui_state.selected_mask_index = i;
+                        }
                     });
                 });
             });
