@@ -1,6 +1,6 @@
 use crate::ir::{AddMaskOp, InvertMaskOp, SubtractMaskOp};
 
-use super::{ComputeGlobalMaskOp, Id, Module, Op, ComputeRadialGradientMaskOp};
+use super::{ComputeGlobalMaskOp, ComputeRadialGradientMaskOp, Id, Module, Op};
 
 #[derive(Clone, PartialEq)]
 pub enum MaskPrimitive {
@@ -72,6 +72,16 @@ impl Mask {
         }
         (result_id, term_ids)
     }
+
+    pub fn is_global(&self) -> bool {
+        self.terms.len() == 1
+            && !self.terms[0].inverted
+            && !self.terms[0].subtracted
+            && match self.terms[0].primitive {
+                MaskPrimitive::Global(_) => true,
+                _ => false,
+            }
+    }
 }
 
 #[derive(Clone, PartialEq)]
@@ -107,7 +117,7 @@ impl RadialGradientMask {
             radius_x: 0.1,
             radius_y: 0.1,
             inner_ellipse_ratio: 0.8,
-            rotation: 0.0
+            rotation: 0.0,
         }
     }
 
