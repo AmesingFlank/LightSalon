@@ -36,6 +36,7 @@ pub fn image_library(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiSta
                     });
                     if response.clicked() {
                         session.set_current_image(row_index);
+                        ui_state.selected_mask_term_index = None;
                     }
                 });
             },

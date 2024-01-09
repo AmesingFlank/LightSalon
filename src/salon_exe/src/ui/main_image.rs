@@ -5,6 +5,7 @@ use std::{collections::HashMap, num::NonZeroU64};
 use eframe::egui::{CursorIcon, Ui};
 use eframe::epaint::{Color32, Pos2, Stroke};
 use eframe::{egui, egui_wgpu};
+use salon_core::ir::{MaskPrimitive, RadialGradientMask};
 use salon_core::runtime::Image;
 use salon_core::runtime::Sampler;
 use salon_core::runtime::{
@@ -39,7 +40,7 @@ pub fn main_image(
                     MainImageCallback {
                         image: original_image.clone(),
                         crop_rect: session.editor.current_edit.crop.clone(),
-                        mask: None
+                        mask: None,
                     },
                 ));
                 let original_rect = rect;
@@ -75,22 +76,81 @@ pub fn main_image(
                 let (rect, response) = ui.allocate_exact_size(size, egui::Sense::click_and_drag());
                 let mut mask = None;
                 if let Some(term_index) = ui_state.selected_mask_term_index {
-                    mask = Some(result.masked_edit_results[ui_state.selected_mask_index].mask_terms[term_index].clone());
+                    mask = Some(
+                        result.masked_edit_results[ui_state.selected_mask_index].mask_terms
+                            [term_index]
+                            .clone(),
+                    );
                 }
                 ui.painter().add(egui_wgpu::Callback::new_paint_callback(
                     rect,
                     MainImageCallback {
                         image: result.final_image.clone(),
                         crop_rect: None,
-                        mask
+                        mask,
                     },
                 ));
                 if ui_state.show_grid {
                     draw_grid_impl(ui, rect, rect, ui_state);
                 }
+                if let Some(term_index) = ui_state.selected_mask_term_index {
+                    let primitive = &session.editor.current_edit.masked_edits
+                        [ui_state.selected_mask_index]
+                        .mask
+                        .terms[term_index]
+                        .primitive;
+                    let mut new_primitive = primitive.clone();
+                    draw_mask_primitive_control_points(ui, rect, &mut new_primitive);
+                    if new_primitive != *primitive {
+                        session.editor.current_edit.masked_edits[ui_state.selected_mask_index]
+                            .mask
+                            .terms[term_index]
+                            .primitive = new_primitive;
+                        session.editor.execute_edit(&mut session.engine);
+                    }
+                }
             }
         }
     });
+}
+
+fn draw_mask_primitive_control_points(
+    ui: &mut Ui,
+    rect: egui::Rect,
+    primitive: &mut MaskPrimitive,
+) {
+    match primitive {
+        MaskPrimitive::RadialGradient(ref mut m) => {
+            draw_radial_gradient_control_points(ui, rect, m)
+        }
+        _ => {}
+    }
+}
+
+fn draw_control_point_circle(ui: &mut Ui, rect: egui::Rect, relative_x: f32, relative_y: f32) {
+    let width = rect.width().min(rect.height());
+    let center = Pos2 {
+        x: rect.min.x + relative_x * rect.width(),
+        y: rect.min.y + relative_y * rect.height(),
+    };
+    ui.painter().circle_stroke(
+        center,
+        width * 0.01,
+        Stroke {
+            color: Color32::from_rgb(80, 80, 250),
+            width: width * 0.004,
+        },
+    );
+    ui.painter()
+        .circle_filled(center, width * 0.008, Color32::from_gray(230));
+}
+
+fn draw_radial_gradient_control_points(
+    ui: &mut Ui,
+    rect: egui::Rect,
+    radial_gradient: &mut RadialGradientMask,
+) {
+    draw_control_point_circle(ui, rect, radial_gradient.center_x, radial_gradient.center_y)
 }
 
 fn find_edge_or_corner(pos: egui::Pos2, rect: egui::Rect) -> Option<CropDragEdgeOrCorner> {
