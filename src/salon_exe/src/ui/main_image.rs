@@ -100,7 +100,7 @@ pub fn main_image(
                         .terms[term_index]
                         .primitive;
                     let mut new_primitive = primitive.clone();
-                    draw_mask_primitive_control_points(ui, rect, &mut new_primitive);
+                    draw_mask_primitive_control_points(ui, rect, &response, &mut new_primitive);
                     if new_primitive != *primitive {
                         session.editor.current_edit.masked_edits[ui_state.selected_mask_index]
                             .mask
@@ -117,17 +117,18 @@ pub fn main_image(
 fn draw_mask_primitive_control_points(
     ui: &mut Ui,
     rect: egui::Rect,
+    response: &egui::Response,
     primitive: &mut MaskPrimitive,
 ) {
     match primitive {
         MaskPrimitive::RadialGradient(ref mut m) => {
-            draw_radial_gradient_control_points(ui, rect, m)
+            draw_radial_gradient_control_points(ui, rect, response, m)
         }
         _ => {}
     }
 }
 
-fn draw_control_point_circle(ui: &mut Ui, rect: egui::Rect, relative_x: f32, relative_y: f32) {
+fn draw_control_point_circle(ui: &mut Ui, rect: egui::Rect, (relative_x, relative_y): (f32, f32)) {
     let width = rect.width().min(rect.height());
     let center = Pos2 {
         x: rect.min.x + relative_x * rect.width(),
@@ -137,7 +138,7 @@ fn draw_control_point_circle(ui: &mut Ui, rect: egui::Rect, relative_x: f32, rel
         center,
         width * 0.01,
         Stroke {
-            color: Color32::from_rgb(80, 80, 250),
+            color: Color32::from_rgb(50, 50, 250),
             width: width * 0.004,
         },
     );
@@ -148,9 +149,54 @@ fn draw_control_point_circle(ui: &mut Ui, rect: egui::Rect, relative_x: f32, rel
 fn draw_radial_gradient_control_points(
     ui: &mut Ui,
     rect: egui::Rect,
+    response: &egui::Response,
     radial_gradient: &mut RadialGradientMask,
 ) {
-    draw_control_point_circle(ui, rect, radial_gradient.center_x, radial_gradient.center_y)
+    draw_control_point_circle(
+        ui,
+        rect,
+        (radial_gradient.center_x, radial_gradient.center_y),
+    );
+
+    let theta = radial_gradient.rotation;
+    let rotate = |x: f32, y: f32| {
+        (
+            x * theta.cos() - y * theta.sin(),
+            x * theta.sin() + y * theta.cos(),
+        )
+    };
+    draw_control_point_circle(
+        ui,
+        rect,
+        rotate(
+            radial_gradient.center_x + radial_gradient.radius_x,
+            radial_gradient.center_y,
+        ),
+    );
+    draw_control_point_circle(
+        ui,
+        rect,
+        rotate(
+            radial_gradient.center_x - radial_gradient.radius_x,
+            radial_gradient.center_y,
+        ),
+    );
+    draw_control_point_circle(
+        ui,
+        rect,
+        rotate(
+            radial_gradient.center_x,
+            radial_gradient.center_y + radial_gradient.radius_y,
+        ),
+    );
+    draw_control_point_circle(
+        ui,
+        rect,
+        rotate(
+            radial_gradient.center_x,
+            radial_gradient.center_y - radial_gradient.radius_y,
+        ),
+    );
 }
 
 fn find_edge_or_corner(pos: egui::Pos2, rect: egui::Rect) -> Option<CropDragEdgeOrCorner> {
