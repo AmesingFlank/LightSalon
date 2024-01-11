@@ -11,6 +11,9 @@ use super::{
 };
 
 pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
+    if session.editor.current_input_image.is_none() {
+        return;
+    }
     ui.horizontal(|ui| {
         let response = ui.selectable_value(
             &mut ui_state.editor_panel,

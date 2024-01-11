@@ -22,10 +22,16 @@ pub fn masking(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState, ed
             });
             ui.menu_button("Create New Mask", |ui| {
                 if ui.button("Radial Gradient").clicked() {
+                    let aspect_ratio = session
+                        .editor
+                        .current_input_image
+                        .as_ref()
+                        .expect("expecting an input image")
+                        .aspect_ratio();
                     add_masked_edit(
                         edit,
                         ui_state,
-                        MaskPrimitive::RadialGradient(RadialGradientMask::default()),
+                        MaskPrimitive::RadialGradient(RadialGradientMask::default(aspect_ratio)),
                     );
                     ui.close_menu();
                 }

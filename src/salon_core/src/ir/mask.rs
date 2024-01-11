@@ -110,11 +110,11 @@ pub struct RadialGradientMask {
 }
 
 impl RadialGradientMask {
-    pub fn default() -> Self {
+    pub fn default(aspect_ratio: f32) -> Self {
         Self {
             center_x: 0.5,
             center_y: 0.5,
-            radius_x: 0.1,
+            radius_x: 0.1 * aspect_ratio,
             radius_y: 0.1,
             inner_ellipse_ratio: 0.5,
             rotation: 0.0,
