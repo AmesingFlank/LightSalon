@@ -21,7 +21,7 @@ use serde_json::de;
 
 use super::utils::get_image_size_in_ui;
 use super::widgets::MainImageCallback;
-use super::{AppUiState, CropDragEdgeOrCorner, EditorPanel};
+use super::{AppUiState, CropDragEdgeOrCorner, EditorPanel, MaskEditState};
 
 pub fn main_image(
     ctx: &egui::Context,
@@ -100,7 +100,13 @@ pub fn main_image(
                         .terms[term_index]
                         .primitive;
                     let mut new_primitive = primitive.clone();
-                    draw_mask_primitive_control_points(ui, rect, &response, &mut new_primitive);
+                    draw_mask_primitive_control_points(
+                        ui,
+                        rect,
+                        &response,
+                        &mut new_primitive,
+                        &mut ui_state.mask_edit_state,
+                    );
                     if new_primitive != *primitive {
                         session.editor.current_edit.masked_edits[ui_state.selected_mask_index]
                             .mask
@@ -119,23 +125,44 @@ fn draw_mask_primitive_control_points(
     rect: egui::Rect,
     response: &egui::Response,
     primitive: &mut MaskPrimitive,
+    mask_edit_state: &mut MaskEditState,
 ) {
     match primitive {
         MaskPrimitive::RadialGradient(ref mut m) => {
-            draw_radial_gradient_control_points(ui, rect, response, m)
+            draw_radial_gradient_control_points(ui, rect, response, m, mask_edit_state)
         }
         _ => {}
     }
 }
 
-fn draw_control_point_circle(ui: &mut Ui, rect: egui::Rect, (relative_x, relative_y): (f32, f32)) {
+fn get_absolute_pos(rect: egui::Rect, (relative_x, relative_y): (f32, f32)) -> (f32, f32) {
+    (
+        rect.min.x + relative_x * rect.width(),
+        rect.min.y + relative_y * rect.height(),
+    )
+}
+
+fn get_relative_pos(rect: egui::Rect, (abs_x, abs_y): (f32, f32)) -> (f32, f32) {
+    (
+        (abs_x - rect.min.x) / rect.width(),
+        (abs_y - rect.min.y) / rect.height(),
+    )
+}
+
+fn draw_control_point_circle(
+    ui: &mut Ui,
+    rect: egui::Rect,
+    response: &egui::Response,
+    (relative_x, relative_y): (f32, f32),
+) {
     let width = rect.width().min(rect.height());
-    let center = Pos2 {
-        x: rect.min.x + relative_x * rect.width(),
-        y: rect.min.y + relative_y * rect.height(),
+    let abs_center = get_absolute_pos(rect, (relative_x, relative_y));
+    let abs_center = Pos2 {
+        x: abs_center.0,
+        y: abs_center.1,
     };
     ui.painter().circle_stroke(
-        center,
+        abs_center,
         width * 0.01,
         Stroke {
             color: Color32::from_rgb(50, 50, 250),
@@ -143,7 +170,7 @@ fn draw_control_point_circle(ui: &mut Ui, rect: egui::Rect, (relative_x, relativ
         },
     );
     ui.painter()
-        .circle_filled(center, width * 0.008, Color32::from_gray(230));
+        .circle_filled(abs_center, width * 0.008, Color32::from_gray(230));
 }
 
 fn draw_radial_gradient_control_points(
@@ -151,52 +178,74 @@ fn draw_radial_gradient_control_points(
     rect: egui::Rect,
     response: &egui::Response,
     radial_gradient: &mut RadialGradientMask,
+    mask_edit_state: &mut MaskEditState,
 ) {
-    draw_control_point_circle(
-        ui,
-        rect,
-        (radial_gradient.center_x, radial_gradient.center_y),
-    );
-
     let theta = radial_gradient.rotation;
-    let rotate = |x: f32, y: f32| {
+    let rotate = |(x, y): (f32, f32)| {
         (
             x * theta.cos() - y * theta.sin(),
             x * theta.sin() + y * theta.cos(),
         )
     };
-    draw_control_point_circle(
-        ui,
-        rect,
-        rotate(
+    let mut control_points = vec![
+        (radial_gradient.center_x, radial_gradient.center_y),
+        (
             radial_gradient.center_x + radial_gradient.radius_x,
             radial_gradient.center_y,
         ),
-    );
-    draw_control_point_circle(
-        ui,
-        rect,
-        rotate(
+        (
             radial_gradient.center_x - radial_gradient.radius_x,
             radial_gradient.center_y,
         ),
-    );
-    draw_control_point_circle(
-        ui,
-        rect,
-        rotate(
+        (
             radial_gradient.center_x,
             radial_gradient.center_y + radial_gradient.radius_y,
         ),
-    );
-    draw_control_point_circle(
-        ui,
-        rect,
-        rotate(
+        (
             radial_gradient.center_x,
             radial_gradient.center_y - radial_gradient.radius_y,
         ),
-    );
+    ];
+    for i in 0..control_points.len() {
+        let mut p = control_points[i];
+        let mut p_minus_center = (
+            p.0 - radial_gradient.center_x,
+            p.1 - radial_gradient.center_y,
+        );
+        p_minus_center = rotate(p_minus_center);
+        p = (
+            p_minus_center.0 + radial_gradient.center_x,
+            p_minus_center.1 + radial_gradient.center_y,
+        );
+        let abs_p = get_absolute_pos(rect, p);
+        if let Some(dragged_index) = mask_edit_state.dragged_control_point_index {
+            if dragged_index == i {
+                ui.output_mut(|out| out.cursor_icon = CursorIcon::Grabbing);
+                if response.dragged() {
+                    let delta = response.drag_delta();
+                    let new_abs_p = (abs_p.0 + delta.x, abs_p.1 + delta.y);
+                    if i == 0 {
+                        let new_relative_center = get_relative_pos(rect, new_abs_p);
+                        radial_gradient.center_x = new_relative_center.0;
+                        radial_gradient.center_y = new_relative_center.1;
+                    }
+                }
+            }
+        } else if let Some(hover_pos) = response.hover_pos() {
+            let diff = (abs_p.0 - hover_pos.x, abs_p.1 - hover_pos.y);
+            let dist = (diff.0 * diff.0 + diff.1 * diff.1).sqrt();
+            if dist < rect.width().min(rect.height()) * 0.012 {
+                ui.output_mut(|out| out.cursor_icon = CursorIcon::Grab);
+                if response.drag_started() {
+                    mask_edit_state.dragged_control_point_index = Some(i);
+                }
+            }
+        }
+        draw_control_point_circle(ui, rect, response, p);
+    }
+    if response.drag_released() {
+        mask_edit_state.dragged_control_point_index = None
+    }
 }
 
 fn find_edge_or_corner(pos: egui::Pos2, rect: egui::Rect) -> Option<CropDragEdgeOrCorner> {

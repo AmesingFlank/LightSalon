@@ -19,6 +19,7 @@ pub struct AppUiState {
 
     pub selected_mask_index: usize,
     pub selected_mask_term_index: Option<usize>,
+    pub mask_edit_state: MaskEditState,
 }
 
 impl AppUiState {
@@ -34,6 +35,7 @@ impl AppUiState {
             crop_drag_state: CropDragState::new(),
             selected_mask_index: 0,
             selected_mask_term_index: None,
+            mask_edit_state: MaskEditState::new(),
         }
     }
 }
@@ -138,6 +140,18 @@ impl CropDragEdgeOrCorner {
             | CropDragEdgeOrCorner::BottomLeft
             | CropDragEdgeOrCorner::BottomRight => true,
             _ => false,
+        }
+    }
+}
+
+pub struct MaskEditState {
+    pub dragged_control_point_index: Option<usize>,
+}
+
+impl MaskEditState {
+    pub fn new() -> Self {
+        Self {
+            dragged_control_point_index: None,
         }
     }
 }
