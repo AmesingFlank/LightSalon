@@ -7,7 +7,7 @@ use eframe::{
 use egui_extras::{Column, TableBuilder};
 use salon_core::{
     editor::{Edit, GlobalEdit, MaskedEdit},
-    ir::{Mask, MaskPrimitive, MaskTerm, RadialGradientMask},
+    ir::{Mask, MaskPrimitive, MaskTerm, RadialGradientMask, LinearGradientMask},
     session::Session,
 };
 
@@ -39,6 +39,11 @@ pub fn masking(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState, ed
                     ui.close_menu();
                 }
                 if ui.button("Linear Gradient").clicked() {
+                    add_masked_edit(
+                        edit,
+                        ui_state,
+                        MaskPrimitive::LinearGradient(LinearGradientMask::default()),
+                    );
                     ui.close_menu();
                 }
             });

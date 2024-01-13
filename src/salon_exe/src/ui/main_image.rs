@@ -6,7 +6,7 @@ use std::{collections::HashMap, num::NonZeroU64};
 use eframe::egui::{CursorIcon, Ui};
 use eframe::epaint::{Color32, Pos2, Stroke};
 use eframe::{egui, egui_wgpu};
-use salon_core::ir::{MaskPrimitive, RadialGradientMask};
+use salon_core::ir::{LinearGradientMask, MaskPrimitive, RadialGradientMask};
 use salon_core::runtime::Image;
 use salon_core::runtime::Sampler;
 use salon_core::runtime::{
@@ -133,6 +133,9 @@ fn draw_mask_primitive_control_points(
         MaskPrimitive::RadialGradient(ref mut m) => {
             draw_radial_gradient_control_points(ui, rect, response, m, mask_edit_state)
         }
+        MaskPrimitive::LinearGradient(ref mut m) => {
+            draw_linear_gradient_control_points(ui, rect, response, m, mask_edit_state)
+        }
         _ => {}
     }
 }
@@ -244,6 +247,58 @@ fn draw_radial_gradient_control_points(
         }
         draw_control_point_circle(ui, rect, p_abs.xy());
     }
+    if response.drag_released() {
+        mask_edit_state.dragged_control_point_index = None
+    }
+}
+
+fn draw_linear_gradient_control_points(
+    ui: &mut Ui,
+    rect: egui::Rect,
+    response: &egui::Response,
+    linear_gradient: &mut LinearGradientMask,
+    mask_edit_state: &mut MaskEditState,
+) {
+    let begin = vec2((linear_gradient.begin_x, linear_gradient.begin_y));
+    let saturated = vec2((linear_gradient.saturate_x, linear_gradient.saturate_y));
+    let begin_abs = vec2(get_absolute_pos(rect, begin.xy()));
+    let saturated_abs = vec2(get_absolute_pos(rect, saturated.xy()));
+
+    let control_points = vec![begin_abs, saturated_abs];
+
+    for i in 0..control_points.len() {
+        let p_abs = control_points[i];
+        if let Some(dragged_index) = mask_edit_state.dragged_control_point_index {
+            if dragged_index == i {
+                ui.output_mut(|out| out.cursor_icon = CursorIcon::Grabbing);
+                if response.dragged() {
+                    let mut new_abs_p = p_abs;
+                    if let Some(hover_pos) = response.hover_pos() {
+                        new_abs_p = pos2_to_vec2(hover_pos);
+                    }
+                    let new_p = vec2(get_relative_pos(rect, new_abs_p.xy()));
+                    if i == 0 {
+                        linear_gradient.begin_x = new_p.x;
+                        linear_gradient.begin_y = new_p.y;
+                    } else {
+                        linear_gradient.saturate_x = new_p.x;
+                        linear_gradient.saturate_y = new_p.y;
+                    }
+                }
+            }
+        } else if let Some(hover_pos) = response.hover_pos() {
+            let diff = p_abs - vec2((hover_pos.x, hover_pos.y));
+            let dist = length_vec2(diff);
+            if dist < rect.width().min(rect.height()) * 0.012 {
+                ui.output_mut(|out| out.cursor_icon = CursorIcon::Grab);
+                if response.drag_started() {
+                    mask_edit_state.dragged_control_point_index = Some(i);
+                }
+            }
+        }
+        draw_control_point_circle(ui, rect, p_abs.xy());
+    }
+
     if response.drag_released() {
         mask_edit_state.dragged_control_point_index = None
     }
