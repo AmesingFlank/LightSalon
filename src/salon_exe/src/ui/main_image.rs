@@ -16,7 +16,6 @@ use salon_core::runtime::{
 use salon_core::runtime::{Buffer, BufferProperties, RingBuffer};
 use salon_core::session::Session;
 use salon_core::shader::{Shader, ShaderLibraryModule};
-use salon_core::utils::math::length_vec2;
 use salon_core::utils::rectangle::Rectangle;
 use salon_core::utils::vec::{vec2, Vec2};
 use serde_json::de;
@@ -218,10 +217,10 @@ fn draw_radial_gradient_control_points(
                         let rotation = new_p_minus_center_abs.y.atan2(new_p_minus_center_abs.x);
                         if i == 1 || i == 2 {
                             radial_gradient.radius_x =
-                                length_vec2(new_p_minus_center_abs) / rect.width();
+                                new_p_minus_center_abs.length() / rect.width();
                         } else {
                             radial_gradient.radius_y =
-                                length_vec2(new_p_minus_center_abs) / rect.height();
+                                new_p_minus_center_abs.length() / rect.height();
                         }
                         if i == 1 {
                             radial_gradient.rotation = rotation;
@@ -237,7 +236,7 @@ fn draw_radial_gradient_control_points(
             }
         } else if let Some(hover_pos) = response.hover_pos() {
             let diff = p_abs - vec2((hover_pos.x, hover_pos.y));
-            let dist = length_vec2(diff);
+            let dist = diff.length();
             if dist < rect.width().min(rect.height()) * 0.012 {
                 ui.output_mut(|out| out.cursor_icon = CursorIcon::Grab);
                 if response.drag_started() {
@@ -288,7 +287,7 @@ fn draw_linear_gradient_control_points(
             }
         } else if let Some(hover_pos) = response.hover_pos() {
             let diff = p_abs - vec2((hover_pos.x, hover_pos.y));
-            let dist = length_vec2(diff);
+            let dist = diff.length();
             if dist < rect.width().min(rect.height()) * 0.012 {
                 ui.output_mut(|out| out.cursor_icon = CursorIcon::Grab);
                 if response.drag_started() {
@@ -302,6 +301,8 @@ fn draw_linear_gradient_control_points(
     if response.drag_released() {
         mask_edit_state.dragged_control_point_index = None
     }
+
+    let painter = ui.painter_at(rect);
 }
 
 fn find_edge_or_corner(pos: egui::Pos2, rect: egui::Rect) -> Option<CropDragEdgeOrCorner> {
