@@ -1,5 +1,11 @@
-use eframe::egui::{Ui, self};
-use salon_core::runtime::Image;
+use eframe::{
+    egui::{self, Ui},
+    epaint::Pos2,
+};
+use salon_core::{
+    runtime::Image,
+    utils::vec::{vec2, Vec2},
+};
 
 pub fn get_image_size_in_ui(ui: &Ui, image: &Image) -> egui::Vec2 {
     let max_x = ui.available_width();
@@ -20,4 +26,8 @@ pub fn get_image_size_in_ui(ui: &Ui, image: &Image) -> egui::Vec2 {
         }
     };
     size
+}
+
+pub fn pos2_to_vec2(p: Pos2) -> Vec2<f32> {
+    vec2((p.x, p.y))
 }

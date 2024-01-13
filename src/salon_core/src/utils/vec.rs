@@ -8,8 +8,14 @@ pub struct Vec2<T: Num> {
     pub y: T,
 }
 
-pub fn vec2<T: Num>(xy: (T, T)) -> Vec2<T> {
-    Vec2 { x: xy.0, y: xy.1 }
+pub fn vec2<T: Num>((x, y): (T, T)) -> Vec2<T> {
+    Vec2 { x, y }
+}
+
+impl<T: Num + Copy> Vec2<T> {
+    pub fn xy(&self) -> (T, T) {
+        (self.x, self.y)
+    }
 }
 
 // ... your existing Vec2, Vec3, and Vec4 definitions ...
@@ -87,12 +93,8 @@ pub struct Vec3<T: Num> {
     pub z: T,
 }
 
-pub fn vec3<T: Num>(xyz: (T, T, T)) -> Vec3<T> {
-    Vec3 {
-        x: xyz.0,
-        y: xyz.1,
-        z: xyz.2,
-    }
+pub fn vec3<T: Num>((x, y, z): (T, T, T)) -> Vec3<T> {
+    Vec3 { x, y, z }
 }
 
 impl<T: Num + Copy> Add for Vec3<T> {
@@ -175,13 +177,8 @@ pub struct Vec4<T: Num> {
     pub w: T,
 }
 
-pub fn vec4<T: Num>(xyzw: (T, T, T, T)) -> Vec4<T> {
-    Vec4 {
-        x: xyzw.0,
-        y: xyzw.1,
-        z: xyzw.2,
-        w: xyzw.3,
-    }
+pub fn vec4<T: Num>((x, y, z, w): (T, T, T, T)) -> Vec4<T> {
+    Vec4 { x, y, z, w }
 }
 
 // ... your existing Vec2 and Vec3 definitions ...

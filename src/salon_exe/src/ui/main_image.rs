@@ -1,3 +1,4 @@
+use std::f32::consts::PI;
 use std::mem::size_of;
 use std::sync::Arc;
 use std::{collections::HashMap, num::NonZeroU64};
@@ -15,11 +16,12 @@ use salon_core::runtime::{
 use salon_core::runtime::{Buffer, BufferProperties, RingBuffer};
 use salon_core::session::Session;
 use salon_core::shader::{Shader, ShaderLibraryModule};
+use salon_core::utils::math::length_vec2;
 use salon_core::utils::rectangle::Rectangle;
-use salon_core::utils::vec::vec2;
+use salon_core::utils::vec::{vec2, Vec2};
 use serde_json::de;
 
-use super::utils::get_image_size_in_ui;
+use super::utils::{get_image_size_in_ui, pos2_to_vec2};
 use super::widgets::MainImageCallback;
 use super::{AppUiState, CropDragEdgeOrCorner, EditorPanel, MaskEditState};
 
@@ -149,20 +151,14 @@ fn get_relative_pos(rect: egui::Rect, (abs_x, abs_y): (f32, f32)) -> (f32, f32) 
     )
 }
 
-fn draw_control_point_circle(
-    ui: &mut Ui,
-    rect: egui::Rect,
-    response: &egui::Response,
-    (relative_x, relative_y): (f32, f32),
-) {
+fn draw_control_point_circle(ui: &mut Ui, rect: egui::Rect, center: (f32, f32)) {
     let width = rect.width().min(rect.height());
-    let abs_center = get_absolute_pos(rect, (relative_x, relative_y));
-    let abs_center = Pos2 {
-        x: abs_center.0,
-        y: abs_center.1,
+    let center = Pos2 {
+        x: center.0,
+        y: center.1,
     };
     ui.painter().circle_stroke(
-        abs_center,
+        center,
         width * 0.01,
         Stroke {
             color: Color32::from_rgb(50, 50, 250),
@@ -170,7 +166,7 @@ fn draw_control_point_circle(
         },
     );
     ui.painter()
-        .circle_filled(abs_center, width * 0.008, Color32::from_gray(230));
+        .circle_filled(center, width * 0.008, Color32::from_gray(230));
 }
 
 fn draw_radial_gradient_control_points(
@@ -180,60 +176,65 @@ fn draw_radial_gradient_control_points(
     radial_gradient: &mut RadialGradientMask,
     mask_edit_state: &mut MaskEditState,
 ) {
+    let center = vec2((radial_gradient.center_x, radial_gradient.center_y));
+    let center_abs = vec2(get_absolute_pos(rect, center.xy()));
     let theta = radial_gradient.rotation;
-    let rotate = |(x, y): (f32, f32)| {
-        (
-            x * theta.cos() - y * theta.sin(),
-            x * theta.sin() + y * theta.cos(),
-        )
+    let rotate = |p: Vec2<f32>| {
+        vec2((
+            p.x * theta.cos() - p.y * theta.sin(),
+            p.x * theta.sin() + p.y * theta.cos(),
+        ))
     };
-    let mut control_points = vec![
-        (radial_gradient.center_x, radial_gradient.center_y),
-        (
-            radial_gradient.center_x + radial_gradient.radius_x,
-            radial_gradient.center_y,
-        ),
-        (
-            radial_gradient.center_x - radial_gradient.radius_x,
-            radial_gradient.center_y,
-        ),
-        (
-            radial_gradient.center_x,
-            radial_gradient.center_y + radial_gradient.radius_y,
-        ),
-        (
-            radial_gradient.center_x,
-            radial_gradient.center_y - radial_gradient.radius_y,
-        ),
+    let control_points = vec![
+        center,
+        center + vec2((radial_gradient.radius_x, 0.0)),
+        center + vec2((-radial_gradient.radius_x, 0.0)),
+        center + vec2((0.0, radial_gradient.radius_y)),
+        center + vec2((0.0, -radial_gradient.radius_y)),
     ];
     for i in 0..control_points.len() {
-        let mut p = control_points[i];
-        let mut p_minus_center = (
-            p.0 - radial_gradient.center_x,
-            p.1 - radial_gradient.center_y,
-        );
+        let p = control_points[i];
+        let p_abs = vec2(get_absolute_pos(rect, p.xy()));
+        let mut p_minus_center = p_abs - center_abs;
         p_minus_center = rotate(p_minus_center);
-        p = (
-            p_minus_center.0 + radial_gradient.center_x,
-            p_minus_center.1 + radial_gradient.center_y,
-        );
-        let abs_p = get_absolute_pos(rect, p);
+        let p_abs = p_minus_center + center_abs;
         if let Some(dragged_index) = mask_edit_state.dragged_control_point_index {
             if dragged_index == i {
                 ui.output_mut(|out| out.cursor_icon = CursorIcon::Grabbing);
                 if response.dragged() {
-                    let delta = response.drag_delta();
-                    let new_abs_p = (abs_p.0 + delta.x, abs_p.1 + delta.y);
+                    let mut new_abs_p = p_abs;
+                    if let Some(hover_pos) = response.hover_pos() {
+                        new_abs_p = pos2_to_vec2(hover_pos);
+                    }
+                    let new_p = vec2(get_relative_pos(rect, new_abs_p.xy()));
                     if i == 0 {
-                        let new_relative_center = get_relative_pos(rect, new_abs_p);
-                        radial_gradient.center_x = new_relative_center.0;
-                        radial_gradient.center_y = new_relative_center.1;
+                        radial_gradient.center_x = new_p.x;
+                        radial_gradient.center_y = new_p.y;
+                    } else {
+                        let new_p_minus_center_abs = new_abs_p - center_abs;
+                        let rotation = new_p_minus_center_abs.y.atan2(new_p_minus_center_abs.x);
+                        if i == 1 || i == 2 {
+                            radial_gradient.radius_x =
+                                length_vec2(new_p_minus_center_abs) / rect.width();
+                        } else {
+                            radial_gradient.radius_y =
+                                length_vec2(new_p_minus_center_abs) / rect.height();
+                        }
+                        if i == 1 {
+                            radial_gradient.rotation = rotation;
+                        } else if i == 2 {
+                            radial_gradient.rotation = rotation - PI;
+                        } else if i == 3 {
+                            radial_gradient.rotation = rotation - PI * 0.5;
+                        } else if i == 4 {
+                            radial_gradient.rotation = rotation - PI * 1.5;
+                        }
                     }
                 }
             }
         } else if let Some(hover_pos) = response.hover_pos() {
-            let diff = (abs_p.0 - hover_pos.x, abs_p.1 - hover_pos.y);
-            let dist = (diff.0 * diff.0 + diff.1 * diff.1).sqrt();
+            let diff = p_abs - vec2((hover_pos.x, hover_pos.y));
+            let dist = length_vec2(diff);
             if dist < rect.width().min(rect.height()) * 0.012 {
                 ui.output_mut(|out| out.cursor_icon = CursorIcon::Grab);
                 if response.drag_started() {
@@ -241,7 +242,7 @@ fn draw_radial_gradient_control_points(
                 }
             }
         }
-        draw_control_point_circle(ui, rect, response, p);
+        draw_control_point_circle(ui, rect, p_abs.xy());
     }
     if response.drag_released() {
         mask_edit_state.dragged_control_point_index = None

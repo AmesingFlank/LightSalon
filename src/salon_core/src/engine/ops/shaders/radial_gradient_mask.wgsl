@@ -21,24 +21,21 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         return;
     }
 
-    var xy = vec2(
-        f32(global_id.x) / f32(output_size.x - 1u),
-        f32(global_id.y) / f32(output_size.y - 1u)
-    );
-
-    xy = xy - vec2(mask.center_x, mask.center_y);
-
     let rotation_col0 = vec2 (
-        cos(mask.rotation),
-        sin(mask.rotation)
+        cos(-mask.rotation),
+        sin(-mask.rotation)
     );
     let rotation_col1 = vec2 (
-        -sin(mask.rotation),
-        cos(mask.rotation)
+        -sin(-mask.rotation),
+        cos(-mask.rotation)
     );
     let rotation = mat2x2(rotation_col0, rotation_col1); 
-    xy = rotation * xy;
 
+    var xy_abs = vec2(f32(global_id.x), f32(global_id.y));
+    var center_abs = vec2(mask.center_x, mask.center_y) * vec2(f32(output_size.x - 1u), f32(output_size.y - 1u));
+
+    var xy = rotation * (xy_abs - center_abs) / vec2(f32(output_size.x - 1u), f32(output_size.y - 1u));
+    
     let r = (xy.x / mask.radius_x) * (xy.x / mask.radius_x) + (xy.y / mask.radius_y) * (xy.y / mask.radius_y);
 
     var result = 0.0;
