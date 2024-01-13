@@ -20,24 +20,24 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     }
 
     let scale = vec2(f32(output_size.x - 1u), f32(output_size.y - 1u));
-    let xy = vec2(f32(global_id.x), f32(global_id.y)) / scale;
+    let xy = vec2(f32(global_id.x), f32(global_id.y));
 
-    let begin = vec2(mask.begin_x, mask.begin_y);
-    let saturated = vec2(mask.saturate_x, mask.saturate_y);
+    let begin = vec2(mask.begin_x, mask.begin_y) * scale;
+    let saturated = vec2(mask.saturate_x, mask.saturate_y) * scale;
 
     var normal = begin - saturated;
     let transition_length = length(normal);
     normal = normal / transition_length;
 
     let v = xy - saturated;
-    let projected_distance = dot(v, normal) / transition_length;
+    let projected_distance = dot(v, normal);
 
     var result = 0.0;
     if (projected_distance <= 0.0) {
         result = 1.0;
     }
-    else if (projected_distance <= 1.0) {
-        result = 1.0 - projected_distance;
+    else if (projected_distance <= transition_length) {
+        result = 1.0 - projected_distance / transition_length;
     }  
 
     textureStore(output, global_id.xy, vec4<f32>(result));
