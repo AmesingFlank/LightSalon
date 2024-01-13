@@ -1,11 +1,12 @@
 use crate::ir::{AddMaskOp, InvertMaskOp, SubtractMaskOp};
 
-use super::{ComputeGlobalMaskOp, ComputeRadialGradientMaskOp, Id, Module, Op};
+use super::{ComputeGlobalMaskOp, ComputeRadialGradientMaskOp, Id, Module, Op, ComputeLinearGradientMaskOp};
 
 #[derive(Clone, PartialEq)]
 pub enum MaskPrimitive {
     Global(GlobalMask),
     RadialGradient(RadialGradientMask),
+    LinearGradient(LinearGradientMask),
 }
 
 impl MaskPrimitive {
@@ -13,6 +14,7 @@ impl MaskPrimitive {
         match self {
             MaskPrimitive::Global(ref m) => m.create_compute_mask_ops(target, module),
             MaskPrimitive::RadialGradient(ref m) => m.create_compute_mask_ops(target, module),
+            MaskPrimitive::LinearGradient(ref m) => m.create_compute_mask_ops(target, module),
         }
     }
 }
@@ -124,6 +126,35 @@ impl RadialGradientMask {
     pub fn create_compute_mask_ops(&self, target: Id, module: &mut Module) -> Id {
         let result = module.alloc_id();
         module.push_op(Op::ComputeRadialGradientMask(ComputeRadialGradientMaskOp {
+            result,
+            mask: self.clone(),
+            target,
+        }));
+        result
+    }
+}
+
+#[derive(Clone, PartialEq)]
+pub struct LinearGradientMask {
+    pub begin_x: f32,
+    pub begin_y: f32,
+    pub saturate_x: f32,
+    pub saturate_y: f32,
+}
+
+impl LinearGradientMask {
+    pub fn default() -> Self {
+        Self {
+            begin_x: 0.5,
+            begin_y: 0.4,
+            saturate_x: 0.5,
+            saturate_y: 0.6,
+        }
+    }
+
+    pub fn create_compute_mask_ops(&self, target: Id, module: &mut Module) -> Id {
+        let result = module.alloc_id();
+        module.push_op(Op::ComputeLinearGradientMask(ComputeLinearGradientMaskOp {
             result,
             mask: self.clone(),
             target,

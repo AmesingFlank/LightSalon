@@ -194,6 +194,7 @@ fn mask_primtive_type_str(primitive: &MaskPrimitive) -> &str {
     match primitive {
         MaskPrimitive::Global(_) => "Global",
         MaskPrimitive::RadialGradient(_) => "Radial",
+        MaskPrimitive::LinearGradient(_) => "Linear",
     }
 }
 

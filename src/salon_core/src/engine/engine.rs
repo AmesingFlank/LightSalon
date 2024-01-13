@@ -24,6 +24,7 @@ use super::{
         highlights_shadows::AdjustHighlightsAndShadowsImpl,
         histogram::{self, ComputeHistogramImpl},
         invert_mask::InvertMaskImpl,
+        linear_gradient_mask::ComputeLinearGradientMaskImpl,
         radial_gradient_mask::ComputeRadialGradientMaskImpl,
         subtract_mask::{self, SubtractMaskImpl},
         temperature_tint::AdjustTemperatureAndTintImpl,
@@ -227,12 +228,28 @@ impl Engine {
                     );
                 }
                 Op::ComputeRadialGradientMask(ref op) => {
-                    self.op_impls.radial_gradient_mask.as_mut().unwrap().encode_commands(
-                        &mut encoder,
-                        op,
-                        &mut execution_context.value_store,
-                        &mut self.toolbox,
-                    );
+                    self.op_impls
+                        .radial_gradient_mask
+                        .as_mut()
+                        .unwrap()
+                        .encode_commands(
+                            &mut encoder,
+                            op,
+                            &mut execution_context.value_store,
+                            &mut self.toolbox,
+                        );
+                }
+                Op::ComputeLinearGradientMask(ref op) => {
+                    self.op_impls
+                        .linear_gradient_mask
+                        .as_mut()
+                        .unwrap()
+                        .encode_commands(
+                            &mut encoder,
+                            op,
+                            &mut execution_context.value_store,
+                            &mut self.toolbox,
+                        );
                 }
                 Op::AddMask(ref op) => {
                     self.op_impls.add_mask.as_mut().unwrap().encode_commands(
@@ -385,6 +402,13 @@ impl Engine {
                             Some(ComputeRadialGradientMaskImpl::new(self.runtime.clone()))
                     }
                     self.op_impls.radial_gradient_mask.as_mut().unwrap().reset();
+                }
+                Op::ComputeLinearGradientMask(_) => {
+                    if self.op_impls.linear_gradient_mask.is_none() {
+                        self.op_impls.linear_gradient_mask =
+                            Some(ComputeLinearGradientMaskImpl::new(self.runtime.clone()))
+                    }
+                    self.op_impls.linear_gradient_mask.as_mut().unwrap().reset();
                 }
                 Op::AddMask(_) => {
                     if self.op_impls.add_mask.is_none() {

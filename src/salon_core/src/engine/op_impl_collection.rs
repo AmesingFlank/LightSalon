@@ -1,10 +1,14 @@
 use super::ops::{
-    apply_masked_edits::ApplyMaskedEditsImpl, basic_statistics::ComputeBasicStatisticsImpl,
-    color_mix::ColorMixImpl, contrast::AdjustContrastImpl, crop::CropImpl, curve::ApplyCurveImpl,
+    add_mask::AddMaskImpl, apply_masked_edits::ApplyMaskedEditsImpl,
+    basic_statistics::ComputeBasicStatisticsImpl, color_mix::ColorMixImpl,
+    contrast::AdjustContrastImpl, crop::CropImpl, curve::ApplyCurveImpl,
     dehaze_apply::ApplyDehazeImpl, dehaze_prepare::PrepareDehazeImpl, exposure::AdjustExposureImpl,
     global_mask::ComputeGlobalMaskImpl, highlights_shadows::AdjustHighlightsAndShadowsImpl,
-    histogram::ComputeHistogramImpl, temperature_tint::AdjustTemperatureAndTintImpl,
-    vibrance_saturation::AdjustVibranceAndSaturationImpl, vignette::AdjustVignetteImpl, add_mask::AddMaskImpl, subtract_mask::SubtractMaskImpl, invert_mask::InvertMaskImpl, radial_gradient_mask::ComputeRadialGradientMaskImpl,
+    histogram::ComputeHistogramImpl, invert_mask::InvertMaskImpl,
+    linear_gradient_mask::ComputeLinearGradientMaskImpl,
+    radial_gradient_mask::ComputeRadialGradientMaskImpl, subtract_mask::SubtractMaskImpl,
+    temperature_tint::AdjustTemperatureAndTintImpl,
+    vibrance_saturation::AdjustVibranceAndSaturationImpl, vignette::AdjustVignetteImpl,
 };
 
 #[derive(Default)]
@@ -24,6 +28,7 @@ pub struct OpImplCollection {
     pub crop: Option<CropImpl>,
     pub global_mask: Option<ComputeGlobalMaskImpl>,
     pub radial_gradient_mask: Option<ComputeRadialGradientMaskImpl>,
+    pub linear_gradient_mask: Option<ComputeLinearGradientMaskImpl>,
     pub add_mask: Option<AddMaskImpl>,
     pub subtract_mask: Option<SubtractMaskImpl>,
     pub invert_mask: Option<InvertMaskImpl>,
