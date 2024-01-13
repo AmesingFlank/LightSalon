@@ -105,7 +105,7 @@ pub struct RadialGradientMask {
     pub center_y: f32,
     pub radius_x: f32,
     pub radius_y: f32,
-    pub inner_ellipse_ratio: f32,
+    pub feather: f32,
     pub rotation: f32,
 }
 
@@ -116,7 +116,7 @@ impl RadialGradientMask {
             center_y: 0.5,
             radius_x: 0.1 * aspect_ratio,
             radius_y: 0.1,
-            inner_ellipse_ratio: 0.5,
+            feather: 50.0,
             rotation: 0.0,
         }
     }

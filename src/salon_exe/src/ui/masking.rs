@@ -11,7 +11,10 @@ use salon_core::{
     session::Session,
 };
 
-use super::{widgets::MaskIndicatorCallback, AppUiState};
+use super::{
+    widgets::{EditorSlider, MaskIndicatorCallback},
+    AppUiState,
+};
 
 pub fn masking(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState, edit: &mut Edit) {
     CollapsingHeader::new("Masking")
@@ -99,7 +102,7 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
 
             if !edit.masked_edits[mask_index].mask.is_global() && is_selected {
                 for term_index in 0..edit.masked_edits[mask_index].mask.terms.len() {
-                    let term = &edit.masked_edits[mask_index].mask.terms[term_index];
+                    let term = &mut edit.masked_edits[mask_index].mask.terms[term_index];
                     let row_height = image_height * 1.2;
                     body.row(row_height, |mut row| {
                         if ui_state.selected_mask_term_index == Some(term_index) {
@@ -146,6 +149,23 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                             maybe_select_term(ui_state, term_index);
                         }
                     });
+                    if ui_state.selected_mask_term_index == Some(term_index) {
+                        if let MaskPrimitive::RadialGradient(ref mut radial) = &mut term.primitive {
+                            body.row(row_height, |mut row| {
+                                row.set_selected(true);
+                                row.col(|ui| {});
+                                row.col(|ui| {
+                                    ui.horizontal_centered(|mut ui| {
+                                        ui.separator();
+                                        ui.add(
+                                            EditorSlider::new(&mut radial.feather, 0.0..=100.0)
+                                                .text("Feather"),
+                                        );
+                                    });
+                                });
+                            });
+                        }
+                    }
                 }
             }
         }

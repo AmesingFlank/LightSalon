@@ -81,7 +81,7 @@ impl ComputeRadialGradientMaskImpl {
                 mask.center_y,
                 mask.radius_x,
                 mask.radius_y,
-                mask.inner_ellipse_ratio,
+                mask.feather,
                 mask.rotation,
             ]),
         );
