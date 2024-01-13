@@ -38,6 +38,14 @@ impl AppUiState {
             mask_edit_state: MaskEditState::new(),
         }
     }
+
+    pub fn reset_for_different_image(&mut self) {
+        self.selected_curve_control_point_index = None;
+        self.color_mixer_color_index = 0;
+        self.selected_mask_index = 0;
+        self.selected_mask_term_index = None;
+        self.mask_edit_state.dragged_control_point_index = None;
+    }
 }
 
 pub struct FpsCounterState {
