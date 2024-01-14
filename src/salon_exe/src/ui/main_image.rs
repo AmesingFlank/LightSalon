@@ -262,8 +262,9 @@ fn draw_linear_gradient_control_points(
     let saturated = vec2((linear_gradient.saturate_x, linear_gradient.saturate_y));
     let begin_abs = vec2(get_absolute_pos(rect, begin.xy()));
     let saturated_abs = vec2(get_absolute_pos(rect, saturated.xy()));
+    let middle_abs = (begin_abs + saturated_abs) / 2.0;
 
-    let control_points = vec![begin_abs, saturated_abs];
+    let control_points = vec![begin_abs, saturated_abs, middle_abs];
 
     for i in 0..control_points.len() {
         let p_abs = control_points[i];
@@ -279,9 +280,16 @@ fn draw_linear_gradient_control_points(
                     if i == 0 {
                         linear_gradient.begin_x = new_p.x;
                         linear_gradient.begin_y = new_p.y;
-                    } else {
+                    } else if i == 1 {
                         linear_gradient.saturate_x = new_p.x;
                         linear_gradient.saturate_y = new_p.y;
+                    } else if i == 2 {
+                        let mut delta = new_abs_p - p_abs;
+                        delta = delta / vec2((rect.width(), rect.height()));
+                        linear_gradient.begin_x += delta.x;
+                        linear_gradient.begin_y += delta.y;
+                        linear_gradient.saturate_x += delta.x;
+                        linear_gradient.saturate_y += delta.y;
                     }
                 }
             }
@@ -303,6 +311,27 @@ fn draw_linear_gradient_control_points(
     }
 
     let painter = ui.painter_at(rect);
+    let normal = (begin_abs - saturated_abs).normalized();
+    let line = vec2((-normal.y, normal.x));
+    let len = rect.width() + rect.height();
+    let stroke = Stroke {
+        width: len * 0.001,
+        color: Color32::WHITE,
+    };
+    for p in control_points.iter() {
+        let start = *p + line * len;
+        let end = *p + line * -len;
+        painter.line_segment(
+            [
+                Pos2 {
+                    x: start.x,
+                    y: start.y,
+                },
+                Pos2 { x: end.x, y: end.y },
+            ],
+            stroke,
+        )
+    }
 }
 
 fn find_edge_or_corner(pos: egui::Pos2, rect: egui::Rect) -> Option<CropDragEdgeOrCorner> {
