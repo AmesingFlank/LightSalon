@@ -7,7 +7,7 @@ use eframe::{
 use egui_extras::{Column, TableBuilder};
 use salon_core::{
     editor::{Edit, GlobalEdit, MaskedEdit},
-    ir::{Mask, MaskPrimitive, MaskTerm, RadialGradientMask, LinearGradientMask},
+    ir::{GlobalMask, LinearGradientMask, Mask, MaskPrimitive, MaskTerm, RadialGradientMask},
     session::Session,
 };
 
@@ -46,13 +46,19 @@ pub fn masking(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState, ed
                     );
                     ui.close_menu();
                 }
+                if ui.button("Global").clicked() {
+                    add_masked_edit(edit, ui_state, MaskPrimitive::Global(GlobalMask {}));
+                    ui.close_menu();
+                }
             });
         });
 }
 
 pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState, edit: &mut Edit) {
+    let image_column_widh = ui.available_width() * 0.7;
     let mut table = TableBuilder::new(ui)
         .column(Column::auto())
+        .column(Column::auto().at_least(image_column_widh))
         .column(Column::remainder())
         .sense(egui::Sense::click())
         .cell_layout(
@@ -61,6 +67,9 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
     // .cell_layout(
     //     egui::Layout::top_down(egui::Align::Center).with_cross_align(egui::Align::LEFT),
     // );
+
+    let mut mask_to_delete: Option<usize> = None;
+    let mut mask_term_to_delete: Option<(usize, usize)> = None;
 
     table.body(|mut body| {
         for mask_index in 0..edit.masked_edits.len() {
@@ -98,6 +107,13 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                             }
                         }
                         ui.label(&edit.masked_edits[mask_index].name);
+                    });
+                });
+                row.col(|ui| {
+                    ui.menu_button(menu_dots(), |ui| {
+                        if ui.button("Delete").clicked() {
+                            mask_to_delete = Some(mask_index);
+                        }
                     });
                 });
                 if row.response().clicked() {
@@ -150,6 +166,13 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                                 ui.label(&term_str);
                             });
                         });
+                        row.col(|ui| {
+                            ui.menu_button(menu_dots(), |ui| {
+                                if ui.button("Delete").clicked() {
+                                    mask_term_to_delete = Some((mask_index, term_index));
+                                }
+                            });
+                        });
                         if row.response().clicked() {
                             maybe_select_term(ui_state, term_index);
                         }
@@ -168,6 +191,7 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                                         );
                                     });
                                 });
+                                row.col(|ui| {});
                             });
                         }
                     }
@@ -175,6 +199,19 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
             }
         }
     });
+
+    if let Some((m, t)) = mask_term_to_delete {
+        edit.masked_edits[m].mask.terms.remove(t);
+        if edit.masked_edits[m].mask.terms.is_empty() {
+            edit.masked_edits.remove(m);
+            ui_state.selected_mask_index = 0;
+        }
+        ui_state.selected_mask_term_index = None
+    }
+    if let Some(m) = mask_to_delete {
+        edit.masked_edits.remove(m);
+        ui_state.selected_mask_index = 0;
+    }
 }
 
 fn add_masked_edit(edit: &mut Edit, ui_state: &mut AppUiState, primitive: MaskPrimitive) {
@@ -214,4 +251,8 @@ fn maybe_select_term(ui_state: &mut AppUiState, term_index: usize) {
     } else {
         ui_state.selected_mask_term_index = Some(term_index);
     }
+}
+
+fn menu_dots() -> String {
+    "•••".to_owned()
 }
