@@ -93,6 +93,7 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                     ui.menu_button(menu_dots(), |ui| {
                         if ui.button("Delete").clicked() {
                             mask_to_delete = Some(mask_index);
+                            ui.close_menu();
                         }
                     });
                 });
@@ -150,9 +151,11 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                             ui.menu_button(menu_dots(), |ui| {
                                 if ui.button("Delete").clicked() {
                                     mask_term_to_delete = Some((mask_index, term_index));
+                                    ui.close_menu();
                                 }
                                 if ui.button("Invert").clicked() {
                                     term.inverted = !term.inverted;
+                                    ui.close_menu();
                                 }
                             });
                         });
@@ -190,6 +193,7 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                             if !edit.masked_edits[mask_index].mask.is_singe_global() {
                                 new_mask_term_menu_button(
                                     ui,
+                                    ui_state,
                                     &mut edit.masked_edits[mask_index].mask,
                                     aspect_ratio,
                                     false,
@@ -197,6 +201,7 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                             }
                             new_mask_term_menu_button(
                                 ui,
+                                ui_state,
                                 &mut edit.masked_edits[mask_index].mask,
                                 aspect_ratio,
                                 true,
@@ -259,7 +264,13 @@ fn new_mask_menu_button(
     });
 }
 
-fn new_mask_term_menu_button(ui: &mut Ui, mask: &mut Mask, aspect_ratio: f32, subtracted: bool) {
+fn new_mask_term_menu_button(
+    ui: &mut Ui,
+    ui_state: &mut AppUiState,
+    mask: &mut Mask,
+    aspect_ratio: f32,
+    subtracted: bool,
+) {
     let button_name = if subtracted { "Subtract" } else { "Add" };
     ui.menu_button(button_name, |ui| {
         if ui.button("Radial Gradient").clicked() {
@@ -268,6 +279,7 @@ fn new_mask_term_menu_button(ui: &mut Ui, mask: &mut Mask, aspect_ratio: f32, su
                 inverted: false,
                 subtracted,
             });
+            ui_state.selected_mask_term_index = Some(mask.terms.len() - 1);
             ui.close_menu();
         }
         if ui.button("Linear Gradient").clicked() {
@@ -276,6 +288,7 @@ fn new_mask_term_menu_button(ui: &mut Ui, mask: &mut Mask, aspect_ratio: f32, su
                 inverted: false,
                 subtracted,
             });
+            ui_state.selected_mask_term_index = Some(mask.terms.len() - 1);
             ui.close_menu();
         }
     });
