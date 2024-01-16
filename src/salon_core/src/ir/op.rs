@@ -2,7 +2,7 @@ use crate::utils::rectangle::Rectangle;
 
 use super::{GlobalMask, Id, LinearGradientMask, Mask, RadialGradientMask};
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum Op {
     Input(InputOp),
     AdjustExposure(AdjustExposureOp),
@@ -81,19 +81,19 @@ impl Op {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct InputOp {
     pub result: Id,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct AdjustExposureOp {
     pub result: Id,
     pub arg: Id,
     pub exposure: f32,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct AdjustContrastOp {
     pub result: Id,
     pub arg: Id,
@@ -101,7 +101,7 @@ pub struct AdjustContrastOp {
     pub contrast: f32,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct AdjustHighlightsAndShadowsOp {
     pub result: Id,
     pub arg: Id,
@@ -109,7 +109,7 @@ pub struct AdjustHighlightsAndShadowsOp {
     pub shadows: f32,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct ApplyCurveOp {
     pub result: Id,
     pub arg: Id,
@@ -120,7 +120,7 @@ pub struct ApplyCurveOp {
 }
 
 // grouping temp and tint together, because they are heavy and shares a lot of common work
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct AdjustTemperatureAndTintOp {
     pub result: Id,
     pub arg: Id,
@@ -128,7 +128,7 @@ pub struct AdjustTemperatureAndTintOp {
     pub tint: f32,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct AdjustVibranceAndSaturationOp {
     pub result: Id,
     pub arg: Id,
@@ -136,14 +136,14 @@ pub struct AdjustVibranceAndSaturationOp {
     pub saturation: f32,
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub struct ColorMixOp {
     pub result: Id,
     pub arg: Id,
     pub groups: [ColorMixGroup; 8],
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub struct ColorMixGroup {
     pub hue: f32,
     pub saturation: f32,
@@ -160,20 +160,20 @@ impl ColorMixGroup {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct AdjustVignetteOp {
     pub result: Id,
     pub arg: Id,
     pub vignette: f32,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct PrepareDehazeOp {
     pub result: Id,
     pub arg: Id,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct ApplyDehazeOp {
     pub result: Id,
     pub arg: Id,
@@ -181,67 +181,67 @@ pub struct ApplyDehazeOp {
     pub amount: f32,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct ComputeBasicStatisticsOp {
     pub result: Id,
     pub arg: Id,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct ComputeHistogramOp {
     pub result: Id,
     pub arg: Id,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct CropOp {
     pub result: Id,
     pub arg: Id,
     pub rect: Rectangle,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct ComputeGlobalMaskOp {
     pub result: Id,
     pub mask: GlobalMask,
     pub target: Id,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct ComputeRadialGradientMaskOp {
     pub result: Id,
     pub mask: RadialGradientMask,
     pub target: Id,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct ComputeLinearGradientMaskOp {
     pub result: Id,
     pub mask: LinearGradientMask,
     pub target: Id,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct AddMaskOp {
     pub result: Id,
     pub mask_0: Id,
     pub mask_1: Id,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct SubtractMaskOp {
     pub result: Id,
     pub mask_0: Id,
     pub mask_1: Id,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct InvertMaskOp {
     pub result: Id,
     pub mask_0: Id,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct ApplyMaskedEditsOp {
     pub result: Id,
     pub mask: Id,

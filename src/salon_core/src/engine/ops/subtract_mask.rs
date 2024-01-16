@@ -43,7 +43,7 @@ impl SubtractMaskImpl {
         toolbox: &mut Toolbox,
     ) {
         let mask_0 = value_store.map.get(&op.mask_0).unwrap().as_image().clone();
-        let mask_1 = value_store.map.get(&op.mask_0).unwrap().as_image().clone();
+        let mask_1 = value_store.map.get(&op.mask_1).unwrap().as_image().clone();
 
         let output_img = value_store.ensure_value_at_id_is_image_of_properties(
             self.runtime.as_ref(),

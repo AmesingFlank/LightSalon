@@ -4,7 +4,7 @@ use super::{
     ComputeGlobalMaskOp, ComputeLinearGradientMaskOp, ComputeRadialGradientMaskOp, Id, Module, Op,
 };
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum MaskPrimitive {
     Global(GlobalMask),
     RadialGradient(RadialGradientMask),
@@ -21,14 +21,14 @@ impl MaskPrimitive {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct MaskTerm {
     pub primitive: MaskPrimitive,
     pub inverted: bool,
     pub subtracted: bool,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct Mask {
     pub terms: Vec<MaskTerm>,
 }
@@ -88,7 +88,7 @@ impl Mask {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct GlobalMask {}
 
 impl GlobalMask {
@@ -103,7 +103,7 @@ impl GlobalMask {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct RadialGradientMask {
     pub center_x: f32,
     pub center_y: f32,
@@ -136,7 +136,7 @@ impl RadialGradientMask {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct LinearGradientMask {
     pub begin_x: f32,
     pub begin_y: f32,

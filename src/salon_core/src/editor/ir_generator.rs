@@ -42,6 +42,7 @@ pub fn to_ir_module(edit: &Edit) -> (Module, IdStore) {
         final_histogram: final_histogram_id,
         masked_edit_id_stores
     };
+    // println!("{:#?}", module.ops());
     (module, id_store)
 }
 
