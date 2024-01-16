@@ -23,34 +23,7 @@ pub fn masking(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState, ed
             ui.group(|ui| {
                 masks_table(ui, session, ui_state, edit);
             });
-            ui.menu_button("Create New Mask", |ui| {
-                if ui.button("Radial Gradient").clicked() {
-                    let aspect_ratio = session
-                        .editor
-                        .current_input_image
-                        .as_ref()
-                        .expect("expecting an input image")
-                        .aspect_ratio();
-                    add_masked_edit(
-                        edit,
-                        ui_state,
-                        MaskPrimitive::RadialGradient(RadialGradientMask::default(aspect_ratio)),
-                    );
-                    ui.close_menu();
-                }
-                if ui.button("Linear Gradient").clicked() {
-                    add_masked_edit(
-                        edit,
-                        ui_state,
-                        MaskPrimitive::LinearGradient(LinearGradientMask::default()),
-                    );
-                    ui.close_menu();
-                }
-                if ui.button("Global").clicked() {
-                    add_masked_edit(edit, ui_state, MaskPrimitive::Global(GlobalMask {}));
-                    ui.close_menu();
-                }
-            });
+            new_mask_menu_button(ui, edit, session, ui_state);
         });
 }
 
@@ -178,6 +151,9 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                                 if ui.button("Delete").clicked() {
                                     mask_term_to_delete = Some((mask_index, term_index));
                                 }
+                                if ui.button("Invert").clicked() {
+                                    term.inverted = !term.inverted;
+                                }
                             });
                         });
                         if row.response().clicked() {
@@ -243,8 +219,44 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
     }
     if let Some(m) = mask_to_delete {
         edit.masked_edits.remove(m);
-        ui_state.selected_mask_index = 0;
+        ui_state.selected_mask_index = 0
     }
+}
+
+fn new_mask_menu_button(
+    ui: &mut Ui,
+    edit: &mut Edit,
+    session: &mut Session,
+    ui_state: &mut AppUiState,
+) {
+    ui.menu_button("Create New Mask", |ui| {
+        if ui.button("Radial Gradient").clicked() {
+            let aspect_ratio = session
+                .editor
+                .current_input_image
+                .as_ref()
+                .expect("expecting an input image")
+                .aspect_ratio();
+            add_masked_edit(
+                edit,
+                ui_state,
+                MaskPrimitive::RadialGradient(RadialGradientMask::default(aspect_ratio)),
+            );
+            ui.close_menu();
+        }
+        if ui.button("Linear Gradient").clicked() {
+            add_masked_edit(
+                edit,
+                ui_state,
+                MaskPrimitive::LinearGradient(LinearGradientMask::default()),
+            );
+            ui.close_menu();
+        }
+        if ui.button("Global").clicked() {
+            add_masked_edit(edit, ui_state, MaskPrimitive::Global(GlobalMask {}));
+            ui.close_menu();
+        }
+    });
 }
 
 fn new_mask_term_menu_button(ui: &mut Ui, mask: &mut Mask, aspect_ratio: f32, subtracted: bool) {
