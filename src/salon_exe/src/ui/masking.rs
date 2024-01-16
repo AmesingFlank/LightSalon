@@ -55,10 +55,10 @@ pub fn masking(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState, ed
 }
 
 pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState, edit: &mut Edit) {
-    let image_column_widh = ui.available_width() * 0.7;
+    let image_column_width = ui.available_width() * 0.7;
     let mut table = TableBuilder::new(ui)
         .column(Column::auto())
-        .column(Column::auto().at_least(image_column_widh))
+        .column(Column::auto().at_least(image_column_width))
         .column(Column::remainder())
         .sense(egui::Sense::click())
         .cell_layout(
@@ -71,12 +71,20 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
     let mut mask_to_delete: Option<usize> = None;
     let mut mask_term_to_delete: Option<(usize, usize)> = None;
 
+    let aspect_ratio = session
+        .editor
+        .current_input_image
+        .as_ref()
+        .expect("expecting an input image")
+        .aspect_ratio();
+
+    let image_height = ui_state.last_frame_size.unwrap().1 * 0.03;
+    let row_height = image_height * 1.2;
+
     table.body(|mut body| {
         for mask_index in 0..edit.masked_edits.len() {
-            let image_height = ui_state.last_frame_size.unwrap().1 * 0.03;
-            let row_height = image_height * 1.2;
             let is_selected = ui_state.selected_mask_index == mask_index;
-
+            // row for the entire mask
             body.row(row_height, |mut row| {
                 //row.set_selected(ui_state.selected_mask_index == i);
                 row.col(|ui| {
@@ -88,7 +96,6 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                     ui.horizontal_centered(|mut ui| {
                         if let Some(ref result) = session.editor.current_result {
                             let mask_img = result.masked_edit_results[mask_index].mask.clone();
-                            let aspect_ratio = mask_img.aspect_ratio();
                             let image_width = image_height / aspect_ratio;
                             let size = egui::Vec2 {
                                 x: image_width,
@@ -121,10 +128,10 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                 }
             });
 
-            if !edit.masked_edits[mask_index].mask.is_global() && is_selected {
+            // rows for each term of the mask.
+            if !edit.masked_edits[mask_index].mask.is_singe_global() && is_selected {
                 for term_index in 0..edit.masked_edits[mask_index].mask.terms.len() {
                     let term = &mut edit.masked_edits[mask_index].mask.terms[term_index];
-                    let row_height = image_height * 1.2;
                     body.row(row_height, |mut row| {
                         if ui_state.selected_mask_term_index == Some(term_index) {
                             row.set_selected(true);
@@ -197,6 +204,32 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                     }
                 }
             }
+
+            // row for adding/subtracting terms
+            if is_selected {
+                body.row(row_height, |mut row| {
+                    row.col(|ui| {});
+                    row.col(|ui| {
+                        ui.horizontal_centered(|mut ui| {
+                            if !edit.masked_edits[mask_index].mask.is_singe_global() {
+                                new_mask_term_menu_button(
+                                    ui,
+                                    &mut edit.masked_edits[mask_index].mask,
+                                    aspect_ratio,
+                                    false,
+                                );
+                            }
+                            new_mask_term_menu_button(
+                                ui,
+                                &mut edit.masked_edits[mask_index].mask,
+                                aspect_ratio,
+                                true,
+                            );
+                        });
+                    });
+                    row.col(|ui| {});
+                });
+            }
         }
     });
 
@@ -212,6 +245,28 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
         edit.masked_edits.remove(m);
         ui_state.selected_mask_index = 0;
     }
+}
+
+fn new_mask_term_menu_button(ui: &mut Ui, mask: &mut Mask, aspect_ratio: f32, subtracted: bool) {
+    let button_name = if subtracted { "Subtract" } else { "Add" };
+    ui.menu_button(button_name, |ui| {
+        if ui.button("Radial Gradient").clicked() {
+            mask.terms.push(MaskTerm {
+                primitive: MaskPrimitive::RadialGradient(RadialGradientMask::default(aspect_ratio)),
+                inverted: false,
+                subtracted,
+            });
+            ui.close_menu();
+        }
+        if ui.button("Linear Gradient").clicked() {
+            mask.terms.push(MaskTerm {
+                primitive: MaskPrimitive::LinearGradient(LinearGradientMask::default()),
+                inverted: false,
+                subtracted,
+            });
+            ui.close_menu();
+        }
+    });
 }
 
 fn add_masked_edit(edit: &mut Edit, ui_state: &mut AppUiState, primitive: MaskPrimitive) {

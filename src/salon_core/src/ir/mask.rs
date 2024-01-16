@@ -1,6 +1,8 @@
 use crate::ir::{AddMaskOp, InvertMaskOp, SubtractMaskOp};
 
-use super::{ComputeGlobalMaskOp, ComputeRadialGradientMaskOp, Id, Module, Op, ComputeLinearGradientMaskOp};
+use super::{
+    ComputeGlobalMaskOp, ComputeLinearGradientMaskOp, ComputeRadialGradientMaskOp, Id, Module, Op,
+};
 
 #[derive(Clone, PartialEq)]
 pub enum MaskPrimitive {
@@ -55,7 +57,7 @@ impl Mask {
         );
 
         let mut result_id = term_ids[0];
-        for i in 1..term_ids.len() - 1 {
+        for i in 1..term_ids.len() {
             let new_result = module.alloc_id();
             if self.terms[i].subtracted {
                 module.push_op(Op::SubtractMask(SubtractMaskOp {
@@ -75,7 +77,7 @@ impl Mask {
         (result_id, term_ids)
     }
 
-    pub fn is_global(&self) -> bool {
+    pub fn is_singe_global(&self) -> bool {
         self.terms.len() == 1
             && !self.terms[0].inverted
             && !self.terms[0].subtracted
