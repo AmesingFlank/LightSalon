@@ -140,8 +140,8 @@ pub fn curve(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState, edit
                 }
                 let mut dx = response.response.drag_delta().x;
                 let mut dy = response.response.drag_delta().y;
-                dx = dx * 1.0 / ui.available_height();
-                dy = dy * -1.0 / ui.available_height();
+                dx = dx * 1.0 / (ui.available_height() * 1.5);
+                dy = dy * -1.0 / (ui.available_height() * 1.5);
                 if let Some(ref selected) = ui_state.selected_curve_control_point_index {
                     let mut p = control_points[*selected];
 

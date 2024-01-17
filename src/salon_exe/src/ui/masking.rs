@@ -43,6 +43,8 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
 
     let mut mask_to_delete: Option<usize> = None;
     let mut mask_term_to_delete: Option<(usize, usize)> = None;
+    let mut mask_to_duplicate: Option<usize> = None;
+    let mut mask_term_to_duplicate: Option<(usize, usize)> = None;
 
     let aspect_ratio = session
         .editor
@@ -95,6 +97,10 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                     ui.menu_button(menu_dots(), |ui| {
                         if ui.button("Delete").clicked() {
                             mask_to_delete = Some(mask_index);
+                            ui.close_menu();
+                        }
+                        if ui.button("Duplicate").clicked() {
+                            mask_to_duplicate = Some(mask_index);
                             ui.close_menu();
                         }
                     });
@@ -153,12 +159,16 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                         });
                         row.col(|ui| {
                             ui.menu_button(menu_dots(), |ui| {
+                                if ui.button("Invert").clicked() {
+                                    term.inverted = !term.inverted;
+                                    ui.close_menu();
+                                }
                                 if ui.button("Delete").clicked() {
                                     mask_term_to_delete = Some((mask_index, term_index));
                                     ui.close_menu();
                                 }
-                                if ui.button("Invert").clicked() {
-                                    term.inverted = !term.inverted;
+                                if ui.button("Duplicate").clicked() {
+                                    mask_term_to_duplicate = Some((mask_index, term_index));
                                     ui.close_menu();
                                 }
                             });
@@ -225,10 +235,24 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
             ui_state.selected_mask_index = 0;
         }
         ui_state.selected_mask_term_index = None
-    }
-    if let Some(m) = mask_to_delete {
+    } else if let Some(m) = mask_to_delete {
         edit.masked_edits.remove(m);
         ui_state.selected_mask_index = 0
+    } else if let Some((m, t)) = mask_term_to_duplicate {
+        let term = edit.masked_edits[m].mask.terms[t].clone();
+        edit.masked_edits[m].mask.terms.insert(t + 1, term);
+        ui_state.selected_mask_term_index = Some(t + 1);
+    } else if let Some(m) = mask_to_duplicate {
+        let mask = edit.masked_edits[m].mask.clone();
+        edit.masked_edits.insert(
+            m + 1,
+            MaskedEdit {
+                mask,
+                edit: GlobalEdit::new(),
+                name: edit.masked_edits[m].name.clone() + " Copy",
+            },
+        );
+        ui_state.selected_mask_index = m + 1;
     }
 }
 
@@ -246,7 +270,7 @@ fn new_mask_menu_button(
                 .as_ref()
                 .expect("expecting an input image")
                 .aspect_ratio();
-            add_masked_edit(
+            add_single_primitive_masked_edit(
                 edit,
                 ui_state,
                 MaskPrimitive::RadialGradient(RadialGradientMask::default(aspect_ratio)),
@@ -254,7 +278,7 @@ fn new_mask_menu_button(
             ui.close_menu();
         }
         if ui.button("Linear Gradient").clicked() {
-            add_masked_edit(
+            add_single_primitive_masked_edit(
                 edit,
                 ui_state,
                 MaskPrimitive::LinearGradient(LinearGradientMask::default()),
@@ -262,7 +286,11 @@ fn new_mask_menu_button(
             ui.close_menu();
         }
         if ui.button("Global").clicked() {
-            add_masked_edit(edit, ui_state, MaskPrimitive::Global(GlobalMask::default()));
+            add_single_primitive_masked_edit(
+                edit,
+                ui_state,
+                MaskPrimitive::Global(GlobalMask::default()),
+            );
             ui.close_menu();
         }
     });
@@ -298,7 +326,11 @@ fn new_mask_term_menu_button(
     });
 }
 
-fn add_masked_edit(edit: &mut Edit, ui_state: &mut AppUiState, primitive: MaskPrimitive) {
+fn add_single_primitive_masked_edit(
+    edit: &mut Edit,
+    ui_state: &mut AppUiState,
+    primitive: MaskPrimitive,
+) {
     let added_index = edit.masked_edits.len();
     let name = "Mask ".to_string() + added_index.to_string().as_str();
     edit.masked_edits.push(MaskedEdit {
