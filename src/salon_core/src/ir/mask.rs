@@ -51,12 +51,19 @@ impl Mask {
             term_ids.push(term_id);
         }
 
-        assert!(
-            !self.terms[0].subtracted,
-            "first mask term cannot be subtracted!"
-        );
-
         let mut result_id = term_ids[0];
+
+        if self.terms[0].subtracted {
+            // this can happen if all the previous + terms are deleted
+            let term_id = module.alloc_id();
+            module.push_op(Op::ComputeGlobalMask(ComputeGlobalMaskOp {
+                result: term_id,
+                target,
+                mask: GlobalMask { value: 0.0 },
+            }));
+            result_id = term_id;
+        }
+
         for i in 1..term_ids.len() {
             let new_result = module.alloc_id();
             if self.terms[i].subtracted {
@@ -89,7 +96,15 @@ impl Mask {
 }
 
 #[derive(Clone, PartialEq, Debug)]
-pub struct GlobalMask {}
+pub struct GlobalMask {
+    pub value: f32,
+}
+
+impl GlobalMask {
+    pub fn default() -> Self {
+        Self { value: 1.0 }
+    }
+}
 
 impl GlobalMask {
     pub fn create_compute_mask_ops(&self, target: Id, module: &mut Module) -> Id {

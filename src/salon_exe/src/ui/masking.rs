@@ -258,7 +258,7 @@ fn new_mask_menu_button(
             ui.close_menu();
         }
         if ui.button("Global").clicked() {
-            add_masked_edit(edit, ui_state, MaskPrimitive::Global(GlobalMask {}));
+            add_masked_edit(edit, ui_state, MaskPrimitive::Global(GlobalMask::default()));
             ui.close_menu();
         }
     });

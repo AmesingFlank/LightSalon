@@ -17,6 +17,7 @@ pub struct ComputeGlobalMaskImpl {
     runtime: Arc<Runtime>,
     pipeline: wgpu::ComputePipeline,
     bind_group_manager: BindGroupManager,
+    ring_buffer: RingBuffer,
 }
 impl ComputeGlobalMaskImpl {
     pub fn new(runtime: Arc<Runtime>) -> Self {
@@ -28,15 +29,26 @@ impl ComputeGlobalMaskImpl {
 
         let bind_group_manager = BindGroupManager::new(runtime.clone(), bind_group_layout);
 
+        let ring_buffer = RingBuffer::new(
+            runtime.clone(),
+            BufferProperties {
+                size: size_of::<f32>(),
+                host_readable: false,
+            },
+        );
+
         ComputeGlobalMaskImpl {
             runtime,
             pipeline,
             bind_group_manager,
+            ring_buffer,
         }
     }
 }
 impl ComputeGlobalMaskImpl {
-    pub fn reset(&mut self) {}
+    pub fn reset(&mut self) {
+        self.ring_buffer.mark_all_available();
+    }
 
     pub fn encode_commands(
         &mut self,
@@ -57,11 +69,23 @@ impl ComputeGlobalMaskImpl {
             &mask_img_properties,
         );
 
+        let buffer = self.ring_buffer.get();
+
+        self.runtime
+            .queue
+            .write_buffer(&buffer.buffer, 0, bytemuck::cast_slice(&[op.mask.value]));
+
         let bind_group = self.bind_group_manager.get_or_create(BindGroupDescriptor {
-            entries: vec![BindGroupEntry {
-                binding: 0,
-                resource: BindingResource::TextureStorage(&output_img, 0),
-            }],
+            entries: vec![
+                BindGroupEntry {
+                    binding: 0,
+                    resource: BindingResource::Buffer(buffer),
+                },
+                BindGroupEntry {
+                    binding: 1,
+                    resource: BindingResource::TextureStorage(&output_img, 0),
+                },
+            ],
         });
 
         {

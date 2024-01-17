@@ -15,7 +15,7 @@ impl Edit {
             masked_edits: vec![MaskedEdit::new(
                 Mask {
                     terms: vec![MaskTerm {
-                        primitive: MaskPrimitive::Global(GlobalMask {}),
+                        primitive: MaskPrimitive::Global(GlobalMask::default()),
                         inverted: false,
                         subtracted: false,
                     }],
