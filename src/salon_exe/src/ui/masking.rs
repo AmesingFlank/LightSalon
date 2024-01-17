@@ -86,7 +86,9 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                                 select_mask(ui_state, mask_index);
                             }
                         }
-                        ui.label(&edit.masked_edits[mask_index].name);
+                        if ui.label(&edit.masked_edits[mask_index].name).clicked() {
+                            select_mask(ui_state, mask_index);
+                        }
                     });
                 });
                 row.col(|ui| {
@@ -144,7 +146,9 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                                 if term.inverted {
                                     term_str += " (Inverted)"
                                 }
-                                ui.label(&term_str);
+                                if ui.label(&term_str).clicked() {
+                                    maybe_select_term(ui_state, term_index);
+                                }
                             });
                         });
                         row.col(|ui| {
