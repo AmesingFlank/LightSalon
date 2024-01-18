@@ -58,10 +58,51 @@ pub fn main_image(
                     let max_x = (rect.max.x - original_rect.min.x) / original_rect.width();
                     let max_y = (rect.max.y - original_rect.min.y) / original_rect.height();
 
-                    session.editor.current_edit.crop = Some(Rectangle {
+                    let new_crop_rect = Rectangle {
                         min: vec2((min_x, min_y)),
                         max: vec2((max_x, max_y)),
-                    });
+                    };
+
+                    if session.editor.current_edit.crop != Some(new_crop_rect) {
+                        let mut old_rect = Rectangle {
+                            min: vec2((0.0, 0.0)),
+                            max: vec2((1.0, 1.0)),
+                        };
+                        if let Some(ref curr_rect) = session.editor.current_edit.crop {
+                            old_rect = *curr_rect;
+                        }
+                        let transform_xy = |x: &mut f32, y: &mut f32| {
+                            let abs_xy =
+                                old_rect.min + (old_rect.max - old_rect.min) * vec2((*x, *y));
+                            let xy = (abs_xy - new_crop_rect.min)
+                                / (new_crop_rect.max - new_crop_rect.min);
+                            *x = xy.x;
+                            *y = xy.y;
+                        };
+                        let transform_xy_size = |x_size: &mut f32, y_size: &mut f32| {
+                            let size = vec2((*x_size, *y_size)) * (old_rect.max - old_rect.min)
+                                / (new_crop_rect.max - new_crop_rect.min);
+                            *x_size = size.x;
+                            *y_size = size.y;
+                        };
+                        for masked_edit in session.editor.current_edit.masked_edits.iter_mut() {
+                            for term in masked_edit.mask.terms.iter_mut() {
+                                let prim = &mut term.primitive;
+                                match prim {
+                                    MaskPrimitive::RadialGradient(ref mut m) => {
+                                        transform_xy(&mut m.center_x, &mut m.center_y);
+                                        transform_xy_size(&mut m.radius_x, &mut m.radius_y);
+                                    }
+                                    MaskPrimitive::LinearGradient(ref mut m) => {
+                                        transform_xy(&mut m.begin_x, &mut m.begin_y);
+                                        transform_xy(&mut m.saturate_x, &mut m.saturate_y);
+                                    }
+                                    MaskPrimitive::Global(_) => {}
+                                }
+                            }
+                        }
+                        session.editor.current_edit.crop = Some(new_crop_rect);
+                    }
 
                     ui.input(|i| {
                         if i.key_pressed(egui::Key::Enter) {
