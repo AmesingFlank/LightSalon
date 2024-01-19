@@ -1,8 +1,9 @@
 use eframe::{
     egui::{CollapsingHeader, Ui},
-    epaint::Color32, emath::Vec2b,
+    emath::Vec2b,
+    epaint::Color32,
 };
-use egui_plot::{Line, Plot};
+use egui_plot::{Line, Plot, PlotBounds};
 use salon_core::session::Session;
 
 use super::AppUiState;
@@ -59,6 +60,8 @@ pub fn histogram(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) 
                     .show_axes([false, false])
                     .show_grid([false, false]);
                 plot.show(ui, |plot_ui| {
+                    plot_ui
+                        .set_plot_bounds(PlotBounds::from_min_max([0.0, 0.0], [1.0, y_top as f64]));
                     plot_ui.line(r_line);
                     plot_ui.line(g_line);
                     plot_ui.line(b_line);
