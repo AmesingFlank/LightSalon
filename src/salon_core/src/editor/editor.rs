@@ -11,20 +11,35 @@ use super::{
 };
 
 pub struct Editor {
-    pub current_edit: Edit,
-    pub current_input_image: Option<Arc<Image>>,
-    pub current_result: Option<EditResult>,
+    engine: Engine,
     engine_execution_context: ExecutionContext,
+
+    pub current_input_image: Option<Arc<Image>>,
+
+    edit_history: Vec<Edit>,
+    current_edit_index: usize,
+
+    // an edit that is being actively modified
+    // (e.g. as the user drags the slider, the temporary edit state)
+    transient_edit: Option<Edit>,
+
+    pub current_result: Option<EditResult>,
     runtime: Arc<Runtime>,
     mipmap_generator: MipmapGenerator,
 }
 
 impl Editor {
     pub fn new(runtime: Arc<Runtime>) -> Self {
+        let engine = Engine::new(runtime.clone());
         let mipmap_generator = MipmapGenerator::new(runtime.clone());
         Editor {
-            current_edit: Edit::new(),
+            engine,
             current_input_image: None,
+
+            edit_history: vec![Edit::new()],
+            current_edit_index: 0,
+            transient_edit: None,
+
             current_result: None,
             engine_execution_context: ExecutionContext::new(),
             runtime,
@@ -32,15 +47,92 @@ impl Editor {
         }
     }
 
-    pub fn reset_state(&mut self) {
-        self.current_edit = Edit::new();
+    pub fn clear_edit_history(&mut self) {
+        self.edit_history = vec![Edit::new()];
+        self.current_edit_index = 0;
     }
 
-    pub fn execute_edit(&mut self, engine: &mut Engine) {
+    fn get_current_edit(&self) -> Edit {
+        self.edit_history[self.current_edit_index].clone()
+    }
+
+    pub fn clone_transient_edit(&self) -> Edit {
+        if self.transient_edit.is_none() {
+            self.get_current_edit()
+        } else {
+            self.transient_edit.as_ref().unwrap().clone()
+        }
+    }
+
+    pub fn update_transient_edit(&mut self, transient_edit: Edit, execute: bool) {
+        let mut needs_update = false;
+        if let Some(ref curr_transient_edit) = self.transient_edit {
+            needs_update = (*curr_transient_edit != transient_edit);
+        } else {
+            needs_update = (self.edit_history[self.current_edit_index] != transient_edit);
+        }
+        if needs_update {
+            self.transient_edit = Some(transient_edit);
+            if execute {
+                self.execute_transient_edit();
+            }
+        }
+    }
+
+    pub fn commit_transient_edit(&mut self) {
+        let mut needs_commit = false;
+        if let Some(ref transient) = self.transient_edit {
+            if *transient != self.edit_history[self.current_edit_index] {
+                needs_commit = true;
+            }
+        }
+        if needs_commit {
+            while self.current_edit_index < self.edit_history.len() - 1 {
+                self.edit_history.pop();
+            }
+            self.edit_history.push(self.transient_edit.take().unwrap());
+            self.current_edit_index = self.edit_history.len() - 1;
+            self.execute_current_edit();
+        }
+        self.transient_edit = None;
+    }
+
+    pub fn maybe_undo(&mut self) {
+        if self.current_edit_index > 0 {
+            self.current_edit_index -= 1;
+            self.execute_current_edit();
+            self.transient_edit = None;
+        }
+    }
+
+    pub fn maybe_redo(&mut self) {
+        if self.current_edit_index < self.edit_history.len() - 1 {
+            self.current_edit_index += 1;
+            self.execute_current_edit();
+            self.transient_edit = None;
+        }
+    }
+
+    pub fn execute_current_edit(&mut self) {
         if let Some(ref img) = self.current_input_image {
-            let (module, id_store) = to_ir_module(&self.current_edit);
-            engine.execute_module(&module, img.clone(), &mut self.engine_execution_context);
+            let (module, id_store) = to_ir_module(&self.edit_history[self.current_edit_index]);
+            self.engine
+                .execute_module(&module, img.clone(), &mut self.engine_execution_context);
             self.collect_result(&id_store);
+        }
+    }
+
+    fn execute_transient_edit(&mut self) {
+        if let Some(ref e) = self.transient_edit {
+            if let Some(ref img) = self.current_input_image {
+                let (module, id_store) = to_ir_module(e);
+                self.engine.execute_module(
+                    &module,
+                    img.clone(),
+                    &mut self.engine_execution_context,
+                );
+                self.collect_result(&id_store);
+            }
         }
     }
 

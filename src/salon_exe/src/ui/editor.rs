@@ -21,7 +21,7 @@ pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
             "Light and Color",
         );
         if response.clicked() {
-            session.editor.execute_edit(&mut session.engine);
+            session.editor.commit_transient_edit();
         }
         ui.separator();
         ui.selectable_value(
@@ -33,17 +33,17 @@ pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
 
     ui.separator();
 
-    let mut edit = session.editor.current_edit.clone();
+    let mut transient_edit = session.editor.clone_transient_edit();
 
     match ui_state.editor_panel {
         EditorPanel::LightAndColor => {
             histogram(ui, session, ui_state);
             ui.separator();
             ScrollArea::vertical().show(ui, |ui| {
-                masking(ui, session, ui_state, &mut edit);
+                masking(ui, session, ui_state, &mut transient_edit);
 
                 let global_edit: &mut GlobalEdit =
-                    &mut edit.masked_edits[ui_state.selected_mask_index].edit;
+                    &mut transient_edit.masked_edits[ui_state.selected_mask_index].edit;
 
                 light_adjust(ui, session, ui_state, global_edit);
                 curve(ui, session, ui_state, global_edit);
@@ -55,11 +55,5 @@ pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
         EditorPanel::CropAndRotate => {}
     }
 
-    if session.state.current_image_index.is_none() {
-        return;
-    }
-    if session.editor.current_edit != edit {
-        session.editor.current_edit = edit;
-        session.editor.execute_edit(&mut session.engine);
-    }
+    session.editor.update_transient_edit(transient_edit, true);
 }

@@ -6,6 +6,7 @@ use std::{collections::HashMap, num::NonZeroU64};
 use eframe::egui::{CursorIcon, Ui};
 use eframe::epaint::{Color32, Pos2, Stroke};
 use eframe::{egui, egui_wgpu};
+use salon_core::editor::Edit;
 use salon_core::ir::{LinearGradientMask, MaskPrimitive, RadialGradientMask};
 use salon_core::runtime::Image;
 use salon_core::runtime::Sampler;
@@ -36,11 +37,13 @@ pub fn main_image(
                 let size = get_image_size_in_ui(ui, &original_image);
                 let (rect, response) = ui.allocate_exact_size(size, egui::Sense::click_and_drag());
 
+                let transient_edit = session.editor.clone_transient_edit();
+
                 ui.painter().add(egui_wgpu::Callback::new_paint_callback(
                     rect,
                     MainImageCallback {
                         image: original_image.clone(),
-                        crop_rect: session.editor.current_edit.crop.clone(),
+                        crop_rect: transient_edit.crop.clone(),
                         mask: None,
                     },
                 ));
@@ -53,7 +56,14 @@ pub fn main_image(
                 draw_drag_handles(ui, curr_rect, original_rect, ui_state);
                 draw_grid_impl(ui, curr_rect, original_rect, ui_state);
                 if let Some(ref new_rect) = ui_state.crop_drag_state.rect {
-                    handle_new_rect(ui, session, ui_state, original_rect, *new_rect);
+                    handle_new_rect(
+                        ui,
+                        session,
+                        ui_state,
+                        transient_edit,
+                        original_rect,
+                        *new_rect,
+                    );
                 }
             }
         } else {
@@ -80,26 +90,19 @@ pub fn main_image(
                     draw_grid_impl(ui, rect, rect, ui_state);
                 }
                 if let Some(term_index) = ui_state.selected_mask_term_index {
-                    let primitive = &session.editor.current_edit.masked_edits
-                        [ui_state.selected_mask_index]
+                    let mut transient_edit = session.editor.clone_transient_edit();
+                    let primitive = &mut transient_edit.masked_edits[ui_state.selected_mask_index]
                         .mask
                         .terms[term_index]
                         .primitive;
-                    let mut new_primitive = primitive.clone();
                     draw_mask_primitive_control_points(
                         ui,
                         rect,
                         &response,
-                        &mut new_primitive,
+                        primitive,
                         &mut ui_state.mask_edit_state,
                     );
-                    if new_primitive != *primitive {
-                        session.editor.current_edit.masked_edits[ui_state.selected_mask_index]
-                            .mask
-                            .terms[term_index]
-                            .primitive = new_primitive;
-                        session.editor.execute_edit(&mut session.engine);
-                    }
+                    session.editor.update_transient_edit(transient_edit, true);
                 }
             }
         }
@@ -110,6 +113,7 @@ fn handle_new_rect(
     ui: &mut Ui,
     session: &mut Session,
     ui_state: &mut AppUiState,
+    mut transient_edit: Edit,
     original_rect: egui::Rect,
     new_rect: egui::Rect,
 ) {
@@ -123,12 +127,12 @@ fn handle_new_rect(
         max: vec2((max_x, max_y)),
     };
 
-    if session.editor.current_edit.crop != Some(new_crop_rect) {
+    if transient_edit.crop != Some(new_crop_rect) {
         let mut old_crop_rect = Rectangle {
             min: vec2((0.0, 0.0)),
             max: vec2((1.0, 1.0)),
         };
-        if let Some(ref curr_crop_rect) = session.editor.current_edit.crop {
+        if let Some(ref curr_crop_rect) = transient_edit.crop {
             old_crop_rect = *curr_crop_rect;
         }
         let transform_xy = |x: &mut f32, y: &mut f32| {
@@ -144,7 +148,7 @@ fn handle_new_rect(
             *x_size = size.x;
             *y_size = size.y;
         };
-        for masked_edit in session.editor.current_edit.masked_edits.iter_mut() {
+        for masked_edit in transient_edit.masked_edits.iter_mut() {
             for term in masked_edit.mask.terms.iter_mut() {
                 let prim = &mut term.primitive;
                 match prim {
@@ -160,13 +164,14 @@ fn handle_new_rect(
                 }
             }
         }
-        session.editor.current_edit.crop = Some(new_crop_rect);
+        transient_edit.crop = Some(new_crop_rect);
+        session.editor.update_transient_edit(transient_edit, false);
     }
 
     ui.input(|i| {
         if i.key_pressed(egui::Key::Enter) {
             ui_state.editor_panel = EditorPanel::LightAndColor;
-            session.editor.execute_edit(&mut session.engine);
+            session.editor.commit_transient_edit();
         }
     });
 }
