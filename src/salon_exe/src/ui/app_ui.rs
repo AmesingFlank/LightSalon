@@ -4,7 +4,9 @@ use eframe::{
 };
 use salon_core::session::Session;
 
-use super::{bottom_bar, editor, image_library, main_image, menu_bar, AppUiState};
+use super::{
+    bottom_bar, editor, image_library, keyboard_response, main_image, menu_bar, AppUiState,
+};
 
 pub fn app_ui(ctx: &egui::Context, session: &mut Session, ui_state: &mut AppUiState) {
     egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
@@ -33,5 +35,6 @@ pub fn app_ui(ctx: &egui::Context, session: &mut Session, ui_state: &mut AppUiSt
         });
     egui::CentralPanel::default().show(ctx, |ui| {
         main_image(ctx, ui, session, ui_state);
+        keyboard_response(ui, session, ui_state);
     });
 }

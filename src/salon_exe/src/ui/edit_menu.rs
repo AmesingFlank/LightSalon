@@ -14,8 +14,7 @@ pub fn edit_menu(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) 
             .add_enabled(can_undo, egui::Button::new("Undo"))
             .clicked()
         {
-            session.editor.maybe_undo();
-            legalize_ui_state(ui_state, session.editor.get_current_edit_ref());
+            undo_action(session, ui_state);
         }
 
         let can_redo = session.editor.can_redo();
@@ -23,8 +22,17 @@ pub fn edit_menu(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) 
             .add_enabled(can_redo, egui::Button::new("Redo"))
             .clicked()
         {
-            session.editor.maybe_redo();
-            legalize_ui_state(ui_state, session.editor.get_current_edit_ref());
+            redo_action(session, ui_state);
         }
     });
+}
+
+pub fn undo_action(session: &mut Session, ui_state: &mut AppUiState) {
+    session.editor.maybe_undo();
+    legalize_ui_state(ui_state, session.editor.get_current_edit_ref());
+}
+
+pub fn redo_action(session: &mut Session, ui_state: &mut AppUiState) {
+    session.editor.maybe_redo();
+    legalize_ui_state(ui_state, session.editor.get_current_edit_ref());
 }

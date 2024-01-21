@@ -170,13 +170,6 @@ fn handle_new_rect(
         transient_edit.crop = Some(new_crop_rect);
         session.editor.update_transient_edit(transient_edit, false);
     }
-
-    ui.input(|i| {
-        if i.key_pressed(egui::Key::Enter) {
-            ui_state.editor_panel = EditorPanel::LightAndColor;
-            session.editor.commit_transient_edit(true);
-        }
-    });
 }
 
 // returns whether pending changes to control points should be committed

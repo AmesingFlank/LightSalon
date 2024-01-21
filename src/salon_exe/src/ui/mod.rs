@@ -14,6 +14,7 @@ mod masking;
 mod app_ui;
 mod menu_bar;
 mod edit_menu;
+mod keyboard_response;
 
 mod utils;
 
@@ -35,3 +36,4 @@ pub use masking::*;
 pub use app_ui::*;
 pub use menu_bar::*;
 pub use edit_menu::*;
+pub use keyboard_response::*;
