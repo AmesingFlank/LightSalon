@@ -33,10 +33,10 @@ pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
 
     ui.separator();
 
-    let mut transient_edit = session.editor.clone_transient_edit();
-
     match ui_state.editor_panel {
         EditorPanel::LightAndColor => {
+            let mut transient_edit = session.editor.clone_transient_edit();
+
             histogram(ui, session, ui_state);
             ui.separator();
             ScrollArea::vertical().show(ui, |ui| {
@@ -51,9 +51,15 @@ pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
                 color_mixer(ui, session, ui_state, global_edit);
                 effects(ui, session, ui_state, global_edit);
             });
+
+            ui.input(|i| {
+                session.editor.update_transient_edit(transient_edit, true);
+                if !i.pointer.any_down() {
+                    session.editor.commit_transient_edit(false);
+                }
+                // else a slider could still be being dragged, so the edit should remain transient
+            });
         }
         EditorPanel::CropAndRotate => {}
     }
-
-    session.editor.update_transient_edit(transient_edit, true);
 }
