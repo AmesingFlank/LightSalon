@@ -95,7 +95,7 @@ pub fn main_image(
                         .mask
                         .terms[term_index]
                         .primitive;
-                    draw_mask_primitive_control_points(
+                    let should_commit = mask_primitive_control_points(
                         ui,
                         rect,
                         &response,
@@ -103,6 +103,9 @@ pub fn main_image(
                         &mut ui_state.mask_edit_state,
                     );
                     session.editor.update_transient_edit(transient_edit, true);
+                    if should_commit {
+                        session.editor.commit_transient_edit(false);
+                    }
                 }
             }
         }
@@ -171,26 +174,27 @@ fn handle_new_rect(
     ui.input(|i| {
         if i.key_pressed(egui::Key::Enter) {
             ui_state.editor_panel = EditorPanel::LightAndColor;
-            session.editor.commit_transient_edit();
+            session.editor.commit_transient_edit(true);
         }
     });
 }
 
-fn draw_mask_primitive_control_points(
+// returns whether pending changes to control points should be committed
+fn mask_primitive_control_points(
     ui: &mut Ui,
     rect: egui::Rect,
     response: &egui::Response,
     primitive: &mut MaskPrimitive,
     mask_edit_state: &mut MaskEditState,
-) {
+) -> bool {
     match primitive {
         MaskPrimitive::RadialGradient(ref mut m) => {
-            draw_radial_gradient_control_points(ui, rect, response, m, mask_edit_state)
+            radial_gradient_control_points(ui, rect, response, m, mask_edit_state)
         }
         MaskPrimitive::LinearGradient(ref mut m) => {
-            draw_linear_gradient_control_points(ui, rect, response, m, mask_edit_state)
+            linear_gradient_control_points(ui, rect, response, m, mask_edit_state)
         }
-        _ => {}
+        _ => false,
     }
 }
 
@@ -226,13 +230,14 @@ fn draw_control_point_circle(ui: &mut Ui, rect: egui::Rect, center: (f32, f32)) 
         .circle_filled(center, width * 0.008, Color32::from_gray(230));
 }
 
-fn draw_radial_gradient_control_points(
+// returns whether pending changes to control points should be committed
+fn radial_gradient_control_points(
     ui: &mut Ui,
     rect: egui::Rect,
     response: &egui::Response,
     radial_gradient: &mut RadialGradientMask,
     mask_edit_state: &mut MaskEditState,
-) {
+) -> bool {
     let center = vec2((radial_gradient.center_x, radial_gradient.center_y));
     let center_abs = vec2(get_absolute_pos(rect, center.xy()));
     let theta = radial_gradient.rotation;
@@ -302,17 +307,20 @@ fn draw_radial_gradient_control_points(
         draw_control_point_circle(ui, rect, p_abs.xy());
     }
     if response.drag_released() {
-        mask_edit_state.dragged_control_point_index = None
+        mask_edit_state.dragged_control_point_index = None;
+        return true;
     }
+    false
 }
 
-fn draw_linear_gradient_control_points(
+// returns whether pending changes to control points should be committed
+fn linear_gradient_control_points(
     ui: &mut Ui,
     rect: egui::Rect,
     response: &egui::Response,
     linear_gradient: &mut LinearGradientMask,
     mask_edit_state: &mut MaskEditState,
-) {
+) -> bool {
     let begin = vec2((linear_gradient.begin_x, linear_gradient.begin_y));
     let saturated = vec2((linear_gradient.saturate_x, linear_gradient.saturate_y));
     let begin_abs = vec2(get_absolute_pos(rect, begin.xy()));
@@ -361,10 +369,6 @@ fn draw_linear_gradient_control_points(
         draw_control_point_circle(ui, rect, p_abs.xy());
     }
 
-    if response.drag_released() {
-        mask_edit_state.dragged_control_point_index = None
-    }
-
     let painter = ui.painter_at(rect);
     let normal = (begin_abs - saturated_abs).normalized();
     let line = vec2((-normal.y, normal.x));
@@ -387,6 +391,12 @@ fn draw_linear_gradient_control_points(
             stroke,
         )
     }
+
+    if response.drag_released() {
+        mask_edit_state.dragged_control_point_index = None;
+        return true;
+    }
+    false
 }
 
 fn find_edge_or_corner(pos: egui::Pos2, rect: egui::Rect) -> Option<CropDragEdgeOrCorner> {

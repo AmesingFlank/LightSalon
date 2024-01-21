@@ -237,7 +237,8 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
         ui_state.selected_mask_term_index = None
     } else if let Some(m) = mask_to_delete {
         edit.masked_edits.remove(m);
-        ui_state.selected_mask_index = 0
+        ui_state.selected_mask_index = 0;
+        ui_state.selected_mask_term_index = None
     } else if let Some((m, t)) = mask_term_to_duplicate {
         let term = edit.masked_edits[m].mask.terms[t].clone();
         edit.masked_edits[m].mask.terms.insert(t + 1, term);

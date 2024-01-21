@@ -52,13 +52,17 @@ impl Editor {
         self.current_edit_index = 0;
     }
 
-    fn get_current_edit(&self) -> Edit {
+    fn clone_current_edit(&self) -> Edit {
         self.edit_history[self.current_edit_index].clone()
+    }
+
+    pub fn get_current_edit_ref(&self) -> &Edit {
+        &self.edit_history[self.current_edit_index]
     }
 
     pub fn clone_transient_edit(&self) -> Edit {
         if self.transient_edit.is_none() {
-            self.get_current_edit()
+            self.clone_current_edit()
         } else {
             self.transient_edit.as_ref().unwrap().clone()
         }
@@ -79,7 +83,7 @@ impl Editor {
         }
     }
 
-    pub fn commit_transient_edit(&mut self) {
+    pub fn commit_transient_edit(&mut self, execute: bool) {
         let mut needs_commit = false;
         if let Some(ref transient) = self.transient_edit {
             if *transient != self.edit_history[self.current_edit_index] {
@@ -92,7 +96,9 @@ impl Editor {
             }
             self.edit_history.push(self.transient_edit.take().unwrap());
             self.current_edit_index = self.edit_history.len() - 1;
-            self.execute_current_edit();
+            if execute {
+                self.execute_current_edit();
+            }
         }
         self.transient_edit = None;
     }

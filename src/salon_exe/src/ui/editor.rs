@@ -21,7 +21,7 @@ pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
             "Light and Color",
         );
         if response.clicked() {
-            session.editor.commit_transient_edit();
+            session.editor.commit_transient_edit(true);
         }
         ui.separator();
         ui.selectable_value(
