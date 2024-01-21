@@ -4,16 +4,11 @@ use eframe::{
 };
 use salon_core::session::Session;
 
-use super::{bottom_bar, editor, file_menu, image_library, main_image, AppUiState};
+use super::{bottom_bar, editor, image_library, main_image, menu_bar, AppUiState};
 
 pub fn app_ui(ctx: &egui::Context, session: &mut Session, ui_state: &mut AppUiState) {
     egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
-        ui.horizontal_wrapped(|ui| {
-            file_menu(ui, session, ui_state);
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::RIGHT), |ui| {
-                ui.checkbox(&mut ui_state.show_grid, "Show Grid");
-            })
-        });
+        menu_bar(ui, session, ui_state);
     });
     egui::TopBottomPanel::bottom("bottom_bar").show(ctx, |ui| {
         bottom_bar(ui, session, ui_state);

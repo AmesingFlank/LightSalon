@@ -97,6 +97,14 @@ impl Editor {
         self.transient_edit = None;
     }
 
+    pub fn can_undo(&self) -> bool {
+        self.current_edit_index > 0
+    }
+
+    pub fn can_redo(&self) -> bool {
+        self.current_edit_index < self.edit_history.len() - 1
+    }
+
     pub fn maybe_undo(&mut self) {
         if self.current_edit_index > 0 {
             self.current_edit_index -= 1;

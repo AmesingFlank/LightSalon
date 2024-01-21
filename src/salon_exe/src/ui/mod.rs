@@ -12,6 +12,8 @@ mod color_mixer;
 mod effects;
 mod masking;
 mod app_ui;
+mod menu_bar;
+mod edit_menu;
 
 mod utils;
 
@@ -31,3 +33,5 @@ pub use color_mixer::*;
 pub use effects::*;
 pub use masking::*;
 pub use app_ui::*;
+pub use menu_bar::*;
+pub use edit_menu::*;
