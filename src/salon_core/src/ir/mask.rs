@@ -4,7 +4,7 @@ use super::{
     ComputeGlobalMaskOp, ComputeLinearGradientMaskOp, ComputeRadialGradientMaskOp, Id, Module, Op,
 };
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, serde::Deserialize, serde::Serialize)]
 pub enum MaskPrimitive {
     Global(GlobalMask),
     RadialGradient(RadialGradientMask),
@@ -21,14 +21,14 @@ impl MaskPrimitive {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, serde::Deserialize, serde::Serialize)]
 pub struct MaskTerm {
     pub primitive: MaskPrimitive,
     pub inverted: bool,
     pub subtracted: bool,
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, serde::Deserialize, serde::Serialize)]
 pub struct Mask {
     pub terms: Vec<MaskTerm>,
 }
@@ -95,7 +95,7 @@ impl Mask {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, serde::Deserialize, serde::Serialize)]
 pub struct GlobalMask {
     pub value: f32,
 }
@@ -118,7 +118,7 @@ impl GlobalMask {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, serde::Deserialize, serde::Serialize)]
 pub struct RadialGradientMask {
     pub center_x: f32,
     pub center_y: f32,
@@ -151,7 +151,7 @@ impl RadialGradientMask {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, serde::Deserialize, serde::Serialize)]
 pub struct LinearGradientMask {
     pub begin_x: f32,
     pub begin_y: f32,

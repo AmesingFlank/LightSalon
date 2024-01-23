@@ -1,10 +1,10 @@
 use num::Num;
 use std::ops::{Add, Div, Mul, Sub};
-
+use serde;
 use super::math;
 
 // these are deliberately similar to WGSL
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug, serde::Deserialize, serde::Serialize)]
 pub struct Vec2<T: Num> {
     pub x: T,
     pub y: T,

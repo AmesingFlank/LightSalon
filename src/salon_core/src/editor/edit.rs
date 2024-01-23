@@ -2,7 +2,9 @@ use crate::ir::{ColorMixGroup, GlobalMask, Mask, MaskPrimitive, MaskTerm};
 
 use crate::utils::rectangle::Rectangle;
 
-#[derive(Clone, PartialEq)]
+use serde;
+
+#[derive(Clone, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct Edit {
     pub crop: Option<Rectangle>,
     pub masked_edits: Vec<MaskedEdit>,
@@ -27,7 +29,7 @@ impl Edit {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct MaskedEdit {
     pub mask: Mask,
     pub edit: GlobalEdit,
@@ -40,7 +42,7 @@ impl MaskedEdit {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct GlobalEdit {
     pub exposure: f32,
     pub contrast: f32,

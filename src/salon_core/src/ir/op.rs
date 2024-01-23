@@ -143,7 +143,7 @@ pub struct ColorMixOp {
     pub groups: [ColorMixGroup; 8],
 }
 
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug, serde::Deserialize, serde::Serialize)]
 pub struct ColorMixGroup {
     pub hue: f32,
     pub saturation: f32,

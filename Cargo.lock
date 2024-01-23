@@ -2807,6 +2807,7 @@ dependencies = [
  "image",
  "kamadak-exif",
  "num",
+ "serde",
  "serde_json",
  "wgpu",
 ]
