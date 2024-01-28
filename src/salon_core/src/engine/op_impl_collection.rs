@@ -8,7 +8,7 @@ use super::ops::{
     linear_gradient_mask::ComputeLinearGradientMaskImpl,
     radial_gradient_mask::ComputeRadialGradientMaskImpl, subtract_mask::SubtractMaskImpl,
     temperature_tint::AdjustTemperatureAndTintImpl,
-    vibrance_saturation::AdjustVibranceAndSaturationImpl, vignette::AdjustVignetteImpl,
+    vibrance_saturation::AdjustVibranceAndSaturationImpl, vignette::AdjustVignetteImpl, scale::ScaleImpl,
 };
 
 #[derive(Default)]
@@ -26,6 +26,7 @@ pub struct OpImplCollection {
     pub basic_statistics: Option<ComputeBasicStatisticsImpl>,
     pub histogram: Option<ComputeHistogramImpl>,
     pub crop: Option<CropImpl>,
+    pub scale: Option<ScaleImpl>,
     pub global_mask: Option<ComputeGlobalMaskImpl>,
     pub radial_gradient_mask: Option<ComputeRadialGradientMaskImpl>,
     pub linear_gradient_mask: Option<ComputeLinearGradientMaskImpl>,

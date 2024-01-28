@@ -4,7 +4,7 @@ use crate::ir::{
     AdjustContrastOp, AdjustExposureOp, AdjustHighlightsAndShadowsOp, AdjustTemperatureAndTintOp,
     AdjustVibranceAndSaturationOp, AdjustVignetteOp, ApplyCurveOp, ApplyDehazeOp,
     ApplyMaskedEditsOp, ColorMixGroup, ColorMixOp, ComputeBasicStatisticsOp, ComputeHistogramOp,
-    CropOp, Id, InputOp, Module, Op, PrepareDehazeOp,
+    CropOp, Id, InputOp, Module, Op, PrepareDehazeOp, ScaleOp,
 };
 
 pub struct IdStore {
@@ -40,10 +40,24 @@ pub fn to_ir_module(edit: &Edit) -> (Module, IdStore) {
     let id_store = IdStore {
         output: current_output_id,
         final_histogram: final_histogram_id,
-        masked_edit_id_stores
+        masked_edit_id_stores,
     };
     // println!("{:#?}", module.ops());
     (module, id_store)
+}
+
+fn maybe_add_scale(edit: &Edit, module: &mut Module, current_output_id: &mut Id) {
+    if let Some(ref factor) = edit.scale_factor {
+        if *factor != 1.0 {
+            let scaled_image_id = module.alloc_id();
+            module.push_op(Op::Scale(ScaleOp {
+                result: scaled_image_id,
+                arg: *current_output_id,
+                factor: *factor,
+            }));
+            *current_output_id = scaled_image_id;
+        }
+    }
 }
 
 fn maybe_add_crop(edit: &Edit, module: &mut Module, current_output_id: &mut Id) {
@@ -68,7 +82,11 @@ fn add_final_histogram(module: &mut Module, current_output_id: &Id) -> Id {
     histogram_id
 }
 
-fn add_masked_edit(masked_edit: &MaskedEdit, module: &mut Module, target_id: Id) -> MaskedEditIdStore {
+fn add_masked_edit(
+    masked_edit: &MaskedEdit,
+    module: &mut Module,
+    target_id: Id,
+) -> MaskedEditIdStore {
     let (mask_id, term_ids) = masked_edit.mask.create_compute_mask_ops(target_id, module);
     let edited_id = add_global_edit(&masked_edit.edit, module, target_id);
 
@@ -84,7 +102,7 @@ fn add_masked_edit(masked_edit: &MaskedEdit, module: &mut Module, target_id: Id)
     MaskedEditIdStore {
         mask_id,
         term_ids,
-        result_image_id
+        result_image_id,
     }
 }
 

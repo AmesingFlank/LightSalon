@@ -29,7 +29,7 @@ use super::{
         subtract_mask::{self, SubtractMaskImpl},
         temperature_tint::AdjustTemperatureAndTintImpl,
         vibrance_saturation::AdjustVibranceAndSaturationImpl,
-        vignette::AdjustVignetteImpl,
+        vignette::AdjustVignetteImpl, scale::ScaleImpl,
     },
     toolbox::Toolbox,
     value_store::ValueStore,
@@ -219,6 +219,14 @@ impl Engine {
                         &mut self.toolbox,
                     );
                 }
+                Op::Scale(ref op) => {
+                    self.op_impls.scale.as_mut().unwrap().encode_commands(
+                        &mut encoder,
+                        op,
+                        &mut execution_context.value_store,
+                        &mut self.toolbox,
+                    );
+                }
                 Op::ComputeGlobalMask(ref op) => {
                     self.op_impls.global_mask.as_mut().unwrap().encode_commands(
                         &mut encoder,
@@ -388,6 +396,12 @@ impl Engine {
                         self.op_impls.crop = Some(CropImpl::new(self.runtime.clone()))
                     }
                     self.op_impls.crop.as_mut().unwrap().reset();
+                }
+                Op::Scale(_) => {
+                    if self.op_impls.scale.is_none() {
+                        self.op_impls.scale = Some(ScaleImpl::new(self.runtime.clone()))
+                    }
+                    self.op_impls.scale.as_mut().unwrap().reset();
                 }
                 Op::ComputeGlobalMask(_) => {
                     if self.op_impls.global_mask.is_none() {

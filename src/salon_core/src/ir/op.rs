@@ -18,6 +18,7 @@ pub enum Op {
     ComputeBasicStatistics(ComputeBasicStatisticsOp),
     ComputeHistogram(ComputeHistogramOp),
     Crop(CropOp),
+    Scale(ScaleOp),
     ComputeGlobalMask(ComputeGlobalMaskOp),
     ComputeRadialGradientMask(ComputeRadialGradientMaskOp),
     ComputeLinearGradientMask(ComputeLinearGradientMaskOp),
@@ -44,6 +45,7 @@ impl Op {
             Op::ComputeBasicStatistics(ref o) => vec![o.arg],
             Op::ComputeHistogram(ref o) => vec![o.arg],
             Op::Crop(ref o) => vec![o.arg],
+            Op::Scale(ref o) => vec![o.arg],
             Op::ComputeGlobalMask(ref o) => vec![o.target],
             Op::ComputeRadialGradientMask(ref o) => vec![o.target],
             Op::ComputeLinearGradientMask(ref o) => vec![o.target],
@@ -70,6 +72,7 @@ impl Op {
             Op::ComputeBasicStatistics(ref o) => o.result,
             Op::ComputeHistogram(ref o) => o.result,
             Op::Crop(ref o) => o.result,
+            Op::Scale(ref o) => o.result,
             Op::ComputeGlobalMask(ref o) => o.result,
             Op::ComputeRadialGradientMask(ref o) => o.result,
             Op::ComputeLinearGradientMask(ref o) => o.result,
@@ -198,6 +201,13 @@ pub struct CropOp {
     pub result: Id,
     pub arg: Id,
     pub rect: Rectangle,
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct ScaleOp {
+    pub result: Id,
+    pub arg: Id,
+    pub factor: f32,
 }
 
 #[derive(Clone, PartialEq, Debug)]
