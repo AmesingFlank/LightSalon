@@ -150,6 +150,15 @@ impl Editor {
         }
     }
 
+    pub fn override_scale_factor(&mut self, new_scale_factor: f32) {
+        if let Some(ref mut e) = self.transient_edit {
+            e.scale_factor = Some(new_scale_factor);
+        }
+        for e in self.edit_history.iter_mut() {
+            e.scale_factor = Some(new_scale_factor);
+        }
+    }
+
     fn collect_result(&mut self, id_store: &IdStore) {
         let value_map = &self.engine_execution_context.value_store.map;
 

@@ -27,6 +27,7 @@ pub fn to_ir_module(edit: &Edit) -> (Module, IdStore) {
 
     let mut current_output_id = input_id;
 
+    maybe_add_scale(edit, &mut module, &mut current_output_id);
     maybe_add_crop(edit, &mut module, &mut current_output_id);
 
     let mut masked_edit_id_stores = Vec::new();

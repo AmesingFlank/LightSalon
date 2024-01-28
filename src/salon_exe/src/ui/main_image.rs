@@ -21,7 +21,7 @@ use salon_core::utils::rectangle::Rectangle;
 use salon_core::utils::vec::{vec2, Vec2};
 use serde_json::de;
 
-use super::utils::{get_image_size_in_ui, pos2_to_vec2};
+use super::utils::pos2_to_vec2;
 use super::widgets::MainImageCallback;
 use super::{AppUiState, CropDragEdgeOrCorner, EditorPanel, MaskEditState};
 
@@ -34,7 +34,7 @@ pub fn main_image(
     ui.centered_and_justified(|ui| {
         if ui_state.editor_panel == EditorPanel::CropAndRotate {
             if let Some(ref original_image) = session.editor.current_input_image {
-                let size = get_image_size_in_ui(ui, &original_image);
+                let size = get_image_size_in_ui(ui, original_image.aspect_ratio());
                 let (rect, response) = ui.allocate_exact_size(size, egui::Sense::click_and_drag());
 
                 let transient_edit = session.editor.clone_transient_edit();
@@ -67,8 +67,38 @@ pub fn main_image(
                 }
             }
         } else {
+            // request to scale the image into a smaller image before applying all other edits, for better perf.
+            if let Some(ref input_image) = session.editor.current_input_image {
+                let original_dimensions = input_image.properties.dimensions;
+                let mut unscaled_size =
+                    vec2((original_dimensions.0 as f32, original_dimensions.1 as f32));
+                if let Some(ref crop_rect) = session.editor.get_current_edit_ref().crop {
+                    unscaled_size = unscaled_size * (crop_rect.max - crop_rect.min)
+                }
+                let aspect_ratio = unscaled_size.y / unscaled_size.x;
+
+                let size_in_ui = get_image_size_in_ui(ui, aspect_ratio);
+                let x_scale = size_in_ui.x / unscaled_size.x;
+                let y_scale = size_in_ui.y / unscaled_size.y;
+                let scale = x_scale.max(y_scale); // possible for these two to be slightly different..?
+                if scale < 1.0 {
+                    let mut should_override_scale = false;
+                    if let Some(curr_scale) = session.editor.get_current_edit_ref().scale_factor {
+                        if (curr_scale - scale).abs() > 0.01 {
+                            // overwrite only when scale changes noticeably, to avoid constant-rescaling due to egui size jitters.
+                            should_override_scale = true;
+                        }
+                    } else {
+                        should_override_scale = true;
+                    }
+                    if should_override_scale {
+                        session.editor.override_scale_factor(scale);
+                        session.editor.execute_current_edit();
+                    }
+                }
+            }
             if let Some(ref result) = session.editor.current_result {
-                let size = get_image_size_in_ui(ui, &result.final_image);
+                let size = get_image_size_in_ui(ui, result.final_image.aspect_ratio());
                 let (rect, response) = ui.allocate_exact_size(size, egui::Sense::click_and_drag());
                 let mut mask = None;
                 if let Some(term_index) = ui_state.selected_mask_term_index {
@@ -733,4 +763,23 @@ fn draw_grid_impl(
             stroke,
         );
     }
+}
+
+pub fn get_image_size_in_ui(ui: &Ui, image_aspect_ratio: f32) -> egui::Vec2 {
+    let max_x = ui.available_width();
+    let max_y = ui.available_height();
+    let ui_aspect_ratio = max_y / max_x;
+
+    let size = if image_aspect_ratio >= ui_aspect_ratio {
+        egui::Vec2 {
+            x: max_y / image_aspect_ratio,
+            y: max_y,
+        }
+    } else {
+        egui::Vec2 {
+            x: max_x,
+            y: max_x * image_aspect_ratio,
+        }
+    };
+    size
 }
