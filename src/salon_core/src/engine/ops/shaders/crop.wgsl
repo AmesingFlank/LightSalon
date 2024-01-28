@@ -2,6 +2,9 @@
 var input: texture_2d<f32>;
 
 @group(0) @binding(1)
+var tex_sampler: sampler;
+
+@group(0) @binding(2)
 var output: texture_storage_2d<rgba16float, write>;
 
 struct Params {
@@ -11,7 +14,7 @@ struct Params {
     max_y: f32,
 };
 
-@group(0) @binding(2)
+@group(0) @binding(3)
 var<uniform> params: Params;
 
 @compute
@@ -22,11 +25,10 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     if(global_id.x >= output_size.x || global_id.y >= output_size.y){
         return;
     }
-    
-    let x_offset = params.min_x * f32(input_size.x - 1u);
-    let y_offset = params.min_y * f32(input_size.y - 1u);
 
-    let source_coords = vec2(u32(x_offset), u32(y_offset)) + global_id.xy;
-    var c = textureLoad(input, source_coords, 0).rgb;
+    let x = params.min_x + f32(global_id.x) / f32(input_size.x - 1u);
+    let y = params.min_y + f32(global_id.y) / f32(input_size.y - 1u);
+    
+    var c = textureSampleLevel(input, tex_sampler, vec2(x, y), 0.0).rgb;
     textureStore(output, global_id.xy, vec4<f32>(c, 1.0));
 }

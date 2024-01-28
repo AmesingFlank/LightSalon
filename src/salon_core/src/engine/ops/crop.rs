@@ -7,7 +7,7 @@ use crate::{
         BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager,
         BindingResource, Runtime,
     },
-    runtime::{Buffer, BufferProperties, RingBuffer},
+    runtime::{Buffer, BufferProperties, RingBuffer, Sampler},
     runtime::{ColorSpace, ImageProperties},
     shader::{Shader, ShaderLibraryModule},
     utils::math::div_up,
@@ -18,6 +18,7 @@ pub struct CropImpl {
     pipeline: wgpu::ComputePipeline,
     bind_group_manager: BindGroupManager,
     ring_buffer: RingBuffer,
+    texture_sampler: Sampler,
 }
 impl CropImpl {
     pub fn new(runtime: Arc<Runtime>) -> Self {
@@ -35,11 +36,22 @@ impl CropImpl {
             },
         );
 
+        let texture_sampler = runtime.create_sampler(&wgpu::SamplerDescriptor {
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
+            mag_filter: wgpu::FilterMode::Linear,
+            min_filter: wgpu::FilterMode::Linear,
+            mipmap_filter: wgpu::FilterMode::Linear,
+            ..Default::default()
+        });
+
         CropImpl {
             runtime,
             pipeline,
             bind_group_manager,
             ring_buffer,
+            texture_sampler,
         }
     }
 }
@@ -91,10 +103,14 @@ impl CropImpl {
                 },
                 BindGroupEntry {
                     binding: 1,
-                    resource: BindingResource::TextureStorage(&output_img, 0),
+                    resource: BindingResource::Sampler(&self.texture_sampler),
                 },
                 BindGroupEntry {
                     binding: 2,
+                    resource: BindingResource::TextureStorage(&output_img, 0),
+                },
+                BindGroupEntry {
+                    binding: 3,
                     resource: BindingResource::Buffer(buffer),
                 },
             ],
