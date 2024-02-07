@@ -15,8 +15,9 @@ var<storage, read_write> buffer: Buffer;
 @workgroup_size(1)
 fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let i = global_id.x;
-    buffer.r[i] = 0u;
-    buffer.g[i] = 0u;
-    buffer.b[i] = 0u;
-    buffer.luma[i] = 0u;
+   
+    atomicStore(&buffer.r[i], 0u);
+    atomicStore(&buffer.g[i], 0u);
+    atomicStore(&buffer.b[i], 0u);
+    atomicStore(&buffer.luma[i], 0u);
 }

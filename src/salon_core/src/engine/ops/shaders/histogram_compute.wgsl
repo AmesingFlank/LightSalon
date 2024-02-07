@@ -58,10 +58,10 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>, @builtin(local_i
 
     var write_index = local_id.x * 16u + local_id.y;
     while (write_index < max_bins){
-        atomicAdd(&buffer.r[write_index], buffer_local.r[write_index]);
-        atomicAdd(&buffer.g[write_index], buffer_local.g[write_index]);
-        atomicAdd(&buffer.b[write_index], buffer_local.b[write_index]);
-        atomicAdd(&buffer.luma[write_index], buffer_local.luma[write_index]);
+        atomicAdd(&buffer.r[write_index], atomicLoad(&buffer_local.r[write_index]));
+        atomicAdd(&buffer.g[write_index], atomicLoad(&buffer_local.g[write_index]));
+        atomicAdd(&buffer.b[write_index], atomicLoad(&buffer_local.b[write_index]));
+        atomicAdd(&buffer.luma[write_index], atomicLoad(&buffer_local.luma[write_index]));
         write_index = write_index + 16u * 16u;
     }
 }
