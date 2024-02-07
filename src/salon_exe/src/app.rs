@@ -23,7 +23,7 @@ pub struct App {
 impl App {
     #[cfg(not(target_arch = "wasm32"))]
     pub fn main() {
-        env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
+        env_logger::builder().filter_level(log::LevelFilter::Info).init();
         let options = eframe::NativeOptions {
             viewport: egui::ViewportBuilder::default().with_inner_size(egui::vec2(1920.0, 1080.0)),
             renderer: eframe::Renderer::Wgpu,

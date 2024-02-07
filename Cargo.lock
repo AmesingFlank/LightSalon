@@ -2761,6 +2761,7 @@ dependencies = [
  "half",
  "image",
  "kamadak-exif",
+ "log",
  "num",
  "serde",
  "serde_json",

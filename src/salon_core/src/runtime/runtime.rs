@@ -265,6 +265,8 @@ impl Runtime {
 
         let bytes_per_row = dimensions.0 * result.properties.format.bytes_per_pixel();
 
+        // log::info!("{} {} {} {} {}", dimensions.0, dimensions.1, image_f32s.len(), image_f16s_bytes.len(), bytes_per_row);
+
         self.queue.write_texture(
             // Tells wgpu where to copy the pixel data
             wgpu::ImageCopyTexture {
