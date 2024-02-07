@@ -42,7 +42,13 @@ impl App {
         // Redirect `log` message to `console.log` and friends:
         eframe::WebLogger::init(log::LevelFilter::Debug).ok();
 
-        let web_options = eframe::WebOptions::default();
+        let web_options = eframe::WebOptions {
+            wgpu_options: egui_wgpu::WgpuConfiguration {
+                supported_backends: wgpu::Backends::BROWSER_WEBGPU,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
 
         wasm_bindgen_futures::spawn_local(async {
             eframe::WebRunner::new()
@@ -149,6 +155,5 @@ impl eframe::App for App {
             self.ui_state.reset_for_different_image();
             self.session.set_current_image(index);
         }
-        //egui::Context::request_repaint(ctx);
     }
 }

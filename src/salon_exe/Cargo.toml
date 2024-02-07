@@ -18,11 +18,17 @@ image = "0.24.0"
 rfd = "0.12.0"
 serde_json = "1.0"
 
-eframe = { version = "0.25.0", features = ["wgpu"] }
+eframe = { version = "0.25.0", default-features = false, features = [
+    "wgpu",
+    "accesskit",
+    "default_fonts",
+]}
 egui_extras = { version = "0.25.0" }
 egui_plot = { version = "0.25.0" }
 
 salon_core = { path = "../salon_core" }
+
+instant = "0.1.12"
 
 # web:
 [target.'cfg(target_arch = "wasm32")'.dependencies]

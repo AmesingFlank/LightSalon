@@ -56,7 +56,7 @@ impl AppUiState {
 
 pub struct FpsCounterState {
     pub last_fps: f32,
-    pub last_fps_record_time: SystemTime,
+    pub last_fps_record_time: instant::Instant,
     pub frames_since_last_fps_record: u32,
 }
 
@@ -64,7 +64,7 @@ impl FpsCounterState {
     pub fn new() -> Self {
         FpsCounterState {
             last_fps: 0.0,
-            last_fps_record_time: SystemTime::now(),
+            last_fps_record_time: instant::Instant::now(),
             frames_since_last_fps_record: 0u32,
         }
     }
