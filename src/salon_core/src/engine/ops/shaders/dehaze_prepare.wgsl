@@ -55,31 +55,37 @@ fn g(v: f32) -> f32 {
 @workgroup_size(8, 8)
 fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>, @builtin(local_invocation_id) local_id: vec3<u32>) {
     let input_size = textureDimensions(input);
-    if(global_id.x >= input_size.x || global_id.y >= input_size.y){
-        return;
-    }
+    
+    let out_of_bounds = global_id.x >= input_size.x || global_id.y >= input_size.y;
 
-    var quadrant: vec2<i32> = vec2(1, 1);
-    if (local_id.x < half_group_size) {
-        quadrant.x = -1;
-    }
-    if (local_id.y < half_group_size) {
-        quadrant.y = -1;
-    }
+    if (!out_of_bounds) {
+        var quadrant: vec2<i32> = vec2(1, 1);
+        if (local_id.x < half_group_size) {
+            quadrant.x = -1;
+        }
+        if (local_id.y < half_group_size) {
+            quadrant.y = -1;
+        }
 
-    for (var x: i32 = 0; x < 2; x += 1) {
-        for (var y: i32 = 0; y < 2; y += 1) {
-            let delta = vec2<i32>(x, y) * quadrant * i32(half_group_size);
-            let global_coord = vec2<i32>(global_id.xy) + delta;
-            let local_coord = vec2<i32>(local_id.xy) + delta + i32(half_group_size);
-            if (is_in_image(vec2<u32>(global_coord), input_size)) {
-                let dark = get_dark_channel(vec2<u32>(global_coord), input_size);
-                local_patch.dark_channels[local_coord.x][local_coord.y] = dark;
+        for (var x: i32 = 0; x < 2; x += 1) {
+            for (var y: i32 = 0; y < 2; y += 1) {
+                let delta = vec2<i32>(x, y) * quadrant * i32(half_group_size);
+                let global_coord = vec2<i32>(global_id.xy) + delta;
+                let local_coord = vec2<i32>(local_id.xy) + delta + i32(half_group_size);
+                if (is_in_image(vec2<u32>(global_coord), input_size)) {
+                    let dark = get_dark_channel(vec2<u32>(global_coord), input_size);
+                    local_patch.dark_channels[local_coord.x][local_coord.y] = dark;
+                }
             }
         }
     }
 
+    // this needs to be executed even for out-of-bounds threads;
     workgroupBarrier(); 
+
+    if (out_of_bounds) {
+        return;
+    }
 
     let my_local_coord = vec2<i32>(local_id.xy) + i32(half_group_size);
     let my_dark_channel = local_patch.dark_channels[my_local_coord.x][my_local_coord.y];
