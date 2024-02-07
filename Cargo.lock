@@ -2887,6 +2887,7 @@ dependencies = [
  "rfd",
  "salon_core",
  "serde_json",
+ "wasm-bindgen-futures",
  "wgpu",
 ]
 

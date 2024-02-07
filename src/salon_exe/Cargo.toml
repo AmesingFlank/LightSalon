@@ -23,3 +23,7 @@ egui_extras = { version = "0.25.0" }
 egui_plot = { version = "0.25.0" }
 
 salon_core = { path = "../salon_core" }
+
+# web:
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen-futures = "0.4"
