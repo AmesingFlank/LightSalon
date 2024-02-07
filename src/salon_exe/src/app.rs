@@ -123,6 +123,11 @@ impl eframe::App for App {
         self.reset_widget_render_resources(frame);
         ui::app_ui(ctx, &mut self.session, &mut self.ui_state);
 
+        if let Ok(added_image) = self.ui_state.added_image_channel.1.try_recv() {
+            let index = self.session.library.add_image(added_image.image);
+            self.ui_state.reset_for_different_image();
+            self.session.set_current_image(index);
+        }
         //egui::Context::request_repaint(ctx);
     }
 }

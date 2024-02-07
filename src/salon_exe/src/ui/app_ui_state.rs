@@ -1,6 +1,9 @@
+use std::sync::Arc;
 use std::{fmt, time::SystemTime};
+use std::sync::mpsc::{channel, Receiver, Sender};
 
 use eframe::egui;
+use salon_core::runtime::Image;
 
 pub struct AppUiState {
     pub last_frame_size: Option<(f32, f32)>,
@@ -20,6 +23,8 @@ pub struct AppUiState {
     pub selected_mask_index: usize,
     pub selected_mask_term_index: Option<usize>,
     pub mask_edit_state: MaskEditState,
+
+    pub added_image_channel: (Sender<AddedImage>, Receiver<AddedImage>),
 }
 
 impl AppUiState {
@@ -36,6 +41,7 @@ impl AppUiState {
             selected_mask_index: 0,
             selected_mask_term_index: None,
             mask_edit_state: MaskEditState::new(),
+            added_image_channel: channel(),
         }
     }
 
@@ -162,4 +168,8 @@ impl MaskEditState {
             dragged_control_point_index: None,
         }
     }
+}
+
+pub struct AddedImage {
+    pub image: Arc<Image>
 }

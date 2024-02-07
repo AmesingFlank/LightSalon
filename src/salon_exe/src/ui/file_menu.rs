@@ -1,4 +1,4 @@
-use super::AppUiState;
+use super::{AddedImage, AppUiState};
 use eframe::{
     egui::{self, Ui},
     egui_wgpu,
@@ -11,40 +11,45 @@ pub fn file_menu(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) 
     ui.menu_button("File", |ui| {
         if ui.button("Import Image").clicked() {
             ui.close_menu();
-            file_dialogue_import_image(session, ui_state);
+            // Context is wrapped in an Arc so it's cheap to clone as per:
+            // > Context is cheap to clone, and any clones refers to the same mutable data (Context uses refcounting internally).
+            // Taken from https://docs.rs/egui/0.24.1/egui/struct.Context.html
+            let ctx = ui.ctx().clone();
+            file_dialogue_import_image(ctx, session, ui_state);
         }
     });
 }
 
-fn file_dialogue_import_image(session: &mut Session, ui_state: &mut AppUiState) {
-    // let task = rfd::AsyncFileDialog::new().pick_file();
-    // let runtime = session.runtime.clone();
-    // execute(async move {
-    //     let file = task.await;
-    //     if let Some(file) = file {
-    //         if let Some(ext) = file.path().extension() {
-    //             let ext = ext.to_str().unwrap_or("");
-    //             let image_data = file.read().await;
-    //             let image = runtime.create_image_from_bytes_and_extension(image_data.as_slice(), ext);
-    //             match image {
-    //                 Ok(i) => {
-    //                     file.path().
-    //                 },
-    //                 Err(_) => {},
-    //             }
-    //         }
+fn file_dialogue_import_image(
+    context: egui::Context,
+    session: &mut Session,
+    ui_state: &mut AppUiState,
+) {
+    let task = rfd::AsyncFileDialog::new().pick_file();
+    let runtime = session.runtime.clone();
+    let sender = ui_state.added_image_channel.0.clone();
 
-    //         let extension = file.path().extension();
-    //         let _ = sender.send(String::from_utf8_lossy(&text).to_string());
-    //         ctx.request_repaint();
-    //     }
-    // });
-    if let Some(path) = rfd::FileDialog::new().pick_file() {
-        let img = session.runtime.create_image_from_path(&path).unwrap();
-        let index = session.library.add_image(Arc::new(img));
-        ui_state.reset_for_different_image();
-        session.set_current_image(index);
-    }
+    execute(async move {
+        let file = task.await;
+        if let Some(file) = file {
+            if let Some(ext) = file.path().extension() {
+                let ext = ext.to_str().unwrap_or("");
+                let image_data = file.read().await;
+                let image =
+                    runtime.create_image_from_bytes_and_extension(image_data.as_slice(), ext);
+                match image {
+                    Ok(img) => {
+                        let added_img = AddedImage {
+                            image: Arc::new(img),
+                        };
+                        let _ = sender.send(added_img);
+                        context.request_repaint();
+                    }
+                    Err(_) => {}
+                }
+            }
+        }
+    });
 }
 
 #[cfg(not(target_arch = "wasm32"))]
