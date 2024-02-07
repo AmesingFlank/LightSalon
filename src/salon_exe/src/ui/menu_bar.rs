@@ -3,9 +3,9 @@ use eframe::{
     egui_wgpu,
 };
 use egui_extras::{Column, TableBuilder};
-use salon_core::{library::AddImageResult, session::Session};
+use salon_core::session::Session;
 
-use super::{file_menu, edit_menu, AppUiState};
+use super::{edit_menu, file_menu, AppUiState};
 
 pub fn menu_bar(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
     ui.horizontal_wrapped(|ui| {

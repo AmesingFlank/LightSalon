@@ -20,7 +20,7 @@ pub fn image_library(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiSta
             |mut row| {
                 let row_index = row.index();
                 row.col(|ui| {
-                    let image = session.library.get_image(row_index);
+                    let image = session.library.get_thumbnail(row_index);
                     let aspect_ratio = image.aspect_ratio();
                     let image_width = image_height / aspect_ratio;
                     let size = egui::Vec2 {

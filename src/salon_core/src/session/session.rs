@@ -1,23 +1,23 @@
 use std::sync::Arc;
 
 use crate::editor::Editor;
-use crate::engine::Engine;
-use crate::library::{Library, LocalLibrary};
+use crate::library::Library;
 use crate::runtime::Runtime;
 
 pub struct Session {
-    pub library: Box<dyn Library>,
+    pub library: Library,
     pub editor: Editor,
     pub state: SessionState,
+    pub runtime: Arc<Runtime>,
 }
 
 impl Session {
     pub fn new(runtime: Arc<Runtime>) -> Self {
-        let library = LocalLibrary::new(runtime.clone());
         Session {
-            library: Box::new(library),
+            library: Library::new(runtime.clone()),
             editor: Editor::new(runtime.clone()),
             state: SessionState::new(),
+            runtime,
         }
     }
 
@@ -33,7 +33,7 @@ impl Session {
         self.state.current_image_index = Some(index);
 
         self.editor.clear_edit_history();
-        self.editor.current_input_image = Some(self.library.as_mut().get_image(index));
+        self.editor.current_input_image = Some(self.library.get_image(index));
         self.editor.execute_current_edit();
     }
 }
