@@ -412,7 +412,7 @@ fn linear_gradient_control_points(
                 Pos2 { x: end.x, y: end.y },
             ],
             stroke,
-        )
+        );
     }
 
     if response.drag_released() {

@@ -3,6 +3,7 @@ use std::sync::Arc;
 use std::{collections::HashMap, num::NonZeroU64};
 
 use eframe::egui::Ui;
+use eframe::egui_wgpu::ScreenDescriptor;
 use eframe::{egui, egui_wgpu};
 use salon_core::runtime::Image;
 use salon_core::runtime::Sampler;
@@ -25,6 +26,7 @@ impl egui_wgpu::CallbackTrait for MainImageCallback {
         &self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
+        _screen_descriptor: &ScreenDescriptor,
         _egui_encoder: &mut wgpu::CommandEncoder,
         resources: &mut egui_wgpu::CallbackResources,
     ) -> Vec<wgpu::CommandBuffer> {
@@ -59,9 +61,10 @@ impl MainImageRenderResources {
             .full_code();
 
         let (pipeline, bind_group_layout) =
-            runtime.create_render_pipeline(shader_code.as_str(), target_format);
+            runtime.create_render_pipeline(shader_code.as_str(), target_format, Some("MainImage"));
 
-        let bind_group_manager = BindGroupManager::new(runtime.clone(), bind_group_layout);
+        let bind_group_manager = BindGroupManager::new(runtime.clone(), bind_group_layout)
+            .with_label("MainImage".to_owned());
 
         let ring_buffer = RingBuffer::new(
             runtime.clone(),

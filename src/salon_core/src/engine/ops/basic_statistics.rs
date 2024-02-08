@@ -32,20 +32,20 @@ impl ComputeBasicStatisticsImpl {
         let shader_clear =
             Shader::from_code(include_str!("shaders/basic_statistics_clear.wgsl")).full_code();
         let (pipeline_clear, bind_group_layout_clear) =
-            runtime.create_compute_pipeline(shader_clear.as_str());
+            runtime.create_compute_pipeline(shader_clear.as_str(), Some("BasicStatisticsClear"));
         let bind_group_manager_clear =
             BindGroupManager::new(runtime.clone(), bind_group_layout_clear);
 
         let shader_sum =
             Shader::from_code(include_str!("shaders/basic_statistics_sum.wgsl")).full_code();
         let (pipeline_sum, bind_group_layout_sum) =
-            runtime.create_compute_pipeline(shader_sum.as_str());
+            runtime.create_compute_pipeline(shader_sum.as_str(), Some("BasicStatisticsSum"));
         let bind_group_manager_sum = BindGroupManager::new(runtime.clone(), bind_group_layout_sum);
 
         let shader_divide =
             Shader::from_code(include_str!("shaders/basic_statistics_divide.wgsl")).full_code();
         let (pipeline_divide, bind_group_layout_divide) =
-            runtime.create_compute_pipeline(shader_divide.as_str());
+            runtime.create_compute_pipeline(shader_divide.as_str(), Some("BasicStatisticsDivide"));
         let bind_group_manager_divide =
             BindGroupManager::new(runtime.clone(), bind_group_layout_divide);
 

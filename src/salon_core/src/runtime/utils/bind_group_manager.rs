@@ -6,6 +6,7 @@ pub struct BindGroupManager {
     layout: wgpu::BindGroupLayout,
     runtime: Arc<Runtime>,
     cache: HashMap<BindGroupDescriptorKey, wgpu::BindGroup>,
+    label: Option<String>,
 }
 
 impl BindGroupManager {
@@ -14,7 +15,13 @@ impl BindGroupManager {
             layout,
             runtime,
             cache: HashMap::new(),
+            label: None,
         }
+    }
+
+    pub fn with_label(mut self, label: String) -> Self {
+        self.label = Some(label);
+        self
     }
 
     pub fn get_or_create<'a>(
@@ -24,10 +31,14 @@ impl BindGroupManager {
         let layout = &self.layout;
         let runtime = self.runtime.as_ref();
         let key = descriptor.to_key();
+        let label = match self.label.as_ref() {
+            Some(l) => Some(l.as_str()),
+            None => None,
+        };
 
         self.cache
             .entry(key)
-            .or_insert_with(|| descriptor.make_bind_group(runtime, layout))
+            .or_insert_with(|| descriptor.make_bind_group(runtime, layout, label))
     }
 
     pub fn ensure<'a>(&'a mut self, descriptor: BindGroupDescriptor<'a>) {
@@ -53,6 +64,7 @@ impl<'a> BindGroupDescriptor<'a> {
         &'a self,
         runtime: &'a Runtime,
         layout: &'a wgpu::BindGroupLayout,
+        label: Option<&'a str>,
     ) -> wgpu::BindGroup {
         let mut entries_wgpu = Vec::new();
         for e in self.entries.iter() {
@@ -61,7 +73,7 @@ impl<'a> BindGroupDescriptor<'a> {
         runtime
             .device
             .create_bind_group(&wgpu::BindGroupDescriptor {
-                label: None,
+                label,
                 layout: layout,
                 entries: entries_wgpu.as_slice(),
             })

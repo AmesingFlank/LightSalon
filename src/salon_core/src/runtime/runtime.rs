@@ -34,18 +34,19 @@ impl Runtime {
     pub fn create_compute_pipeline(
         &self,
         wgsl_code: &str,
+        label: Option<&str>,
     ) -> (wgpu::ComputePipeline, wgpu::BindGroupLayout) {
         let shader = self
             .device
             .create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: None,
+                label,
                 source: wgpu::ShaderSource::Wgsl(wgsl_code.into()),
             });
 
         let pipeline = self
             .device
             .create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-                label: None,
+                label,
                 layout: None,
                 module: &shader,
                 entry_point: "cs_main",
@@ -59,18 +60,19 @@ impl Runtime {
         &self,
         wgsl_code: &str,
         target_format: wgpu::TextureFormat,
+        label: Option<&str>,
     ) -> (wgpu::RenderPipeline, wgpu::BindGroupLayout) {
         let shader = self
             .device
             .create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: None,
+                label,
                 source: wgpu::ShaderSource::Wgsl(wgsl_code.into()),
             });
 
         let pipeline = self
             .device
             .create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                label: None,
+                label,
                 layout: None,
                 vertex: wgpu::VertexState {
                     module: &shader,
@@ -383,7 +385,14 @@ impl Runtime {
         let buffer_slice = buffer_host_readable.slice(..);
         buffer_slice.map_async(wgpu::MapMode::Read, move |_| {});
         // hacky
-        while !self.device.poll(wgpu::Maintain::Wait) {}
+        loop {
+            match self.device.poll(wgpu::Maintain::Wait) {
+                wgpu::MaintainResult::SubmissionQueueEmpty => {
+                    break;
+                }
+                wgpu::MaintainResult::Ok => {}
+            }
+        }
         let mapped_range = buffer_slice.get_mapped_range();
         // Since contents are got in bytes, this converts these bytes back to u32
         let result = bytemuck::cast_slice(&mapped_range).to_vec();

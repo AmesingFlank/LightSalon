@@ -23,7 +23,8 @@ impl ApplyMaskedEditsImpl {
             .with_library(ShaderLibraryModule::ColorSpaces)
             .full_code();
 
-        let (pipeline, bind_group_layout) = runtime.create_compute_pipeline(shader_code.as_str());
+        let (pipeline, bind_group_layout) =
+            runtime.create_compute_pipeline(shader_code.as_str(), Some("ApplyMaskedEdits"));
 
         let bind_group_manager = BindGroupManager::new(runtime.clone(), bind_group_layout);
 

@@ -38,21 +38,21 @@ impl PrepareDehazeImpl {
         let shader_code =
             Shader::from_code(include_str!("shaders/dehaze_clear_histogram.wgsl")).full_code();
         let (pipeline_clear_histogram, bind_group_layout) =
-            runtime.create_compute_pipeline(shader_code.as_str());
+            runtime.create_compute_pipeline(shader_code.as_str(), Some("DehazeClearHistogram"));
         let bind_group_manager_clear_histogram =
             BindGroupManager::new(runtime.clone(), bind_group_layout);
 
         let shader_code =
             Shader::from_code(include_str!("shaders/dehaze_compute_histogram.wgsl")).full_code();
         let (pipeline_compute_histogram, bind_group_layout) =
-            runtime.create_compute_pipeline(shader_code.as_str());
+            runtime.create_compute_pipeline(shader_code.as_str(), Some("DehazeComputeHistogram"));
         let bind_group_manager_compute_histogram =
             BindGroupManager::new(runtime.clone(), bind_group_layout);
 
         let shader_code =
             Shader::from_code(include_str!("shaders/dehaze_estimate_airlight.wgsl")).full_code();
         let (pipeline_estimate_airlight, bind_group_layout) =
-            runtime.create_compute_pipeline(shader_code.as_str());
+            runtime.create_compute_pipeline(shader_code.as_str(), Some("DehazeEstimateAirlight"));
         let bind_group_manager_estimate_airlight =
             BindGroupManager::new(runtime.clone(), bind_group_layout);
 
@@ -60,7 +60,7 @@ impl PrepareDehazeImpl {
             .with_library(ShaderLibraryModule::ColorSpaces)
             .full_code();
         let (pipeline_prepare, bind_group_layout) =
-            runtime.create_compute_pipeline(shader_code.as_str());
+            runtime.create_compute_pipeline(shader_code.as_str(), Some("DehazePrepare"));
         let bind_group_manager_prepare = BindGroupManager::new(runtime.clone(), bind_group_layout);
 
         let ring_buffer = RingBuffer::new(
@@ -184,7 +184,7 @@ impl PrepareDehazeImpl {
             compute_pass.dispatch_workgroups(num_workgroups_x, num_workgroups_y, 1);
 
             compute_pass.set_pipeline(&self.pipeline_estimate_airlight);
-            compute_pass.set_bind_group(0, &bind_group_compute_histogram, &[]);
+            compute_pass.set_bind_group(0, &bind_group_estimate_airlight, &[]);
             compute_pass.dispatch_workgroups(num_workgroups_x, num_workgroups_y, 1);
 
             let num_workgroups_x = div_up(input_img.properties.dimensions.0, 8);

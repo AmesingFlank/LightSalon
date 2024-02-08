@@ -2,14 +2,15 @@ use std::mem::size_of;
 use std::sync::Arc;
 use std::{collections::HashMap, num::NonZeroU64};
 
+use eframe::egui_wgpu::ScreenDescriptor;
 use eframe::{egui, egui_wgpu};
-use salon_core::runtime::{Buffer, BufferProperties, RingBuffer};
 use salon_core::runtime::Image;
+use salon_core::runtime::Sampler;
 use salon_core::runtime::{
     BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager, BindingResource,
     Runtime,
 };
-use salon_core::runtime::Sampler;
+use salon_core::runtime::{Buffer, BufferProperties, RingBuffer};
 use salon_core::shader::{Shader, ShaderLibraryModule};
 use wgpu::util::DeviceExt;
 
@@ -22,6 +23,7 @@ impl egui_wgpu::CallbackTrait for MaskIndicatorCallback {
         &self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
+        _screen_descriptor: &ScreenDescriptor,
         _egui_encoder: &mut wgpu::CommandEncoder,
         resources: &mut egui_wgpu::CallbackResources,
     ) -> Vec<wgpu::CommandBuffer> {
@@ -54,8 +56,11 @@ impl MaskIndicatorRenderResources {
             .with_library(ShaderLibraryModule::ColorSpaces)
             .full_code();
 
-        let (pipeline, bind_group_layout) =
-            runtime.create_render_pipeline(shader_code.as_str(), target_format);
+        let (pipeline, bind_group_layout) = runtime.create_render_pipeline(
+            shader_code.as_str(),
+            target_format,
+            Some("MaskIndicator"),
+        );
 
         let bind_group_manager = BindGroupManager::new(runtime.clone(), bind_group_layout);
 

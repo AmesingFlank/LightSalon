@@ -21,7 +21,8 @@ impl AddMaskImpl {
     pub fn new(runtime: Arc<Runtime>) -> Self {
         let shader_code = Shader::from_code(include_str!("shaders/add_mask.wgsl")).full_code();
 
-        let (pipeline, bind_group_layout) = runtime.create_compute_pipeline(shader_code.as_str());
+        let (pipeline, bind_group_layout) =
+            runtime.create_compute_pipeline(shader_code.as_str(), Some("AddMask"));
 
         let bind_group_manager = BindGroupManager::new(runtime.clone(), bind_group_layout);
 

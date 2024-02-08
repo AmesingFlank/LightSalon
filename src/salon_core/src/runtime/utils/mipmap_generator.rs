@@ -6,11 +6,12 @@ use crate::runtime::{
     sampler::Sampler,
 };
 
-use super::{BindGroupDescriptor, BindGroupEntry, BindGroupManager, BindingResource};
+use super::{
+    bind_group_manager, BindGroupDescriptor, BindGroupEntry, BindGroupManager, BindingResource,
+};
 
 pub struct MipmapGenerator {
-    pipelines: HashMap<ImageFormat, wgpu::RenderPipeline>,
-    bind_group_manager: Option<BindGroupManager>,
+    pipelines: HashMap<ImageFormat, (wgpu::RenderPipeline, BindGroupManager)>,
     sampler: Sampler,
     runtime: Arc<Runtime>,
 }
@@ -29,7 +30,6 @@ impl MipmapGenerator {
         });
         MipmapGenerator {
             pipelines: HashMap::new(),
-            bind_group_manager: None,
             sampler,
             runtime,
         }
@@ -44,38 +44,28 @@ impl MipmapGenerator {
             let (pipeline, bind_group_layout) = self.runtime.create_render_pipeline(
                 include_str!("./mipmap_generator.wgsl"),
                 img.properties.format.to_wgpu_texture_format(),
+                Some("MipmapGenerator"),
             );
-            self.pipelines.insert(img.properties.format, pipeline);
-            if self.bind_group_manager.is_none() {
-                self.bind_group_manager = Some(BindGroupManager::new(
-                    self.runtime.clone(),
-                    bind_group_layout,
-                ));
-            }
+            let bind_group_manager = BindGroupManager::new(self.runtime.clone(), bind_group_layout);
+            self.pipelines
+                .insert(img.properties.format, (pipeline, bind_group_manager));
         }
-        let pipeline = self.pipelines.get(&img.properties.format).unwrap();
+        let (pipeline, bind_group_manager) = self.pipelines.get_mut(&img.properties.format).unwrap();
         let mip_count = Image::mip_level_count(&img.properties.dimensions);
 
         for target_mip in 1..mip_count as usize {
-            let bind_group =
-                self.bind_group_manager
-                    .as_mut()
-                    .unwrap()
-                    .get_or_create(BindGroupDescriptor {
-                        entries: vec![
-                            BindGroupEntry {
-                                binding: 0,
-                                resource: BindingResource::TextureSingleMip(
-                                    &img,
-                                    target_mip as u32 - 1,
-                                ),
-                            },
-                            BindGroupEntry {
-                                binding: 1,
-                                resource: BindingResource::Sampler(&self.sampler),
-                            },
-                        ],
-                    });
+            let bind_group = bind_group_manager.get_or_create(BindGroupDescriptor {
+                entries: vec![
+                    BindGroupEntry {
+                        binding: 0,
+                        resource: BindingResource::TextureSingleMip(&img, target_mip as u32 - 1),
+                    },
+                    BindGroupEntry {
+                        binding: 1,
+                        resource: BindingResource::Sampler(&self.sampler),
+                    },
+                ],
+            });
 
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 occlusion_query_set: None,

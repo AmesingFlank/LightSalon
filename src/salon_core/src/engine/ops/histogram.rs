@@ -29,7 +29,7 @@ impl ComputeHistogramImpl {
         let shader_clear =
             Shader::from_code(include_str!("shaders/histogram_clear.wgsl")).full_code();
         let (pipeline_clear, bind_group_layout_clear) =
-            runtime.create_compute_pipeline(shader_clear.as_str());
+            runtime.create_compute_pipeline(shader_clear.as_str(), Some("HistogramClear"));
         let bind_group_manager_clear =
             BindGroupManager::new(runtime.clone(), bind_group_layout_clear);
 
@@ -38,7 +38,7 @@ impl ComputeHistogramImpl {
             .with_library(ShaderLibraryModule::Random)
             .full_code();
         let (pipeline_compute, bind_group_layout_compute) =
-            runtime.create_compute_pipeline(shader_compute.as_str());
+            runtime.create_compute_pipeline(shader_compute.as_str(), Some("HistogramCompute"));
         let bind_group_manager_compute =
             BindGroupManager::new(runtime.clone(), bind_group_layout_compute);
 

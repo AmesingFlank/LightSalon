@@ -20,7 +20,8 @@ impl ColorSpaceConverter {
             .with_library(ShaderLibraryModule::ColorSpaces)
             .full_code();
 
-        let (pipeline, bind_group_layout) = runtime.create_compute_pipeline(shader_code.as_str());
+        let (pipeline, bind_group_layout) =
+            runtime.create_compute_pipeline(shader_code.as_str(), Some("ColorSpaceConverter"));
         let bind_group_manager = BindGroupManager::new(runtime.clone(), bind_group_layout);
 
         let uniform_buffer = runtime.create_buffer_of_properties(BufferProperties {
@@ -78,8 +79,7 @@ impl ColorSpaceConverter {
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
         {
-            let mut cpass =
-                encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+            let mut cpass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
                 ..Default::default()
             });
             cpass.set_pipeline(&self.pipeline);
