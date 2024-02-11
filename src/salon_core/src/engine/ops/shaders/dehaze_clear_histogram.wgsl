@@ -12,5 +12,5 @@ var<storage, read_write> airlight: Airlight;
 @workgroup_size(1)
 fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let i = global_id.x;
-    airlight.dark_channel_histogram[i] = 0u;
+    atomicStore(&airlight.dark_channel_histogram[i], 0u);
 }

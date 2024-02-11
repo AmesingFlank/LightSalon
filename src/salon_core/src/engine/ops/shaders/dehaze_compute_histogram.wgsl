@@ -37,7 +37,7 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>, @builtin(local_i
 
     var write_index = local_id.x * 16u + local_id.y;
     while (write_index < u32(num_bins)){
-        atomicAdd(&airlight.dark_channel_histogram[write_index], airlight_local.dark_channel_histogram[write_index]); 
+        atomicAdd(&airlight.dark_channel_histogram[write_index], atomicLoad(&airlight_local.dark_channel_histogram[write_index])); 
         write_index = write_index + 16u * 16u;
     }
 }

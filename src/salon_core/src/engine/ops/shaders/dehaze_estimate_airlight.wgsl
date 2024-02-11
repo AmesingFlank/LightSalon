@@ -20,7 +20,7 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>, @builtin(local_i
 
     var cumulative = 1.0;
     for(var i: i32 = num_bins - 1; i >= 0; i -= 1) {
-        cumulative -= f32(airlight.dark_channel_histogram[i]) / num_pixels;
+        cumulative -= f32(atomicLoad(&airlight.dark_channel_histogram[i])) / num_pixels;
         if (cumulative <= 0.99) {
             airlight.estimated_airlight = f32(i) / f32(num_bins - 1);
             break;
