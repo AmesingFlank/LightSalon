@@ -245,21 +245,21 @@ impl Runtime {
         let dimensions = dynamic_image.dimensions();
         let properties = ImageProperties {
             dimensions,
-            format: ImageFormat::Rgba16Float,
+            format: ImageFormat::Rgba8Unorm,
             color_space: ColorSpace::sRGB,
         };
         let result = self.create_image_of_properties(properties);
 
-        let dynamic_image_32f = dynamic_image.to_rgba32f();
-        let image_f32s = dynamic_image_32f.as_raw();
-        let mut image_f16s_bytes = Vec::with_capacity(image_f32s.len() * 2);
-        for i in 0..image_f32s.len() {
-            let f = image_f32s[i];
-            let h = f16::from_f32(f);
-            let h_bytes = h.to_be_bytes();
-            image_f16s_bytes.push(h_bytes[1]);
-            image_f16s_bytes.push(h_bytes[0]);
-        }
+        let image_buffer_rgba8 = dynamic_image.to_rgba8();
+        let image_bytes = image_buffer_rgba8.as_raw();
+
+        // for i in 0..image_f32s.len() {
+        //     let f = image_f32s[i];
+        //     let h = f16::from_f32(f);
+        //     let h_bytes = h.to_be_bytes();
+        //     image_f16s_bytes.push(h_bytes[1]);
+        //     image_f16s_bytes.push(h_bytes[0]);
+        // }
 
         let size = wgpu::Extent3d {
             width: dimensions.0,
@@ -279,7 +279,7 @@ impl Runtime {
                 origin: wgpu::Origin3d::ZERO,
                 aspect: wgpu::TextureAspect::All,
             },
-            image_f16s_bytes.as_slice(),
+            image_bytes.as_slice(),
             wgpu::ImageDataLayout {
                 offset: 0,
                 bytes_per_row: Some(bytes_per_row),
