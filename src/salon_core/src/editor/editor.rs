@@ -170,9 +170,6 @@ impl Editor {
     }
 
     pub fn begin_collect_current_execution_result(&mut self) {
-        // make sure any previous values are passed-on;
-        self.poll_current_result_buffer_readers();
-
         if let Some(ref id_store) = self.current_execution_id_store {
             let value_map = &self.engine_execution_context.value_store.map;
 
@@ -187,7 +184,17 @@ impl Editor {
 
             let mut histogram_initial_value = None;
             if let Some(ref mut curr_result) = self.current_result {
-                histogram_initial_value = curr_result.histogram_final.take_value();
+                let current_histogram = &mut curr_result.histogram_final;
+                current_histogram.poll();
+                if current_histogram.pending_read()
+                    && Arc::ptr_eq(current_histogram.buffer(), final_histogram_buffer)
+                {
+                    // existing result uses the same histogram buffer, and that buffer is still pending read
+                    // so not safe to map and read it again.
+                    return;
+                }
+                // make sure any previous values are passed-on;
+                histogram_initial_value = current_histogram.take_value();
             }
             let final_histogram = BufferReader::new(
                 self.runtime.clone(),

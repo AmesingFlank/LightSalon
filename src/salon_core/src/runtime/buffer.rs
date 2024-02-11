@@ -58,6 +58,7 @@ pub struct BufferReader<ValueType> {
     map_ready_receiver: Receiver<()>,
     transform: Box<dyn FnOnce(Vec<u32>) -> ValueType>,
     value: Option<ValueType>,
+    pending_read: bool,
 }
 
 impl<ValueType> BufferReader<ValueType> {
@@ -74,17 +75,19 @@ impl<ValueType> BufferReader<ValueType> {
             map_ready_receiver,
             transform,
             value: initial_value,
+            pending_read: true
         }
     }
 
     pub fn poll(&mut self) {
-        if let Ok(rec) = self.map_ready_receiver.try_recv() {
+        if let Ok(_) = self.map_ready_receiver.try_recv() {
             let data: Vec<u32> = self.runtime.read_mapped_buffer(&self.buffer);
             let transform = std::mem::replace(
                 &mut self.transform,
                 Box::new(|_| panic!("Function called more than once")),
             );
             self.value = Some(transform(data));
+            self.pending_read = false;
         }
     }
 
@@ -94,5 +97,13 @@ impl<ValueType> BufferReader<ValueType> {
 
     pub fn take_value(&mut self) -> Option<ValueType> {
         self.value.take()
+    }
+
+    pub fn pending_read(&self) -> bool {
+        self.pending_read
+    }
+
+    pub fn buffer(&self) -> &Arc<Buffer> {
+        &self.buffer
     }
 }
