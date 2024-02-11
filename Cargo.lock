@@ -2713,6 +2713,7 @@ dependencies = [
  "kamadak-exif",
  "log",
  "num",
+ "pollster",
  "serde",
  "serde_json",
  "wgpu",

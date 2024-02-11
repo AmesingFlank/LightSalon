@@ -1,8 +1,8 @@
-use std::sync::Arc;
+use std::sync::{mpsc::Receiver, Arc};
 
 use crate::{
     engine::{common::ImageHistogram, Engine, ExecutionContext},
-    runtime::{Buffer, Image, MipmapGenerator, Runtime},
+    runtime::{Buffer, BufferReader, Image, MipmapGenerator, Runtime},
 };
 
 use super::{
@@ -170,10 +170,19 @@ impl Editor {
             .get(&id_store.final_histogram)
             .expect("cannot find data for editor")
             .as_buffer();
-        let final_histogram_buffer_data: Vec<u32> =
-            self.runtime.read_buffer(&final_histogram_buffer);
 
-        let final_hist = ImageHistogram::from_u32_slice(final_histogram_buffer_data.as_slice());
+        let mut histogram_initial_value = None;
+        if let Some(ref mut curr_result) = self.current_result {
+            curr_result.histogram_final.poll(); // make sure any previous values are passed-on;
+            histogram_initial_value = curr_result.histogram_final.take_value();
+        }
+
+        let final_histogram = BufferReader::new(
+            self.runtime.clone(),
+            final_histogram_buffer.clone(),
+            histogram_initial_value,
+            Box::new(|v| ImageHistogram::from_u32_slice(v.as_slice())),
+        );
 
         let mut masked_edit_results = Vec::new();
 
@@ -206,7 +215,7 @@ impl Editor {
 
         let result = EditResult {
             final_image: output_image,
-            histogram_final: final_hist,
+            histogram_final: final_histogram,
             masked_edit_results,
         };
 

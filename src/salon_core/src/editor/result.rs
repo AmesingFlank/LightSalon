@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
 use crate::engine::common::ImageHistogram;
-use crate::runtime::{Buffer, Image, Runtime};
+use crate::runtime::{Buffer, BufferReader, Image, Runtime};
 
 pub struct EditResult {
     pub final_image: Arc<Image>,
-    pub histogram_final: ImageHistogram,
+    pub histogram_final: BufferReader<ImageHistogram>,
     pub masked_edit_results: Vec<MaskedEditResult>,
 }
 
