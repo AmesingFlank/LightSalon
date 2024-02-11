@@ -13,7 +13,6 @@ pub fn histogram(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) 
         .default_open(true)
         .show(ui, |ui| {
             if let Some(ref mut result) = session.editor.current_result {
-                result.histogram_final.poll();
                 if let Some(hist) = result.histogram_final.value_ref() {
                     let get_line_data = |v: &Vec<u32>| {
                         let line_data: Vec<[f64; 2]> = (0..hist.num_bins)
