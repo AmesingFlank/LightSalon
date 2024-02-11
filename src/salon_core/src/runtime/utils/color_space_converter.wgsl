@@ -4,7 +4,7 @@
 var input: texture_2d<f32>;
 
 @group(0) @binding(1)
-var output: texture_storage_2d<rgba16float, write>;
+var output: texture_storage_2d<IMAGE_FORMAT, write>;
 
 struct Params {
     src_color_space: u32,

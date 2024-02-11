@@ -34,6 +34,12 @@ impl ImageFormat {
             ImageFormat::Rgba8Unorm => wgpu::TextureFormat::Rgba8Unorm,
         }
     }
+    pub fn to_wgsl_format_string(&self) -> &str {
+        match *self {
+            ImageFormat::Rgba16Float => "rgba16float",
+            ImageFormat::Rgba8Unorm => "rgba8unorm",
+        }
+    }
     pub fn bytes_per_channel(&self) -> u32 {
         match *self {
             ImageFormat::Rgba16Float => 2,

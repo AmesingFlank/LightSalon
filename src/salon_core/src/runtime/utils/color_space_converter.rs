@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::{mem::size_of, sync::Arc};
 
 use crate::runtime::{Buffer, BufferProperties, ColorSpace, Image, ImageFormat, Runtime};
@@ -9,21 +10,12 @@ use super::{
 };
 
 pub struct ColorSpaceConverter {
-    pipeline: wgpu::ComputePipeline,
-    bind_group_manager: BindGroupManager,
+    pipelines: HashMap<ImageFormat, (wgpu::ComputePipeline, BindGroupManager)>,
     uniform_buffer: Buffer,
     runtime: Arc<Runtime>,
 }
 impl ColorSpaceConverter {
     pub fn new(runtime: Arc<Runtime>) -> Self {
-        let shader_code = Shader::from_code(include_str!("./color_space_converter.wgsl"))
-            .with_library(ShaderLibraryModule::ColorSpaces)
-            .full_code();
-
-        let (pipeline, bind_group_layout) =
-            runtime.create_compute_pipeline(shader_code.as_str(), Some("ColorSpaceConverter"));
-        let bind_group_manager = BindGroupManager::new(runtime.clone(), bind_group_layout);
-
         let uniform_buffer = runtime.create_buffer_of_properties(BufferProperties {
             size: size_of::<u32>() * 2,
             host_readable: false,
@@ -31,8 +23,7 @@ impl ColorSpaceConverter {
 
         ColorSpaceConverter {
             runtime,
-            pipeline,
-            bind_group_manager,
+            pipelines: HashMap::new(),
             uniform_buffer,
         }
     }
@@ -42,6 +33,29 @@ impl ColorSpaceConverter {
         if input_img.properties.color_space == dest_color_space {
             return input_img;
         }
+
+        if !self.pipelines.contains_key(&input_img.properties.format) {
+            let shader_code = include_str!("./color_space_converter.wgsl").replace(
+                "IMAGE_FORMAT",
+                input_img.properties.format.to_wgsl_format_string(),
+            );
+            let shader_code = Shader::from_code(shader_code.as_str())
+                .with_library(ShaderLibraryModule::ColorSpaces)
+                .full_code();
+
+            let (pipeline, bind_group_layout) = self
+                .runtime
+                .create_compute_pipeline(shader_code.as_str(), Some("ColorSpaceConverter"));
+            let bind_group_manager = BindGroupManager::new(self.runtime.clone(), bind_group_layout);
+
+            self.pipelines
+                .insert(input_img.properties.format, (pipeline, bind_group_manager));
+        }
+
+        let (pipeline, bind_group_manager) = self
+            .pipelines
+            .get_mut(&input_img.properties.format)
+            .unwrap();
 
         let mut properties = input_img.properties.clone();
         properties.color_space = dest_color_space;
@@ -57,7 +71,7 @@ impl ColorSpaceConverter {
             bytemuck::cast_slice(&[src_color_space, dest_color_space]),
         );
 
-        let bind_group = self.bind_group_manager.get_or_create(BindGroupDescriptor {
+        let bind_group = bind_group_manager.get_or_create(BindGroupDescriptor {
             entries: vec![
                 BindGroupEntry {
                     binding: 0,
@@ -82,7 +96,7 @@ impl ColorSpaceConverter {
             let mut cpass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
                 ..Default::default()
             });
-            cpass.set_pipeline(&self.pipeline);
+            cpass.set_pipeline(pipeline);
 
             cpass.set_bind_group(0, &bind_group, &[]);
             cpass.dispatch_workgroups(
