@@ -38,9 +38,9 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>, @builtin(local_i
         if(local_id.x == 0u && local_id.y == 0u) {
             let wg_size = 16u * 16u;
 
-            atomicAdd(&buffer.sum_r, buffer_local.sum_r / wg_size);
-            atomicAdd(&buffer.sum_g, buffer_local.sum_g / wg_size);
-            atomicAdd(&buffer.sum_b, buffer_local.sum_b / wg_size);
+            atomicAdd(&buffer.sum_r, atomicLoad(&buffer_local.sum_r) / wg_size);
+            atomicAdd(&buffer.sum_g, atomicLoad(&buffer_local.sum_g) / wg_size);
+            atomicAdd(&buffer.sum_b, atomicLoad(&buffer_local.sum_b) / wg_size);
 
             atomicAdd(&buffer.sum_count, 1u);
         }

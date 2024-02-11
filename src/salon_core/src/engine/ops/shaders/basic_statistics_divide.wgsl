@@ -19,8 +19,12 @@ var<storage, read_write> result: ResultBuffer;
 @compute
 @workgroup_size(1)
 fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
-    result.sum_rgba.r = f32(working.sum_r / working.sum_count) / 255.0;
-    result.sum_rgba.g = f32(working.sum_g / working.sum_count) / 255.0;
-    result.sum_rgba.b = f32(working.sum_b / working.sum_count) / 255.0;
+    let sum_r = atomicLoad(&working.sum_r);
+    let sum_g = atomicLoad(&working.sum_g);
+    let sum_b = atomicLoad(&working.sum_b);
+    let sum_count = atomicLoad(&working.sum_count);
+    result.sum_rgba.r = f32(sum_r / sum_count) / 255.0;
+    result.sum_rgba.g = f32(sum_g / sum_count) / 255.0;
+    result.sum_rgba.b = f32(sum_b / sum_count) / 255.0;
     result.sum_rgba.a = 1.0;
 }
