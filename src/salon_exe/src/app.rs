@@ -23,10 +23,19 @@ pub struct App {
 impl App {
     #[cfg(not(target_arch = "wasm32"))]
     pub fn main() {
-        env_logger::builder().filter_level(log::LevelFilter::Info).init();
+        env_logger::builder()
+            .filter_level(log::LevelFilter::Info)
+            .init();
         let options = eframe::NativeOptions {
             viewport: egui::ViewportBuilder::default().with_inner_size(egui::vec2(1920.0, 1080.0)),
             renderer: eframe::Renderer::Wgpu,
+            wgpu_options: egui_wgpu::WgpuConfiguration {
+                device_descriptor: Arc::new(|_adapter| wgpu::DeviceDescriptor {
+                    required_limits: Self::get_required_wgpu_limits(),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            },
             ..Default::default()
         };
         let _ = eframe::run_native(
@@ -45,6 +54,10 @@ impl App {
         let web_options = eframe::WebOptions {
             wgpu_options: egui_wgpu::WgpuConfiguration {
                 supported_backends: wgpu::Backends::BROWSER_WEBGPU,
+                device_descriptor: Arc::new(|_adapter| wgpu::DeviceDescriptor {
+                    required_limits: Self::get_required_wgpu_limits(),
+                    ..Default::default()
+                }),
                 ..Default::default()
             },
             ..Default::default()
@@ -60,6 +73,18 @@ impl App {
                 .await
                 .expect("failed to start eframe");
         });
+    }
+
+    fn get_required_wgpu_limits() -> wgpu::Limits {
+        // 100MP medium format digital sensor file size: 11656 x 8742
+        let max_dim = 11656;
+        let max_buff_size = 11656 * 8742 * 4;
+        wgpu::Limits {
+            max_texture_dimension_1d: max_dim,
+            max_texture_dimension_2d: max_dim,
+            max_buffer_size: max_buff_size,
+            ..Default::default()
+        }
     }
 
     pub fn new(cc: &eframe::CreationContext) -> Self {
