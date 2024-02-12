@@ -92,7 +92,7 @@ impl ScaleImpl {
 
         let buffer = self.ring_buffer.get();
 
-        let lod = op.factor.log2();
+        let lod = -op.factor.log2();
 
         self.runtime
             .queue

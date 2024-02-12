@@ -78,8 +78,10 @@ pub fn main_image(
                 let aspect_ratio = unscaled_size.y / unscaled_size.x;
 
                 let size_in_ui = get_image_size_in_ui(ui, aspect_ratio);
-                let x_scale = size_in_ui.x / unscaled_size.x;
-                let y_scale = size_in_ui.y / unscaled_size.y;
+                // HiDPI (aka Apple Retina) scaling factor;
+                let num_pixels_in_ui = size_in_ui * ctx.pixels_per_point();
+                let x_scale = num_pixels_in_ui.x / unscaled_size.x;
+                let y_scale = num_pixels_in_ui.y / unscaled_size.y;
                 let scale = x_scale.max(y_scale); // possible for these two to be slightly different..?
                 if scale < 1.0 {
                     let mut should_override_scale = false;
