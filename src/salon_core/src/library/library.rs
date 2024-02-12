@@ -32,11 +32,11 @@ impl Library {
     }
     pub fn add_image(&mut self, image: Arc<Image>) -> usize {
         let image = self
-            .color_space_converter
-            .convert(image, ColorSpace::LinearRGB);
-        let image = self
             .image_format_converter
             .convert(image, ImageFormat::Rgba16Float);
+        let image = self
+            .color_space_converter
+            .convert(image, ColorSpace::LinearRGB);
         self.mipmap_generator.generate(&image);
         self.images.push(image);
         self.images.len() - 1
