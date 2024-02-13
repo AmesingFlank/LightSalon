@@ -25,7 +25,9 @@ fn file_dialogue_import_image(
     session: &mut Session,
     ui_state: &mut AppUiState,
 ) {
-    let task = rfd::AsyncFileDialog::new().pick_file();
+    let task = rfd::AsyncFileDialog::new()
+        .add_filter("extension", &["png", "jpg", "jpeg"])
+        .pick_file();
     let runtime = session.runtime.clone();
     let sender = ui_state.added_image_channel.0.clone();
 
