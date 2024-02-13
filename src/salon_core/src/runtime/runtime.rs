@@ -11,8 +11,6 @@ use crate::runtime::{
 
 use std::sync::mpsc::{channel, Receiver, Sender};
 
-use half::prelude::*;
-
 pub struct Runtime {
     pub adapter: Arc<wgpu::Adapter>,
     pub device: Arc<wgpu::Device>,
@@ -156,48 +154,8 @@ impl Runtime {
         if extension == "jpg" || extension == "jpeg" || extension == "png" {
             return self.create_image_from_bytes_jpg_png(image_bytes);
         }
-        // Raw loading: doens't work!
-        // let raw_extensions = HashSet::from([
-        //     "raf", // fujifilm
-        //     "crw", "cr2", // canon
-        //     "nrw", "nef", // nikon
-        //     "arw", "srf", "sr2", // sony,
-        //     "rw2", // Panasonic, Leica,
-        //     "3fr", // Hasselblad
-        // ]);
-        // if raw_extensions.contains(extension.as_str()) {
-        //     return self.create_image_from_bytes_raw(image_bytes);
-        // }
-
         Err("unsupported image format: ".to_owned() + extension.as_str())
     }
-
-    // Raw loading: doens't work!
-    // pub fn create_image_from_bytes_raw(&self, image_bytes: &[u8]) -> Result<Image, String> {
-    //     let decode_result = rawloader::decode(&mut Cursor::new(image_bytes));
-    //     let Ok(raw) = decode_result else {
-    //         return Err(decode_result.err().unwrap().to_string());
-    //     };
-
-    //     let source = ImageSource::Raw(raw);
-    //     let Ok(mut pipeline) = Pipeline::new_from_source(source) else {
-    //         return Err("imagepipe cannot decode file".to_owned());
-    //     };
-
-    //     pipeline.run(None);
-    //     let Ok(image) = pipeline.output_16bit(None) else {
-    //         return Err("imagepipe cannot output file".to_owned());
-    //     };
-
-    //     let image = ImageBuffer::<Rgb<u16>, Vec<u16>>::from_raw(
-    //         image.width as u32,
-    //         image.height as u32,
-    //         image.data,
-    //     );
-
-    //     let image = image::DynamicImage::ImageRgb16(image.expect("cannot create DynamicImage"));
-    //     Ok(self.create_image_from_dynamic_image(image, true))
-    // }
 
     pub fn create_image_from_bytes_jpg_png(&self, image_bytes: &[u8]) -> Result<Image, String> {
         let Ok(mut img) = image::load_from_memory(image_bytes) else {
@@ -253,14 +211,6 @@ impl Runtime {
         let image_buffer_rgba8 = dynamic_image.to_rgba8();
         let image_bytes = image_buffer_rgba8.as_raw();
 
-        // for i in 0..image_f32s.len() {
-        //     let f = image_f32s[i];
-        //     let h = f16::from_f32(f);
-        //     let h_bytes = h.to_be_bytes();
-        //     image_f16s_bytes.push(h_bytes[1]);
-        //     image_f16s_bytes.push(h_bytes[0]);
-        // }
-
         let size = wgpu::Extent3d {
             width: dimensions.0,
             height: dimensions.1,
@@ -268,8 +218,6 @@ impl Runtime {
         };
 
         let bytes_per_row = dimensions.0 * result.properties.format.bytes_per_pixel();
-
-        // log::info!("{} {} {} {} {}", dimensions.0, dimensions.1, image_f32s.len(), image_f16s_bytes.len(), bytes_per_row);
 
         self.queue.write_texture(
             // Tells wgpu where to copy the pixel data
@@ -298,7 +246,7 @@ impl Runtime {
         );
         assert!(
             src.properties.format == dest.properties.format,
-            "expecting equal dimensions"
+            "expecting equal format"
         );
         let mut encoder = self
             .device

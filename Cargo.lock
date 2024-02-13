@@ -2708,7 +2708,6 @@ name = "salon_core"
 version = "0.1.0"
 dependencies = [
  "bytemuck",
- "half",
  "image",
  "kamadak-exif",
  "log",
