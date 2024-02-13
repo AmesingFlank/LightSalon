@@ -1,7 +1,11 @@
 use image::GenericImageView;
-use std::path::PathBuf;
+use std::{
+    path::PathBuf,
+    sync::{mpsc::Receiver, Arc},
+};
+use crate::runtime::{self, BufferProperties};
 
-use crate::runtime;
+use super::{Buffer, Runtime};
 
 pub struct Image {
     pub properties: ImageProperties,
@@ -80,5 +84,62 @@ impl Image {
         let y_ratio = image_dimensions.1 as f32 / rendered_dimensions.1 as f32;
         let y_lod = y_ratio.log2().floor() as u32;
         std::cmp::min(x_lod, y_lod)
+    }
+}
+
+pub struct ImageReader {
+    runtime: Arc<Runtime>,
+    image: Arc<Image>,
+    buffer: Arc<Buffer>,
+    map_ready_receiver: Receiver<()>,
+    result_dynamic_image: Option<image::DynamicImage>,
+}
+
+impl ImageReader {
+    pub fn new(runtime: Arc<Runtime>, image: Arc<Image>) -> Self {
+        assert!(
+            image.properties.format == ImageFormat::Rgba8Unorm,
+            "only reading Rgba8Unorm is supported"
+        );
+        let image_data_size = image.properties.dimensions.0
+            * image.properties.dimensions.1
+            * image.properties.format.bytes_per_pixel();
+        let buffer = runtime.create_buffer_of_properties(BufferProperties {
+            size: image_data_size as usize,
+            host_readable: true,
+        });
+        let map_ready_receiver = runtime.map_host_readable_buffer(&buffer);
+        Self {
+            runtime,
+            image,
+            buffer: Arc::new(buffer),
+            map_ready_receiver,
+            result_dynamic_image: None,
+        }
+    }
+
+    pub fn poll(&mut self) {
+        if let Ok(_) = self.map_ready_receiver.try_recv() {
+            let data: Vec<u8> = self.runtime.read_mapped_buffer(&self.buffer);
+            let dynamic_image = self.runtime.create_dynamic_image_from_bytes_jpg_png(&data);
+            let dynamic_image = dynamic_image.expect("Couldn't read image");
+            self.result_dynamic_image = Some(dynamic_image);
+        }
+    }
+
+    pub fn dynamic_image_ref(&self) -> Option<&image::DynamicImage> {
+        self.result_dynamic_image.as_ref()
+    }
+
+    pub fn take_dynamic_image(&mut self) -> Option<image::DynamicImage> {
+        self.result_dynamic_image.take()
+    }
+
+    pub fn pending_read(&self) -> bool {
+        self.result_dynamic_image.is_none()
+    }
+
+    pub fn image(&self) -> &Arc<Image> {
+        &self.image
     }
 }
