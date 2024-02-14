@@ -75,19 +75,21 @@ impl<ValueType> BufferReader<ValueType> {
             map_ready_receiver,
             transform,
             value: initial_value,
-            pending_read: true
+            pending_read: true,
         }
     }
 
     pub fn poll(&mut self) {
-        if let Ok(_) = self.map_ready_receiver.try_recv() {
-            let data: Vec<u32> = self.runtime.read_mapped_buffer(&self.buffer);
-            let transform = std::mem::replace(
-                &mut self.transform,
-                Box::new(|_| panic!("Function called more than once")),
-            );
-            self.value = Some(transform(data));
-            self.pending_read = false;
+        if self.pending_read {
+            if let Ok(_) = self.map_ready_receiver.try_recv() {
+                let data: Vec<u32> = self.runtime.read_mapped_buffer(&self.buffer);
+                let transform = std::mem::replace(
+                    &mut self.transform,
+                    Box::new(|_| panic!("Function called more than once")),
+                );
+                self.value = Some(transform(data));
+                self.pending_read = false;
+            }
         }
     }
 
