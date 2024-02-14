@@ -4,7 +4,10 @@ use eframe::{
     egui_wgpu,
 };
 use egui_extras::{Column, TableBuilder};
-use salon_core::{runtime::ColorSpace, session::Session};
+use salon_core::{
+    runtime::{ColorSpace, ImageReaderJpeg},
+    session::Session,
+};
 use std::{future::Future, sync::Arc};
 
 pub fn file_menu(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
@@ -69,32 +72,18 @@ fn file_dialogue_export_image(
         .add_filter("extension", &["jpg"])
         .save_file();
     let runtime = session.runtime.clone();
-    let sender = ui_state.added_image_channel.0.clone();
 
-    execute(async move {
-        let file = task.await;
-        if let Some(file) = file {
-            // if let Some(ref result) = session.editor.current_result {
-            //     result.final_image.
-            // }
-            let file_name = file.file_name();
-            let file_name_parts: Vec<&str> = file_name.split(".").collect();
-            let ext = file_name_parts.last().unwrap().to_owned();
-
-            let image_data = file.read().await;
-            let image = runtime.create_image_from_bytes_and_extension(image_data.as_slice(), ext);
-            match image {
-                Ok(img) => {
-                    let added_img = AddedImage {
-                        image: Arc::new(img),
-                    };
-                    let _ = sender.send(added_img);
-                    context.request_repaint();
-                }
-                Err(_) => {}
+    if let Some(ref result) = session.editor.current_result {
+        let final_image = result.final_image.clone();
+        let mut image_reader = ImageReaderJpeg::new(runtime.clone(), final_image);
+        execute(async move {
+            let file = task.await;
+            let jpeg_data = image_reader.await_jpeg_data().await;
+            if let Some(file) = file {
+                file.write(&jpeg_data).await.expect("Write file failed");
             }
-        }
-    });
+        });
+    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]

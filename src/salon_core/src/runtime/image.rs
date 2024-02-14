@@ -83,16 +83,16 @@ impl Image {
     }
 }
 
-pub struct ImageReader {
+pub struct ImageReaderJpeg {
     runtime: Arc<Runtime>,
     image: Arc<Image>,
     buffer: Arc<Buffer>,
     map_ready_receiver: flume::Receiver<()>,
-    result_dynamic_image: Option<image::DynamicImage>,
+    result_jpeg_data: Option<Vec<u8>>,
     pending_read: bool,
 }
 
-impl ImageReader {
+impl ImageReaderJpeg {
     pub fn new(runtime: Arc<Runtime>, image: Arc<Image>) -> Self {
         assert!(
             image.properties.format == ImageFormat::Rgba8Unorm,
@@ -111,45 +111,51 @@ impl ImageReader {
             image,
             buffer: Arc::new(buffer),
             map_ready_receiver,
-            result_dynamic_image: None,
+            result_jpeg_data: None,
             pending_read: true,
         }
     }
 
-    pub fn take_dynamic_image(&mut self) -> Option<image::DynamicImage> {
-        self.result_dynamic_image.take()
+    pub fn take_jpeg_data(&mut self) -> Option<Vec<u8>> {
+        self.result_jpeg_data.take()
     }
 
-    pub fn poll_dynamic_image(&mut self) -> Option<&image::DynamicImage> {
+    pub fn poll_jpeg_data(&mut self) -> Option<&Vec<u8>> {
         if self.pending_read {
             if let Ok(_) = self.map_ready_receiver.try_recv() {
-                self.read_dynamic_image_from_mapped_buffer();
+                self.read_jpeg_data_from_mapped_buffer();
             }
         }
-        self.result_dynamic_image.as_ref()
+        self.result_jpeg_data.as_ref()
     }
 
-    pub async fn await_dynamic_image(&mut self) -> Option<&image::DynamicImage> {
+    pub async fn await_jpeg_data(&mut self) -> &Vec<u8> {
         if self.pending_read {
             if let Ok(_) = self.map_ready_receiver.recv_async().await {
-                self.read_dynamic_image_from_mapped_buffer();
+                self.read_jpeg_data_from_mapped_buffer();
             } else {
                 panic!("recv_async().await failed")
             }
         }
-        self.result_dynamic_image.as_ref()
+        self.result_jpeg_data.as_ref().unwrap()
     }
 
-    fn read_dynamic_image_from_mapped_buffer(&mut self) {
+    fn read_jpeg_data_from_mapped_buffer(&mut self) {
+        let (w, h) = (
+            self.image.properties.dimensions.0,
+            self.image.properties.dimensions.1,
+        );
         let data: Vec<u8> = self.runtime.read_mapped_buffer(&self.buffer);
-        let dynamic_image = self.runtime.create_dynamic_image_from_bytes_jpg_png(&data);
-        let dynamic_image = dynamic_image.expect("Couldn't read image");
-        self.result_dynamic_image = Some(dynamic_image);
-        self.pending_read = false;
+        let image_buffer: image::ImageBuffer<image::Rgba<u8>, Vec<u8>> =
+            image::ImageBuffer::from_raw(w, h, data).unwrap();
+        let mut jpeg: Vec<u8> = Vec::new();
+        let mut encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut jpeg, 100);
+        encoder.encode(&image_buffer, w,h, image::ColorType::Rgba8).expect("Failed to encode image into jpeg");
+        self.result_jpeg_data = Some(jpeg);
     }
 
     pub fn pending_read(&self) -> bool {
-        self.result_dynamic_image.is_none()
+        self.pending_read
     }
 
     pub fn image(&self) -> &Arc<Image> {

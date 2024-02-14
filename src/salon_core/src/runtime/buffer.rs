@@ -91,7 +91,7 @@ impl<ValueType> BufferReader<ValueType> {
         self.value.as_ref()
     }
 
-    pub async fn await_value(&mut self) -> Option<&ValueType> {
+    pub async fn await_value(&mut self) -> &ValueType {
         if self.pending_read {
             if let Ok(_) = self.map_ready_receiver.recv_async().await {
                 self.read_value_from_mapped_buffer()
@@ -99,7 +99,7 @@ impl<ValueType> BufferReader<ValueType> {
                 panic!("recv_async().await failed")
             }
         }
-        self.value.as_ref()
+        self.value.as_ref().unwrap()
     }
 
     fn read_value_from_mapped_buffer(&mut self) {
