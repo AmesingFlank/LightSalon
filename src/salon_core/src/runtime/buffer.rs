@@ -1,4 +1,3 @@
-use std::sync::mpsc::Receiver;
 use std::sync::Arc;
 
 use crate::{ir::Op, runtime::Runtime};
@@ -55,7 +54,7 @@ impl RingBuffer {
 pub struct BufferReader<ValueType> {
     runtime: Arc<Runtime>,
     buffer: Arc<Buffer>,
-    map_ready_receiver: Receiver<()>,
+    map_ready_receiver: flume::Receiver<()>,
     transform: Box<dyn FnOnce(Vec<u32>) -> ValueType>,
     value: Option<ValueType>,
     pending_read: bool,
@@ -79,26 +78,38 @@ impl<ValueType> BufferReader<ValueType> {
         }
     }
 
-    pub fn poll(&mut self) {
-        if self.pending_read {
-            if let Ok(_) = self.map_ready_receiver.try_recv() {
-                let data: Vec<u32> = self.runtime.read_mapped_buffer(&self.buffer);
-                let transform = std::mem::replace(
-                    &mut self.transform,
-                    Box::new(|_| panic!("Function called more than once")),
-                );
-                self.value = Some(transform(data));
-                self.pending_read = false;
-            }
-        }
+    pub fn take_value(&mut self) -> Option<ValueType> {
+        self.value.take()
     }
 
-    pub fn value_ref(&self) -> Option<&ValueType> {
+    pub fn poll_value(&mut self) -> Option<&ValueType> {
+        if self.pending_read {
+            if let Ok(_) = self.map_ready_receiver.try_recv() {
+                self.read_value_from_mapped_buffer();
+            }
+        }
         self.value.as_ref()
     }
 
-    pub fn take_value(&mut self) -> Option<ValueType> {
-        self.value.take()
+    pub async fn await_value(&mut self) -> Option<&ValueType> {
+        if self.pending_read {
+            if let Ok(_) = self.map_ready_receiver.recv_async().await {
+                self.read_value_from_mapped_buffer()
+            } else {
+                panic!("recv_async().await failed")
+            }
+        }
+        self.value.as_ref()
+    }
+
+    fn read_value_from_mapped_buffer(&mut self) {
+        let data: Vec<u32> = self.runtime.read_mapped_buffer(&self.buffer);
+        let transform = std::mem::replace(
+            &mut self.transform,
+            Box::new(|_| panic!("Function called more than once")),
+        );
+        self.value = Some(transform(data));
+        self.pending_read = false;
     }
 
     pub fn pending_read(&self) -> bool {

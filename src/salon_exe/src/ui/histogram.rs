@@ -13,7 +13,7 @@ pub fn histogram(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) 
         .default_open(true)
         .show(ui, |ui| {
             if let Some(ref mut result) = session.editor.current_result {
-                if let Some(hist) = result.histogram_final.value_ref() {
+                if let Some(hist) = result.histogram_final.poll_value() {
                     let get_line_data = |v: &Vec<u32>| {
                         let line_data: Vec<[f64; 2]> = (0..hist.num_bins)
                             .map(|i| [i as f64 / hist.num_bins as f64, v[i as usize] as f64])

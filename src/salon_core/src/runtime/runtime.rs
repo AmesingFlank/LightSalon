@@ -9,8 +9,6 @@ use crate::runtime::{
     sampler::Sampler,
 };
 
-use std::sync::mpsc::{channel, Receiver, Sender};
-
 pub struct Runtime {
     pub adapter: Arc<wgpu::Adapter>,
     pub device: Arc<wgpu::Device>,
@@ -364,7 +362,7 @@ impl Runtime {
         }
     }
 
-    pub fn map_host_readable_buffer(&self, buffer: &Buffer) -> Receiver<()> {
+    pub fn map_host_readable_buffer(&self, buffer: &Buffer) -> flume::Receiver<()> {
         assert!(
             buffer.properties.host_readable,
             "read_buffer can only be used for host readable buffers"
@@ -386,7 +384,7 @@ impl Runtime {
         );
         self.queue.submit(Some(encoder.finish()));
         let buffer_slice = buffer_host_readable.slice(..);
-        let (sender, receiver) = channel();
+        let (sender, receiver) = flume::bounded(1);
         buffer_slice.map_async(wgpu::MapMode::Read, move |_r| {
             // if the receiver has been dropped this might fail, but that's OK?
             let _ = sender.send(());

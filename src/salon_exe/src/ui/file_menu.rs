@@ -17,6 +17,12 @@ pub fn file_menu(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) 
             let ctx = ui.ctx().clone();
             file_dialogue_import_image(ctx, session, ui_state);
         }
+
+        if ui.button("Export Image").clicked() {
+            ui.close_menu();
+            let ctx = ui.ctx().clone();
+            file_dialogue_export_image(ctx, session, ui_state);
+        }
     });
 }
 
@@ -34,6 +40,43 @@ fn file_dialogue_import_image(
     execute(async move {
         let file = task.await;
         if let Some(file) = file {
+            let file_name = file.file_name();
+            let file_name_parts: Vec<&str> = file_name.split(".").collect();
+            let ext = file_name_parts.last().unwrap().to_owned();
+
+            let image_data = file.read().await;
+            let image = runtime.create_image_from_bytes_and_extension(image_data.as_slice(), ext);
+            match image {
+                Ok(img) => {
+                    let added_img = AddedImage {
+                        image: Arc::new(img),
+                    };
+                    let _ = sender.send(added_img);
+                    context.request_repaint();
+                }
+                Err(_) => {}
+            }
+        }
+    });
+}
+
+fn file_dialogue_export_image(
+    context: egui::Context,
+    session: &mut Session,
+    ui_state: &mut AppUiState,
+) {
+    let task = rfd::AsyncFileDialog::new()
+        .add_filter("extension", &["jpg"])
+        .save_file();
+    let runtime = session.runtime.clone();
+    let sender = ui_state.added_image_channel.0.clone();
+
+    execute(async move {
+        let file = task.await;
+        if let Some(file) = file {
+            // if let Some(ref result) = session.editor.current_result {
+            //     result.final_image.
+            // }
             let file_name = file.file_name();
             let file_name_parts: Vec<&str> = file_name.split(".").collect();
             let ext = file_name_parts.last().unwrap().to_owned();

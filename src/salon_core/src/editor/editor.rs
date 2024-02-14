@@ -165,7 +165,7 @@ impl Editor {
 
     pub fn poll_current_result_buffer_readers(&mut self) {
         if let Some(ref mut curr_result) = self.current_result {
-            curr_result.histogram_final.poll();
+            curr_result.histogram_final.poll_value();
         }
     }
 
@@ -185,7 +185,7 @@ impl Editor {
             let mut histogram_initial_value = None;
             if let Some(ref mut curr_result) = self.current_result {
                 let current_histogram = &mut curr_result.histogram_final;
-                current_histogram.poll();
+                current_histogram.poll_value();
                 if current_histogram.pending_read()
                     && Arc::ptr_eq(current_histogram.buffer(), final_histogram_buffer)
                 {

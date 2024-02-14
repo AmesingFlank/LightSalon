@@ -1,9 +1,5 @@
-use image::GenericImageView;
-use std::{
-    path::PathBuf,
-    sync::{mpsc::Receiver, Arc},
-};
-use crate::runtime::{self, BufferProperties};
+use crate::runtime::BufferProperties;
+use std::sync::Arc;
 
 use super::{Buffer, Runtime};
 
@@ -91,8 +87,9 @@ pub struct ImageReader {
     runtime: Arc<Runtime>,
     image: Arc<Image>,
     buffer: Arc<Buffer>,
-    map_ready_receiver: Receiver<()>,
+    map_ready_receiver: flume::Receiver<()>,
     result_dynamic_image: Option<image::DynamicImage>,
+    pending_read: bool,
 }
 
 impl ImageReader {
@@ -115,24 +112,40 @@ impl ImageReader {
             buffer: Arc::new(buffer),
             map_ready_receiver,
             result_dynamic_image: None,
+            pending_read: true,
         }
-    }
-
-    pub fn poll(&mut self) {
-        if let Ok(_) = self.map_ready_receiver.try_recv() {
-            let data: Vec<u8> = self.runtime.read_mapped_buffer(&self.buffer);
-            let dynamic_image = self.runtime.create_dynamic_image_from_bytes_jpg_png(&data);
-            let dynamic_image = dynamic_image.expect("Couldn't read image");
-            self.result_dynamic_image = Some(dynamic_image);
-        }
-    }
-
-    pub fn dynamic_image_ref(&self) -> Option<&image::DynamicImage> {
-        self.result_dynamic_image.as_ref()
     }
 
     pub fn take_dynamic_image(&mut self) -> Option<image::DynamicImage> {
         self.result_dynamic_image.take()
+    }
+
+    pub fn poll_dynamic_image(&mut self) -> Option<&image::DynamicImage> {
+        if self.pending_read {
+            if let Ok(_) = self.map_ready_receiver.try_recv() {
+                self.read_dynamic_image_from_mapped_buffer();
+            }
+        }
+        self.result_dynamic_image.as_ref()
+    }
+
+    pub async fn await_dynamic_image(&mut self) -> Option<&image::DynamicImage> {
+        if self.pending_read {
+            if let Ok(_) = self.map_ready_receiver.recv_async().await {
+                self.read_dynamic_image_from_mapped_buffer();
+            } else {
+                panic!("recv_async().await failed")
+            }
+        }
+        self.result_dynamic_image.as_ref()
+    }
+
+    fn read_dynamic_image_from_mapped_buffer(&mut self) {
+        let data: Vec<u8> = self.runtime.read_mapped_buffer(&self.buffer);
+        let dynamic_image = self.runtime.create_dynamic_image_from_bytes_jpg_png(&data);
+        let dynamic_image = dynamic_image.expect("Couldn't read image");
+        self.result_dynamic_image = Some(dynamic_image);
+        self.pending_read = false;
     }
 
     pub fn pending_read(&self) -> bool {
