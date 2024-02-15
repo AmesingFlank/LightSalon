@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use crate::{
     ir::{Id, Value},
-    runtime::{Runtime, ImageProperties, Image, BufferProperties, Buffer},
+    runtime::{Buffer, BufferProperties, Image, ImageProperties, Runtime},
 };
 
 pub struct ValueStore {
@@ -55,7 +55,10 @@ impl ValueStore {
             None => {}
             Some(val) => match val {
                 Value::Buffer(ref buf) => {
-                    if buf.properties == *properties {
+                    if buf.properties == *properties
+                        && !runtime.buffer_is_being_mapped(buf.as_ref())
+                    // don't reuse buffers that are currently mapped
+                    {
                         needs_create_buffer = false;
                     }
                 }

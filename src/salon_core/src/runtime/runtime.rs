@@ -1,4 +1,9 @@
-use std::{io::Cursor, path::PathBuf, sync::Arc};
+use std::{
+    collections::HashSet,
+    io::Cursor,
+    path::PathBuf,
+    sync::{Arc, RwLock},
+};
 
 use bytemuck::Pod;
 use image::{buffer, imageops, DynamicImage, GenericImageView, ImageBuffer, Rgb};
@@ -13,6 +18,19 @@ pub struct Runtime {
     pub adapter: Arc<wgpu::Adapter>,
     pub device: Arc<wgpu::Device>,
     pub queue: Arc<wgpu::Queue>,
+    pub state: RwLock<RuntimeState>,
+}
+
+pub struct RuntimeState {
+    pub buffers_being_mapped: HashSet<u32>,
+}
+
+impl RuntimeState {
+    pub fn new() -> Self {
+        Self {
+            buffers_being_mapped: HashSet::new(),
+        }
+    }
 }
 
 impl Runtime {
@@ -25,6 +43,7 @@ impl Runtime {
             adapter,
             device,
             queue,
+            state: RwLock::new(RuntimeState::new()),
         };
         runtime
     }
@@ -390,6 +409,8 @@ impl Runtime {
             let _ = sender.send(());
         });
         self.device.poll(wgpu::Maintain::wait()).panic_on_timeout();
+        let mut s = self.state.write().expect("failed to write runtime state");
+        s.buffers_being_mapped.insert(buffer.uuid);
         receiver
     }
 
@@ -409,7 +430,16 @@ impl Runtime {
         let result: Vec<T> = bytemuck::cast_slice(&mapped_range).to_vec();
         drop(mapped_range);
         buffer_host_readable.unmap();
-
+        let mut s = self.state.write().expect("failed to write runtime state");
+        s.buffers_being_mapped.remove(&buffer.uuid);
         result
+    }
+
+    pub fn buffer_is_being_mapped(&self, buffer: &Buffer) -> bool {
+        self.state
+            .read()
+            .expect("failed to read runtime state")
+            .buffers_being_mapped
+            .contains(&buffer.uuid)
     }
 }

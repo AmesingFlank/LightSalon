@@ -172,8 +172,6 @@ impl eframe::App for App {
             return;
         }
 
-        self.session.editor.poll_current_result_buffer_readers();
-
         self.reset_widget_render_resources(frame);
         ui::app_ui(ctx, &mut self.session, &mut self.ui_state);
 
@@ -182,7 +180,5 @@ impl eframe::App for App {
             self.ui_state.reset_for_different_image();
             self.session.set_current_image(index);
         }
-
-        self.session.editor.begin_collect_current_execution_result();
     }
 }

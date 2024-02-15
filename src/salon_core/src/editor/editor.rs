@@ -23,7 +23,6 @@ pub struct Editor {
     // (e.g. as the user drags the slider, the temporary edit state)
     transient_edit: Option<Edit>,
 
-    current_execution_id_store: Option<IdStore>,
     pub current_result: Option<EditResult>,
 
     runtime: Arc<Runtime>,
@@ -42,7 +41,6 @@ impl Editor {
             current_edit_index: 0,
             transient_edit: None,
 
-            current_execution_id_store: None,
             current_result: None,
 
             engine_execution_context: ExecutionContext::new(),
@@ -136,7 +134,7 @@ impl Editor {
             let (module, id_store) = to_ir_module(&self.edit_history[self.current_edit_index]);
             self.engine
                 .execute_module(&module, img.clone(), &mut self.engine_execution_context);
-            self.current_execution_id_store = Some(id_store);
+            self.collect_result(&id_store);
         }
     }
 
@@ -149,7 +147,7 @@ impl Editor {
                     img.clone(),
                     &mut self.engine_execution_context,
                 );
-                self.current_execution_id_store = Some(id_store);
+                self.collect_result(&id_store);
             }
         }
     }
@@ -163,83 +161,66 @@ impl Editor {
         }
     }
 
-    pub fn poll_current_result_buffer_readers(&mut self) {
+    pub fn collect_result(&mut self, id_store: &IdStore) {
+        let value_map = &self.engine_execution_context.value_store.map;
+
+        let output_value = value_map.get(&id_store.output).expect("cannot find output");
+        let output_image = output_value.as_image().clone();
+        self.mipmap_generator.generate(&output_image);
+
+        let final_histogram_buffer = value_map
+            .get(&id_store.final_histogram)
+            .expect("cannot find data for editor")
+            .as_buffer();
+
+        let mut histogram_initial_value = None;
         if let Some(ref mut curr_result) = self.current_result {
-            curr_result.histogram_final.poll_value();
+            let current_histogram = &mut curr_result.histogram_final;
+            current_histogram.poll_value();
+            histogram_initial_value = current_histogram.take_value();
         }
-    }
+        let final_histogram = BufferReader::new(
+            self.runtime.clone(),
+            final_histogram_buffer.clone(),
+            histogram_initial_value,
+            Box::new(|v| ImageHistogram::from_u32_slice(v.as_slice())),
+        );
 
-    pub fn begin_collect_current_execution_result(&mut self) {
-        if let Some(ref id_store) = self.current_execution_id_store {
-            let value_map = &self.engine_execution_context.value_store.map;
+        let mut masked_edit_results = Vec::new();
 
-            let output_value = value_map.get(&id_store.output).expect("cannot find output");
-            let output_image = output_value.as_image().clone();
-            self.mipmap_generator.generate(&output_image);
-
-            let final_histogram_buffer = value_map
-                .get(&id_store.final_histogram)
-                .expect("cannot find data for editor")
-                .as_buffer();
-
-            let mut histogram_initial_value = None;
-            if let Some(ref mut curr_result) = self.current_result {
-                let current_histogram = &mut curr_result.histogram_final;
-                current_histogram.poll_value();
-                if current_histogram.pending_read()
-                    && Arc::ptr_eq(current_histogram.buffer(), final_histogram_buffer)
-                {
-                    // existing result uses the same histogram buffer, and that buffer is still pending read
-                    // so not safe to map and read it again.
-                    return;
-                }
-                // make sure any previous values are passed-on;
-                histogram_initial_value = current_histogram.take_value();
-            }
-            let final_histogram = BufferReader::new(
-                self.runtime.clone(),
-                final_histogram_buffer.clone(),
-                histogram_initial_value,
-                Box::new(|v| ImageHistogram::from_u32_slice(v.as_slice())),
-            );
-
-            let mut masked_edit_results = Vec::new();
-
-            for masked_edit_id_store in id_store.masked_edit_id_stores.iter() {
-                let mask = value_map
-                    .get(&masked_edit_id_store.mask_id)
-                    .expect("cannot find mask")
+        for masked_edit_id_store in id_store.masked_edit_id_stores.iter() {
+            let mask = value_map
+                .get(&masked_edit_id_store.mask_id)
+                .expect("cannot find mask")
+                .as_image()
+                .clone();
+            let result_image = value_map
+                .get(&masked_edit_id_store.result_image_id)
+                .expect("cannot find result image")
+                .as_image()
+                .clone();
+            let mut mask_terms = Vec::new();
+            for term_id in masked_edit_id_store.term_ids.iter() {
+                let term = value_map
+                    .get(&term_id)
+                    .expect("cannot find term")
                     .as_image()
                     .clone();
-                let result_image = value_map
-                    .get(&masked_edit_id_store.result_image_id)
-                    .expect("cannot find result image")
-                    .as_image()
-                    .clone();
-                let mut mask_terms = Vec::new();
-                for term_id in masked_edit_id_store.term_ids.iter() {
-                    let term = value_map
-                        .get(&term_id)
-                        .expect("cannot find term")
-                        .as_image()
-                        .clone();
-                    mask_terms.push(term)
-                }
-                masked_edit_results.push(MaskedEditResult {
-                    mask,
-                    mask_terms,
-                    result_image,
-                })
+                mask_terms.push(term)
             }
-
-            let result = EditResult {
-                final_image: output_image,
-                histogram_final: final_histogram,
-                masked_edit_results,
-            };
-
-            self.current_result = Some(result);
+            masked_edit_results.push(MaskedEditResult {
+                mask,
+                mask_terms,
+                result_image,
+            })
         }
-        self.current_execution_id_store = None;
+
+        let result = EditResult {
+            final_image: output_image,
+            histogram_final: final_histogram,
+            masked_edit_results,
+        };
+
+        self.current_result = Some(result);
     }
 }
