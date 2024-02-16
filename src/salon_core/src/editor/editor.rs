@@ -134,7 +134,7 @@ impl Editor {
             let (module, id_store) = to_ir_module(&self.edit_history[self.current_edit_index]);
             self.engine
                 .execute_module(&module, img.clone(), &mut self.engine_execution_context);
-            self.collect_result(&id_store);
+            self.current_result = Some(self.collect_result(&id_store));
         }
     }
 
@@ -147,7 +147,7 @@ impl Editor {
                     img.clone(),
                     &mut self.engine_execution_context,
                 );
-                self.collect_result(&id_store);
+                self.current_result = Some(self.collect_result(&id_store));
             }
         }
     }
@@ -161,7 +161,7 @@ impl Editor {
         }
     }
 
-    pub fn collect_result(&mut self, id_store: &IdStore) {
+    fn collect_result(&mut self, id_store: &IdStore) -> EditResult {
         let value_map = &self.engine_execution_context.value_store.map;
 
         let output_value = value_map.get(&id_store.output).expect("cannot find output");
@@ -215,12 +215,10 @@ impl Editor {
             })
         }
 
-        let result = EditResult {
+        EditResult {
             final_image: output_image,
             histogram_final: final_histogram,
             masked_edit_results,
-        };
-
-        self.current_result = Some(result);
+        }
     }
 }
