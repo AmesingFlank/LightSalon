@@ -35,7 +35,7 @@ pub fn main_image(
         if ui_state.editor_panel == EditorPanel::CropAndRotate {
             if let Some(ref original_image) = session.editor.current_input_image {
                 let size = get_image_size_in_ui(ui, original_image.aspect_ratio());
-                let (rect, response) = ui.allocate_exact_size(size, egui::Sense::click_and_drag());
+                let (rect, response) = ui.allocate_exact_size(size, egui::Sense::drag());
 
                 let transient_edit = session.editor.clone_transient_edit();
 
@@ -101,7 +101,7 @@ pub fn main_image(
             }
             if let Some(ref result) = session.editor.current_result {
                 let size = get_image_size_in_ui(ui, result.final_image.aspect_ratio());
-                let (rect, response) = ui.allocate_exact_size(size, egui::Sense::click_and_drag());
+                let (rect, response) = ui.allocate_exact_size(size, egui::Sense::drag());
                 let mut mask = None;
                 if let Some(term_index) = ui_state.selected_mask_term_index {
                     mask = Some(
