@@ -152,6 +152,15 @@ impl Editor {
         }
     }
 
+    pub fn execute_current_edit_original_scale(&mut self, img: Arc<Image>) -> EditResult {
+        let mut edit = self.edit_history[self.current_edit_index].clone();
+        edit.scale_factor = None;
+        let (module, id_store) = to_ir_module(&edit);
+        self.engine
+            .execute_module(&module, img, &mut self.engine_execution_context);
+        self.collect_result(&id_store)
+    }
+
     pub fn override_scale_factor(&mut self, new_scale_factor: f32) {
         if let Some(ref mut e) = self.transient_edit {
             e.scale_factor = Some(new_scale_factor);
