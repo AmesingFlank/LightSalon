@@ -66,7 +66,8 @@ pub fn curve(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState, edit
                 .include_y(0.0 - margin)
                 .include_y(1.0 + margin)
                 .show_axes([false, false])
-                .show_grid([false, false]);
+                .show_grid([false, false])
+                .sense(egui::Sense::drag());
 
             let response = plot.show(ui, |plot_ui| {
                 let ptr_coords = plot_ui.pointer_coordinate();
