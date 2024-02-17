@@ -105,6 +105,7 @@ impl ImageReaderJpeg {
             size: image_data_size as usize,
             host_readable: true,
         });
+        runtime.copy_image_to_host_readable_buffer(&image, &buffer);
         let map_ready_receiver = runtime.map_host_readable_buffer(&buffer);
         Self {
             runtime,
@@ -150,7 +151,9 @@ impl ImageReaderJpeg {
             image::ImageBuffer::from_raw(w, h, data).unwrap();
         let mut jpeg: Vec<u8> = Vec::new();
         let mut encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut jpeg, 100);
-        encoder.encode(&image_buffer, w,h, image::ColorType::Rgba8).expect("Failed to encode image into jpeg");
+        encoder
+            .encode(&image_buffer, w, h, image::ColorType::Rgba8)
+            .expect("Failed to encode image into jpeg");
         self.result_jpeg_data = Some(jpeg);
     }
 

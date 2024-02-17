@@ -5,7 +5,7 @@ use eframe::{
 };
 use egui_extras::{Column, TableBuilder};
 use salon_core::{
-    runtime::{ColorSpace, ImageReaderJpeg},
+    runtime::{ColorSpace, ImageFormat, ImageReaderJpeg},
     session::Session,
 };
 use std::{future::Future, sync::Arc};
@@ -73,8 +73,11 @@ fn file_dialogue_export_image(
         .save_file();
     let runtime = session.runtime.clone();
 
-    if let Some(ref result) = session.editor.current_result {
+    if let Some(ref input_img) = session.editor.current_input_image {
+        let result = session.editor.execute_current_edit_original_scale(input_img.clone());
         let final_image = result.final_image.clone();
+        let final_image = session.toolbox.convert_color_space(final_image, ColorSpace::sRGB);
+        let final_image = session.toolbox.convert_image_format(final_image, ImageFormat::Rgba8Unorm);
         let mut image_reader = ImageReaderJpeg::new(runtime.clone(), final_image);
         execute(async move {
             let file = task.await;
