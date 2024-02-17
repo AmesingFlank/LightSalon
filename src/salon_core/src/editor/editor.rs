@@ -2,7 +2,7 @@ use std::sync::{mpsc::Receiver, Arc};
 
 use crate::{
     engine::{common::ImageHistogram, Engine, ExecutionContext},
-    runtime::{Buffer, BufferReader, Image, MipmapGenerator, Runtime},
+    runtime::{Buffer, BufferReader, Image, Runtime, Toolbox},
 };
 
 use super::{
@@ -26,13 +26,12 @@ pub struct Editor {
     pub current_result: Option<EditResult>,
 
     runtime: Arc<Runtime>,
-    mipmap_generator: MipmapGenerator,
+    toolbox: Arc<Toolbox>,
 }
 
 impl Editor {
-    pub fn new(runtime: Arc<Runtime>) -> Self {
-        let engine = Engine::new(runtime.clone());
-        let mipmap_generator = MipmapGenerator::new(runtime.clone());
+    pub fn new(runtime: Arc<Runtime>, toolbox: Arc<Toolbox>) -> Self {
+        let engine = Engine::new(runtime.clone(), toolbox.clone());
         Editor {
             engine,
             current_input_image: None,
@@ -45,7 +44,7 @@ impl Editor {
 
             engine_execution_context: ExecutionContext::new(),
             runtime,
-            mipmap_generator,
+            toolbox,
         }
     }
 
@@ -175,7 +174,7 @@ impl Editor {
 
         let output_value = value_map.get(&id_store.output).expect("cannot find output");
         let output_image = output_value.as_image().clone();
-        self.mipmap_generator.generate(&output_image);
+        self.toolbox.generate_mipmap(&output_image);
 
         let final_histogram_buffer = value_map
             .get(&id_store.final_histogram)

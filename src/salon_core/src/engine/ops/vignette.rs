@@ -1,7 +1,9 @@
 use std::{collections::HashMap, mem::size_of, sync::Arc};
 
+use crate::runtime::Toolbox;
+
 use crate::{
-    engine::{toolbox::Toolbox, value_store::ValueStore},
+    engine::{value_store::ValueStore},
     ir::{AdjustVignetteOp, Id},
     runtime::ColorSpace,
     runtime::{
@@ -56,7 +58,7 @@ impl AdjustVignetteImpl {
         encoder: &mut wgpu::CommandEncoder,
         op: &AdjustVignetteOp,
         value_store: &mut ValueStore,
-        toolbox: &mut Toolbox,
+        toolbox: &Toolbox,
     ) {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
         let output_img = value_store.ensure_value_at_id_is_image_of_properties(

@@ -2,21 +2,24 @@ use std::sync::Arc;
 
 use crate::editor::Editor;
 use crate::library::Library;
-use crate::runtime::Runtime;
+use crate::runtime::{Runtime, Toolbox};
 
 pub struct Session {
     pub library: Library,
     pub editor: Editor,
     pub state: SessionState,
     pub runtime: Arc<Runtime>,
+    pub toolbox: Arc<Toolbox>,
 }
 
 impl Session {
     pub fn new(runtime: Arc<Runtime>) -> Self {
+        let toolbox = Arc::new(Toolbox::new(runtime.clone()));
         Session {
-            library: Library::new(runtime.clone()),
-            editor: Editor::new(runtime.clone()),
+            library: Library::new(toolbox.clone()),
+            editor: Editor::new(runtime.clone(), toolbox.clone()),
             state: SessionState::new(),
+            toolbox,
             runtime,
         }
     }

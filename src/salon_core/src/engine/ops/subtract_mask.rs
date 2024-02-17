@@ -1,7 +1,9 @@
 use std::{collections::HashMap, mem::size_of, sync::Arc};
 
+use crate::runtime::Toolbox;
+
 use crate::{
-    engine::{toolbox::Toolbox, value_store::ValueStore},
+    engine::value_store::ValueStore,
     ir::{Id, SubtractMaskOp},
     runtime::{
         BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager,
@@ -41,7 +43,7 @@ impl SubtractMaskImpl {
         encoder: &mut wgpu::CommandEncoder,
         op: &SubtractMaskOp,
         value_store: &mut ValueStore,
-        toolbox: &mut Toolbox,
+        toolbox: &Toolbox,
     ) {
         let mask_0 = value_store.map.get(&op.mask_0).unwrap().as_image().clone();
         let mask_1 = value_store.map.get(&op.mask_1).unwrap().as_image().clone();
@@ -82,8 +84,6 @@ impl SubtractMaskImpl {
             compute_pass.dispatch_workgroups(num_workgroups_x, num_workgroups_y, 1);
         }
 
-        toolbox
-            .mipmap_generator
-            .encode_mipmap_generation_command(&output_img, encoder);
+        toolbox.encode_mipmap_generation_command(&output_img, encoder);
     }
 }

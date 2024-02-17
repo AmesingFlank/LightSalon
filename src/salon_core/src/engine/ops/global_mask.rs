@@ -1,7 +1,9 @@
 use std::{collections::HashMap, mem::size_of, sync::Arc};
 
+use crate::runtime::Toolbox;
+
 use crate::{
-    engine::{toolbox::Toolbox, value_store::ValueStore},
+    engine::value_store::ValueStore,
     ir::{ComputeGlobalMaskOp, Id},
     runtime::{
         BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager,
@@ -56,7 +58,7 @@ impl ComputeGlobalMaskImpl {
         encoder: &mut wgpu::CommandEncoder,
         op: &ComputeGlobalMaskOp,
         value_store: &mut ValueStore,
-        toolbox: &mut Toolbox,
+        toolbox: &Toolbox,
     ) {
         let target_img = value_store.map.get(&op.target).unwrap().as_image().clone();
 
@@ -102,8 +104,6 @@ impl ComputeGlobalMaskImpl {
             compute_pass.dispatch_workgroups(num_workgroups_x, num_workgroups_y, 1);
         }
 
-        toolbox
-            .mipmap_generator
-            .encode_mipmap_generation_command(&output_img, encoder);
+        toolbox.encode_mipmap_generation_command(&output_img, encoder);
     }
 }

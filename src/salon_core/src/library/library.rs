@@ -1,29 +1,18 @@
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
-use crate::runtime::{ColorSpace, Image};
-use crate::runtime::{ImageFormat, ImageFormatConverter, Runtime};
-
-use crate::runtime::{ColorSpaceConverter, MipmapGenerator};
+use crate::runtime::{ColorSpace, Image, Toolbox};
+use crate::runtime::{ImageFormat, Runtime};
 
 pub struct Library {
     images: Vec<Arc<Image>>,
-    runtime: Arc<Runtime>,
-    color_space_converter: ColorSpaceConverter,
-    image_format_converter: ImageFormatConverter,
-    mipmap_generator: MipmapGenerator,
+    toolbox: Arc<Toolbox>,
 }
 
 impl Library {
-    pub fn new(runtime: Arc<Runtime>) -> Self {
-        let color_space_converter = ColorSpaceConverter::new(runtime.clone());
-        let image_format_converter = ImageFormatConverter::new(runtime.clone());
-        let mipmap_generator = MipmapGenerator::new(runtime.clone());
+    pub fn new(toolbox: Arc<Toolbox>) -> Self {
         Self {
             images: Vec::new(),
-            runtime,
-            color_space_converter,
-            image_format_converter,
-            mipmap_generator,
+            toolbox,
         }
     }
 
@@ -32,12 +21,12 @@ impl Library {
     }
     pub fn add_image(&mut self, image: Arc<Image>) -> usize {
         let image = self
-            .image_format_converter
-            .convert(image, ImageFormat::Rgba16Float);
+            .toolbox
+            .convert_image_format(image, ImageFormat::Rgba16Float);
         let image = self
-            .color_space_converter
-            .convert(image, ColorSpace::LinearRGB);
-        self.mipmap_generator.generate(&image);
+            .toolbox
+            .convert_color_space(image, ColorSpace::LinearRGB);
+        self.toolbox.generate_mipmap(&image);
         self.images.push(image);
         self.images.len() - 1
     }

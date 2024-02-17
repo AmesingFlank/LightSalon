@@ -4,7 +4,7 @@ use exif::In;
 
 use crate::{
     ir::{Id, InputOp, Module, Op, Value},
-    runtime::{Image, MipmapGenerator, Runtime},
+    runtime::{Image, Runtime, Toolbox},
 };
 
 use super::{
@@ -26,25 +26,24 @@ use super::{
         invert_mask::InvertMaskImpl,
         linear_gradient_mask::ComputeLinearGradientMaskImpl,
         radial_gradient_mask::ComputeRadialGradientMaskImpl,
+        scale::ScaleImpl,
         subtract_mask::{self, SubtractMaskImpl},
         temperature_tint::AdjustTemperatureAndTintImpl,
         vibrance_saturation::AdjustVibranceAndSaturationImpl,
-        vignette::AdjustVignetteImpl, scale::ScaleImpl,
+        vignette::AdjustVignetteImpl,
     },
-    toolbox::Toolbox,
     value_store::ValueStore,
     ExecutionContext,
 };
 
 pub struct Engine {
     runtime: Arc<Runtime>,
+    toolbox: Arc<Toolbox>,
     op_impls: OpImplCollection,
-    toolbox: Toolbox,
 }
 
 impl Engine {
-    pub fn new(runtime: Arc<Runtime>) -> Self {
-        let toolbox = Toolbox::new(runtime.clone());
+    pub fn new(runtime: Arc<Runtime>, toolbox: Arc<Toolbox>) -> Self {
         Engine {
             runtime,
             toolbox,

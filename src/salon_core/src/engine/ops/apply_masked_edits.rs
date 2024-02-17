@@ -1,7 +1,9 @@
 use std::{collections::HashMap, mem::size_of, sync::Arc};
 
+use crate::runtime::Toolbox;
+
 use crate::{
-    engine::{toolbox::Toolbox, value_store::ValueStore},
+    engine::{value_store::ValueStore},
     ir::{ApplyMaskedEditsOp, Id},
     runtime::{
         BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager,
@@ -43,7 +45,7 @@ impl ApplyMaskedEditsImpl {
         encoder: &mut wgpu::CommandEncoder,
         op: &ApplyMaskedEditsOp,
         value_store: &mut ValueStore,
-        toolbox: &mut Toolbox,
+        toolbox: &Toolbox,
     ) {
         let original_img = value_store
             .map
