@@ -298,51 +298,6 @@ impl Runtime {
         self.queue.submit(Some(encoder.finish()));
     }
 
-    pub fn copy_image_to_host_readable_buffer(&self, image: &Image, buffer: &Buffer) {
-        let bytes_per_row =
-            image.properties.dimensions.0 * image.properties.format.bytes_per_pixel();
-        let image_data_size = bytes_per_row * image.properties.dimensions.1;
-        assert!(
-            image_data_size as usize <= buffer.properties.size,
-            "buffer not big enough to hold the image"
-        );
-        assert!(
-            buffer.properties.host_readable,
-            "read_buffer can only be used for host readable buffers"
-        );
-        assert!(
-            buffer.buffer_host_readable.is_some(),
-            "missing host readable buffer"
-        );
-        let buffer_host_readable = buffer.buffer_host_readable.as_ref().unwrap();
-
-        let mut encoder = self
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-        let zero_origin = wgpu::Origin3d { x: 0, y: 0, z: 0 };
-        let src_copy = wgpu::ImageCopyTexture {
-            texture: &image.texture,
-            mip_level: 0,
-            origin: zero_origin,
-            aspect: wgpu::TextureAspect::All,
-        };
-        let dest_copy = wgpu::ImageCopyBuffer {
-            buffer: buffer_host_readable,
-            layout: wgpu::ImageDataLayout {
-                offset: 0,
-                bytes_per_row: Some(bytes_per_row),
-                rows_per_image: Some(image.properties.dimensions.1),
-            },
-        };
-        let size = wgpu::Extent3d {
-            width: image.properties.dimensions.0,
-            height: image.properties.dimensions.1,
-            depth_or_array_layers: 1,
-        };
-        encoder.copy_texture_to_buffer(src_copy, dest_copy, size);
-        self.queue.submit(Some(encoder.finish()));
-    }
-
     pub fn create_sampler(&self, desc: &wgpu::SamplerDescriptor) -> Sampler {
         let sampler = self.device.create_sampler(desc);
         Sampler {

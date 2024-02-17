@@ -1,7 +1,7 @@
 use crate::runtime::BufferProperties;
 use std::sync::Arc;
 
-use super::{Buffer, Runtime};
+use super::{Buffer, Runtime, Toolbox};
 
 pub struct Image {
     pub properties: ImageProperties,
@@ -85,6 +85,7 @@ impl Image {
 
 pub struct ImageReaderJpeg {
     runtime: Arc<Runtime>,
+    toolbox: Arc<Toolbox>,
     image: Arc<Image>,
     buffer: Arc<Buffer>,
     map_ready_receiver: flume::Receiver<()>,
@@ -93,24 +94,18 @@ pub struct ImageReaderJpeg {
 }
 
 impl ImageReaderJpeg {
-    pub fn new(runtime: Arc<Runtime>, image: Arc<Image>) -> Self {
+    pub fn new(runtime: Arc<Runtime>, toolbox: Arc<Toolbox>, image: Arc<Image>) -> Self {
         assert!(
             image.properties.format == ImageFormat::Rgba8Unorm,
             "only reading Rgba8Unorm is supported"
         );
-        let image_data_size = image.properties.dimensions.0
-            * image.properties.dimensions.1
-            * image.properties.format.bytes_per_pixel();
-        let buffer = runtime.create_buffer_of_properties(BufferProperties {
-            size: image_data_size as usize,
-            host_readable: true,
-        });
-        runtime.copy_image_to_host_readable_buffer(&image, &buffer);
-        let map_ready_receiver = runtime.map_host_readable_buffer(&buffer);
+        let buffer = toolbox.copy_image_to_buffer(&image);
+        let map_ready_receiver: flume::Receiver<()> = runtime.map_host_readable_buffer(&buffer);
         Self {
             runtime,
+            toolbox,
             image,
-            buffer: Arc::new(buffer),
+            buffer,
             map_ready_receiver,
             result_jpeg_data: None,
             pending_read: true,
