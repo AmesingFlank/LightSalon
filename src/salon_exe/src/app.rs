@@ -83,6 +83,7 @@ impl App {
             max_texture_dimension_1d: max_dim,
             max_texture_dimension_2d: max_dim,
             max_buffer_size: max_buff_size,
+            max_storage_buffer_binding_size: max_buff_size as u32,
             ..Default::default()
         }
     }
