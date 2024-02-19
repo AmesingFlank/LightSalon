@@ -3,4 +3,5 @@ resolver = "2"
 members = [
     "src/salon_exe",
     "src/salon_core",
+    "src/rfd",
 ]
