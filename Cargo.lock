@@ -935,7 +935,7 @@ checksum = "9ea835d29036a4087793836fa931b08837ad5e957da9e23886b29586fb9b6650"
 [[package]]
 name = "ecolor"
 version = "0.26.2"
-source = "git+https://github.com/AmesingFlank/egui.git?branch=with_plot_sense#f7fc3b0154bfef4f7f787f0eab21c48fe497b583"
+source = "git+https://github.com/AmesingFlank/egui.git?branch=with_table_cell_interact_fix#ca8eeb8621592b8a74cc60f6890b0274165bb535"
 dependencies = [
  "bytemuck",
  "serde",
@@ -944,7 +944,7 @@ dependencies = [
 [[package]]
 name = "eframe"
 version = "0.26.2"
-source = "git+https://github.com/AmesingFlank/egui.git?branch=with_plot_sense#f7fc3b0154bfef4f7f787f0eab21c48fe497b583"
+source = "git+https://github.com/AmesingFlank/egui.git?branch=with_table_cell_interact_fix#ca8eeb8621592b8a74cc60f6890b0274165bb535"
 dependencies = [
  "bytemuck",
  "cocoa",
@@ -974,7 +974,7 @@ dependencies = [
 [[package]]
 name = "egui"
 version = "0.26.2"
-source = "git+https://github.com/AmesingFlank/egui.git?branch=with_plot_sense#f7fc3b0154bfef4f7f787f0eab21c48fe497b583"
+source = "git+https://github.com/AmesingFlank/egui.git?branch=with_table_cell_interact_fix#ca8eeb8621592b8a74cc60f6890b0274165bb535"
 dependencies = [
  "accesskit",
  "ahash",
@@ -987,7 +987,7 @@ dependencies = [
 [[package]]
 name = "egui-wgpu"
 version = "0.26.2"
-source = "git+https://github.com/AmesingFlank/egui.git?branch=with_plot_sense#f7fc3b0154bfef4f7f787f0eab21c48fe497b583"
+source = "git+https://github.com/AmesingFlank/egui.git?branch=with_table_cell_interact_fix#ca8eeb8621592b8a74cc60f6890b0274165bb535"
 dependencies = [
  "bytemuck",
  "document-features",
@@ -1004,7 +1004,7 @@ dependencies = [
 [[package]]
 name = "egui-winit"
 version = "0.26.2"
-source = "git+https://github.com/AmesingFlank/egui.git?branch=with_plot_sense#f7fc3b0154bfef4f7f787f0eab21c48fe497b583"
+source = "git+https://github.com/AmesingFlank/egui.git?branch=with_table_cell_interact_fix#ca8eeb8621592b8a74cc60f6890b0274165bb535"
 dependencies = [
  "accesskit_winit",
  "arboard",
@@ -1020,7 +1020,7 @@ dependencies = [
 [[package]]
 name = "egui_extras"
 version = "0.26.2"
-source = "git+https://github.com/AmesingFlank/egui.git?branch=with_plot_sense#f7fc3b0154bfef4f7f787f0eab21c48fe497b583"
+source = "git+https://github.com/AmesingFlank/egui.git?branch=with_table_cell_interact_fix#ca8eeb8621592b8a74cc60f6890b0274165bb535"
 dependencies = [
  "egui",
  "enum-map",
@@ -1032,7 +1032,7 @@ dependencies = [
 [[package]]
 name = "egui_plot"
 version = "0.26.2"
-source = "git+https://github.com/AmesingFlank/egui.git?branch=with_plot_sense#f7fc3b0154bfef4f7f787f0eab21c48fe497b583"
+source = "git+https://github.com/AmesingFlank/egui.git?branch=with_table_cell_interact_fix#ca8eeb8621592b8a74cc60f6890b0274165bb535"
 dependencies = [
  "egui",
 ]
@@ -1046,7 +1046,7 @@ checksum = "a26ae43d7bcc3b814de94796a5e736d4029efb0ee900c12e2d54c993ad1a1e07"
 [[package]]
 name = "emath"
 version = "0.26.2"
-source = "git+https://github.com/AmesingFlank/egui.git?branch=with_plot_sense#f7fc3b0154bfef4f7f787f0eab21c48fe497b583"
+source = "git+https://github.com/AmesingFlank/egui.git?branch=with_table_cell_interact_fix#ca8eeb8621592b8a74cc60f6890b0274165bb535"
 dependencies = [
  "bytemuck",
  "serde",
@@ -1121,7 +1121,7 @@ dependencies = [
 [[package]]
 name = "epaint"
 version = "0.26.2"
-source = "git+https://github.com/AmesingFlank/egui.git?branch=with_plot_sense#f7fc3b0154bfef4f7f787f0eab21c48fe497b583"
+source = "git+https://github.com/AmesingFlank/egui.git?branch=with_table_cell_interact_fix#ca8eeb8621592b8a74cc60f6890b0274165bb535"
 dependencies = [
  "ab_glyph",
  "ahash",
