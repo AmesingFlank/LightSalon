@@ -3,7 +3,9 @@ use std::{fmt, time::SystemTime};
 use std::sync::mpsc::{channel, Receiver, Sender};
 
 use eframe::egui;
-use salon_core::runtime::Image;
+use salon_core::runtime::{Image, Runtime};
+
+use super::ImageImportDialog;
 
 pub struct AppUiState {
     pub last_frame_size: Option<(f32, f32)>,
@@ -24,11 +26,14 @@ pub struct AppUiState {
     pub selected_mask_term_index: Option<usize>,
     pub mask_edit_state: MaskEditState,
 
-    pub added_image_channel: (Sender<AddedImage>, Receiver<AddedImage>),
+    pub import_image_dialog: ImageImportDialog,
+
+    runtime: Arc<Runtime>,
+    context: egui::Context,
 }
 
 impl AppUiState {
-    pub fn new() -> Self {
+    pub fn new(runtime: Arc<Runtime>, context: egui::Context) -> Self {
         AppUiState {
             last_frame_size: None,
             fps_counter: FpsCounterState::new(),
@@ -41,7 +46,9 @@ impl AppUiState {
             selected_mask_index: 0,
             selected_mask_term_index: None,
             mask_edit_state: MaskEditState::new(),
-            added_image_channel: channel(),
+            import_image_dialog: ImageImportDialog::new(runtime.clone(), context.clone()),
+            runtime,
+            context,
         }
     }
 

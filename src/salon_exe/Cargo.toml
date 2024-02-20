@@ -37,5 +37,5 @@ env_logger = "0.10"
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen-futures = "0.4"
 # needs to specify exact version here, because web-sys under `web_sys_unstable_apis` doesn't follow SemVer rules, and 0.3.68 fails to compile..
-web-sys = "=0.3.67" 
-
+web-sys = {version = "=0.3.67", features = ["File", "FilePropertyBag"]}
+js-sys = "=0.3.67"

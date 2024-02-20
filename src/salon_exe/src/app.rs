@@ -100,11 +100,11 @@ impl App {
         ));
 
         let session = Session::new(runtime.clone());
-        App::create_widget_render_resources(wgpu_render_state, runtime);
+        App::create_widget_render_resources(wgpu_render_state, runtime.clone());
 
         Self {
             session,
-            ui_state: AppUiState::new(),
+            ui_state: AppUiState::new(runtime.clone(), cc.egui_ctx.clone()),
         }
     }
 
@@ -176,7 +176,7 @@ impl eframe::App for App {
         self.reset_widget_render_resources(frame);
         ui::app_ui(ctx, &mut self.session, &mut self.ui_state);
 
-        if let Ok(added_image) = self.ui_state.added_image_channel.1.try_recv() {
+        if let Some(added_image) = self.ui_state.import_image_dialog.get_added_image() {
             let index = self.session.library.add_image(added_image.image);
             self.ui_state.reset_for_different_image();
             self.session.set_current_image(index);
