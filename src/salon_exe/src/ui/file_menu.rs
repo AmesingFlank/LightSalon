@@ -86,17 +86,26 @@ fn file_dialogue_export_image(
             let blob_parts = Array::new();
             blob_parts.push(&array.buffer());
 
-            log::info!("downloading now!");
-
             let file = File::new_with_blob_sequence_and_options(
                 &blob_parts.into(),
                 "output.jpg",
-                web_sys::FilePropertyBag::new().type_("application/octet-stream"),
+                web_sys::FilePropertyBag::new().type_("image/jpeg"),
             )
             .unwrap();
             let url = Url::create_object_url_with_blob(&file);
             if let Some(window) = web_sys::window() {
-                window.location().set_href(&url.unwrap()).ok();
+                let document = window.document().unwrap();
+                let body = document.body().unwrap();
+                let a = document
+                    .create_element("a")
+                    .unwrap()
+                    .dyn_into::<web_sys::HtmlAnchorElement>()
+                    .unwrap();
+                a.set_href(&url.unwrap());
+                a.set_download("output.jpg");
+                body.append_child(&a).unwrap();
+                a.click();
+                body.remove_child(&a).unwrap();
             }
         });
     }
