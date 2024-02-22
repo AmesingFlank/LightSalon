@@ -10,13 +10,15 @@ use super::{
     Edit, EditResult, MaskedEditResult,
 };
 
+pub type EditHistory = Vec<Edit>;
+
 pub struct Editor {
     engine: Engine,
     engine_execution_context: ExecutionContext,
 
     pub current_input_image: Option<Arc<Image>>,
 
-    edit_history: Vec<Edit>,
+    edit_history: EditHistory,
     current_edit_index: usize,
 
     // an edit that is being actively modified
@@ -36,7 +38,7 @@ impl Editor {
             engine,
             current_input_image: None,
 
-            edit_history: vec![Edit::new()],
+            edit_history: vec![Edit::trivial()],
             current_edit_index: 0,
             transient_edit: None,
 
@@ -49,8 +51,21 @@ impl Editor {
     }
 
     pub fn clear_edit_history(&mut self) {
-        self.edit_history = vec![Edit::new()];
-        self.current_edit_index = 0;
+        self.set_edit_history(vec![Edit::trivial()]);
+    }
+
+    pub fn set_edit_history(&mut self, history: EditHistory) {
+        self.edit_history = history;
+        self.current_edit_index = self.edit_history.len() - 1;
+    }
+
+    pub fn clone_edit_history(&self) -> EditHistory {
+        let mut history = self.edit_history.clone();
+        for e in history.iter_mut() {
+            // remove any scaling
+            e.scale_factor = None;
+        }
+        history
     }
 
     fn clone_current_edit(&self) -> Edit {

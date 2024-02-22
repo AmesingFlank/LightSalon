@@ -12,7 +12,7 @@ pub struct Edit {
 }
 
 impl Edit {
-    pub fn new() -> Self {
+    pub fn trivial() -> Self {
         Self {
             scale_factor: None,
             crop: None,
