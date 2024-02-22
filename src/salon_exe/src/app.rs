@@ -1,3 +1,4 @@
+use crate::ui::AddedImage;
 use crate::ui::{
     self, file_menu,
     widgets::{
@@ -12,7 +13,6 @@ use eframe::{
     epaint::Color32,
 };
 use salon_core::{runtime::Runtime, session::Session};
-
 use std::sync::Arc;
 
 pub struct App {
@@ -166,6 +166,31 @@ impl eframe::App for App {
         let is_first_frame = self.ui_state.last_frame_size.is_none();
         let last_frame_size = ctx.input(|i| i.screen_rect.size()); // egui has a 1-frame delay
         self.ui_state.last_frame_size = Some((last_frame_size.x, last_frame_size.y));
+
+        let raw_input = ctx.input(|i| i.raw.clone());
+        for dropped_file in raw_input.dropped_files {
+            let file_name = dropped_file.name;
+            let file_name_parts: Vec<&str> = file_name.split(".").collect();
+            let ext = file_name_parts.last().unwrap().to_owned();
+
+            if let Some(bytes) = dropped_file.bytes {
+                let image = self
+                    .session
+                    .runtime
+                    .create_image_from_bytes_and_extension(bytes.as_ref(), ext);
+                match image {
+                    Ok(img) => {
+                        let added_image = AddedImage {
+                            image: Arc::new(img),
+                        };
+                        let index = self.session.library.add_image(added_image.image);
+                        self.ui_state.reset_for_different_image();
+                        self.session.set_current_image(index);
+                    }
+                    Err(_) => {}
+                }
+            }
+        }
 
         if is_first_frame {
             // if the screen is smaller than then window size we requested, then, on the first frame,
