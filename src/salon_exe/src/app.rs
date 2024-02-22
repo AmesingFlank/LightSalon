@@ -157,6 +157,50 @@ impl App {
             ..Visuals::dark()
         }
     }
+
+    fn maybe_handled_imported_image(&mut self) {
+        if let Some(added_image) = self.ui_state.import_image_dialog.get_added_image() {
+            let index = self.session.library.add_image(added_image.image);
+            self.ui_state.reset_for_different_image();
+            self.session.set_current_image(index);
+        }
+    }
+
+    fn maybe_handle_dropped_image(&mut self, ctx: &egui::Context) {
+        let raw_input = ctx.input(|i| i.raw.clone());
+        for dropped_file in raw_input.dropped_files {
+            if let Some(ref pathbuf) = dropped_file.path {
+                let image = self.session.runtime.create_image_from_path(pathbuf);
+                if let Ok(image) = image {
+                    let index = self.session.library.add_image(Arc::new(image));
+                    self.ui_state.reset_for_different_image();
+                    self.session.set_current_image(index);
+                }
+            } else {
+                if let Some(bytes) = dropped_file.bytes {
+                    let file_name = dropped_file.name;
+                    let file_name_parts: Vec<&str> = file_name.split(".").collect();
+                    let ext = file_name_parts.last().unwrap().to_owned();
+
+                    let image = self
+                        .session
+                        .runtime
+                        .create_image_from_bytes_and_extension(bytes.as_ref(), ext);
+                    match image {
+                        Ok(img) => {
+                            let added_image = AddedImage {
+                                image: Arc::new(img),
+                            };
+                            let index = self.session.library.add_image(added_image.image);
+                            self.ui_state.reset_for_different_image();
+                            self.session.set_current_image(index);
+                        }
+                        Err(_) => {}
+                    }
+                }
+            }
+        }
+    }
 }
 
 impl eframe::App for App {
@@ -167,31 +211,6 @@ impl eframe::App for App {
         let last_frame_size = ctx.input(|i| i.screen_rect.size()); // egui has a 1-frame delay
         self.ui_state.last_frame_size = Some((last_frame_size.x, last_frame_size.y));
 
-        let raw_input = ctx.input(|i| i.raw.clone());
-        for dropped_file in raw_input.dropped_files {
-            let file_name = dropped_file.name;
-            let file_name_parts: Vec<&str> = file_name.split(".").collect();
-            let ext = file_name_parts.last().unwrap().to_owned();
-
-            if let Some(bytes) = dropped_file.bytes {
-                let image = self
-                    .session
-                    .runtime
-                    .create_image_from_bytes_and_extension(bytes.as_ref(), ext);
-                match image {
-                    Ok(img) => {
-                        let added_image = AddedImage {
-                            image: Arc::new(img),
-                        };
-                        let index = self.session.library.add_image(added_image.image);
-                        self.ui_state.reset_for_different_image();
-                        self.session.set_current_image(index);
-                    }
-                    Err(_) => {}
-                }
-            }
-        }
-
         if is_first_frame {
             // if the screen is smaller than then window size we requested, then, on the first frame,
             // the frame size won't accurately reflection the actual frame size, so the sizing of side panels will be off
@@ -201,10 +220,7 @@ impl eframe::App for App {
         self.reset_widget_render_resources(frame);
         ui::app_ui(ctx, &mut self.session, &mut self.ui_state);
 
-        if let Some(added_image) = self.ui_state.import_image_dialog.get_added_image() {
-            let index = self.session.library.add_image(added_image.image);
-            self.ui_state.reset_for_different_image();
-            self.session.set_current_image(index);
-        }
+        self.maybe_handle_dropped_image(ctx);
+        self.maybe_handled_imported_image()
     }
 }
