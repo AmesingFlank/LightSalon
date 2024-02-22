@@ -59,6 +59,8 @@ impl Session {
     }
 }
 
+
+#[derive(serde::Deserialize, serde::Serialize)]
 pub struct SessionState {
     pub current_image_index: Option<usize>,
     library_images_edit_histories: HashMap<usize, EditHistory>,
