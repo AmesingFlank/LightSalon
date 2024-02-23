@@ -160,21 +160,31 @@ impl App {
 
     fn maybe_handled_imported_image(&mut self) {
         if let Some(added_image) = self.ui_state.import_image_dialog.get_added_image() {
-            let index = self.session.library.add_image(added_image.image);
-            self.ui_state.reset_for_different_image();
-            self.session.set_current_image(index);
+            match added_image {
+                AddedImage::ImageFromPath(path) => {
+                    let image_id = self.session.library.add_image_from_path(path);
+                    if let Ok(image_id) = image_id {
+                        self.session.set_current_image(image_id);
+                        self.ui_state.reset_for_different_image();
+                    }
+                }
+                AddedImage::TempImage(img) => {
+                    let image_id = self.session.library.add_image_temp(img);
+                    self.session.set_current_image(image_id);
+                    self.ui_state.reset_for_different_image();
+                }
+            }
         }
     }
 
     fn maybe_handle_dropped_image(&mut self, ctx: &egui::Context) {
         let raw_input = ctx.input(|i| i.raw.clone());
         for dropped_file in raw_input.dropped_files {
-            if let Some(ref pathbuf) = dropped_file.path {
-                let image = self.session.runtime.create_image_from_path(pathbuf);
-                if let Ok(image) = image {
-                    let index = self.session.library.add_image(Arc::new(image));
+            if let Some(pathbuf) = dropped_file.path {
+                let image_id = self.session.library.add_image_from_path(pathbuf);
+                if let Ok(image_id) = image_id {
+                    self.session.set_current_image(image_id);
                     self.ui_state.reset_for_different_image();
-                    self.session.set_current_image(index);
                 }
             } else {
                 if let Some(bytes) = dropped_file.bytes {
@@ -188,12 +198,9 @@ impl App {
                         .create_image_from_bytes_and_extension(bytes.as_ref(), ext);
                     match image {
                         Ok(img) => {
-                            let added_image = AddedImage {
-                                image: Arc::new(img),
-                            };
-                            let index = self.session.library.add_image(added_image.image);
+                            let image_id = self.session.library.add_image_temp(Arc::new(img));
+                            self.session.set_current_image(image_id);
                             self.ui_state.reset_for_different_image();
-                            self.session.set_current_image(index);
                         }
                         Err(_) => {}
                     }

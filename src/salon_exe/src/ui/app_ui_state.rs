@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::{fmt, time::SystemTime};
 use std::sync::mpsc::{channel, Receiver, Sender};
@@ -177,6 +178,7 @@ impl MaskEditState {
     }
 }
 
-pub struct AddedImage {
-    pub image: Arc<Image>
+pub enum AddedImage {
+    ImageFromPath(PathBuf),
+    TempImage(Arc<Image>),
 }

@@ -209,10 +209,8 @@ impl ImageImportDialog {
                         .create_image_from_bytes_and_extension(image_data.as_slice(), ext.as_str());
                     match image {
                         Ok(img) => {
-                            let added_img = AddedImage {
-                                image: Arc::new(img),
-                            };
-                            let _ = sender.send(added_img);
+                            let added_img = AddedImage::TempImage(Arc::new(img));
+                            sender.send(added_img).expect("failed to send added image");
                             context.request_repaint();
                         }
                         Err(_) => {}
@@ -275,23 +273,9 @@ impl ImageImportDialog {
         execute(async move {
             let file = task.await;
             if let Some(file) = file {
-                let file_name = file.file_name();
-                let file_name_parts: Vec<&str> = file_name.split(".").collect();
-                let ext = file_name_parts.last().unwrap().to_owned();
-
-                let image_data = file.read().await;
-                let image =
-                    runtime.create_image_from_bytes_and_extension(image_data.as_slice(), ext);
-                match image {
-                    Ok(img) => {
-                        let added_img = AddedImage {
-                            image: Arc::new(img),
-                        };
-                        let _ = sender.send(added_img);
-                        context.request_repaint();
-                    }
-                    Err(_) => {}
-                }
+                sender
+                    .send(AddedImage::ImageFromPath(file.path().to_path_buf()))
+                    .expect("failed to send added image");
             }
         });
     }
