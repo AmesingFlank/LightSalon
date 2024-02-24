@@ -44,7 +44,6 @@ impl Library {
         let image = self
             .toolbox
             .convert_color_space(image, ColorSpace::LinearRGB);
-        self.toolbox.generate_mipmap(&image);
         let old_image = self.images.insert(identifier.clone(), image);
         if old_image.is_none() {
             self.images_order.push(identifier);
