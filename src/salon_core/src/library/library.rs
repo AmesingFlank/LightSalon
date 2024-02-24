@@ -45,8 +45,10 @@ impl Library {
             .toolbox
             .convert_color_space(image, ColorSpace::LinearRGB);
         self.toolbox.generate_mipmap(&image);
-        self.images.insert(identifier.clone(), image);
-        self.images_order.push(identifier);
+        let old_image = self.images.insert(identifier.clone(), image);
+        if old_image.is_none() {
+            self.images_order.push(identifier);
+        }
     }
 
     pub fn add_image_temp(&mut self, image: Arc<Image>) -> LibraryImageIdentifier {

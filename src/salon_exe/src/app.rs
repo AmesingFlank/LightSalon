@@ -159,7 +159,7 @@ impl App {
     }
 
     fn maybe_handled_imported_image(&mut self) {
-        if let Some(added_image) = self.ui_state.import_image_dialog.get_added_image() {
+        while let Some(added_image) = self.ui_state.import_image_dialog.get_added_image() {
             match added_image {
                 AddedImage::ImageFromPath(path) => {
                     let image_id = self.session.library.add_image_from_path(path);

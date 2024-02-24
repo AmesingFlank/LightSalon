@@ -164,6 +164,7 @@ impl ImageImportDialog {
             .dyn_into::<HtmlInputElement>()
             .unwrap();
         input.set_attribute("type", "file").unwrap();
+        input.set_attribute("multiple", "true").unwrap();
         input.style().set_property("display", "none").unwrap();
         body.append_child(&input).unwrap();
 
@@ -191,35 +192,44 @@ impl ImageImportDialog {
         let input_clone = self.input.clone();
 
         let closure = Closure::once(move || {
-            if let Some(file) = input_clone.files().and_then(|files| files.get(0)) {
-                let file_name = file.name();
-                let file_name_parts: Vec<&str> = file_name.split(".").collect();
-                let ext = file_name_parts.last().unwrap().to_string();
+            if let Some(files) = input_clone.files() {
+                for i in 0..files.length() {
+                    let file = files.get(i).unwrap();
+                    let file_name = file.name();
+                    let file_name_parts: Vec<&str> = file_name.split(".").collect();
+                    let ext = file_name_parts.last().unwrap().to_string();
 
-                let reader = FileReader::new().unwrap();
-                let reader_clone = reader.clone();
-                let onload_closure = Closure::once(Box::new(move || {
-                    let array_buffer = reader_clone
-                        .result()
-                        .unwrap()
-                        .dyn_into::<ArrayBuffer>()
-                        .unwrap();
-                    let image_data = Uint8Array::new(&array_buffer).to_vec();
-                    let image = runtime
-                        .create_image_from_bytes_and_extension(image_data.as_slice(), ext.as_str());
-                    match image {
-                        Ok(img) => {
-                            let added_img = AddedImage::TempImage(Arc::new(img));
-                            sender.send(added_img).expect("failed to send added image");
-                            context.request_repaint();
+                    let reader = FileReader::new().unwrap();
+                    let reader_clone = reader.clone();
+                    let runtime = runtime.clone();
+                    let sender = sender.clone();
+                    let context = context.clone();
+
+                    let onload_closure = Closure::once(Box::new(move || {
+                        let array_buffer = reader_clone
+                            .result()
+                            .unwrap()
+                            .dyn_into::<ArrayBuffer>()
+                            .unwrap();
+                        let image_data = Uint8Array::new(&array_buffer).to_vec();
+                        let image = runtime.create_image_from_bytes_and_extension(
+                            image_data.as_slice(),
+                            ext.as_str(),
+                        );
+                        match image {
+                            Ok(img) => {
+                                let added_img = AddedImage::TempImage(Arc::new(img));
+                                sender.send(added_img).expect("failed to send added image");
+                                context.request_repaint();
+                            }
+                            Err(_) => {}
                         }
-                        Err(_) => {}
-                    }
-                }));
+                    }));
 
-                reader.set_onload(Some(onload_closure.as_ref().unchecked_ref()));
-                reader.read_as_array_buffer(&file).unwrap();
-                onload_closure.forget();
+                    reader.set_onload(Some(onload_closure.as_ref().unchecked_ref()));
+                    reader.read_as_array_buffer(&file).unwrap();
+                    onload_closure.forget();
+                }
             }
         });
 
@@ -264,18 +274,18 @@ impl ImageImportDialog {
     pub fn open(&mut self) {
         let task = rfd::AsyncFileDialog::new()
             .add_filter("extension", &["png", "jpg", "jpeg"])
-            .pick_file();
-        let runtime = self.runtime.clone();
-        let context = self.context.clone();
+            .pick_files();
 
         let sender = self.channel.0.clone();
 
         execute(async move {
-            let file = task.await;
-            if let Some(file) = file {
-                sender
-                    .send(AddedImage::ImageFromPath(file.path().to_path_buf()))
-                    .expect("failed to send added image");
+            let files = task.await;
+            if let Some(files) = files {
+                for file in files {
+                    sender
+                        .send(AddedImage::ImageFromPath(file.path().to_path_buf()))
+                        .expect("failed to send added image");
+                }
             }
         });
     }
