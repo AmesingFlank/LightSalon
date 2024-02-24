@@ -1,10 +1,11 @@
 use std::path::PathBuf;
+use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::Arc;
 use std::{fmt, time::SystemTime};
-use std::sync::mpsc::{channel, Receiver, Sender};
 
 use eframe::egui;
-use salon_core::runtime::{Image, Runtime};
+use salon_core::library::LibraryImageIdentifier;
+use salon_core::runtime::{Image, Runtime, Toolbox};
 
 use super::ImageImportDialog;
 
@@ -34,7 +35,7 @@ pub struct AppUiState {
 }
 
 impl AppUiState {
-    pub fn new(runtime: Arc<Runtime>, context: egui::Context) -> Self {
+    pub fn new(runtime: Arc<Runtime>, toolbox: Arc<Toolbox>, context: egui::Context) -> Self {
         AppUiState {
             last_frame_size: None,
             fps_counter: FpsCounterState::new(),
@@ -47,7 +48,13 @@ impl AppUiState {
             selected_mask_index: 0,
             selected_mask_term_index: None,
             mask_edit_state: MaskEditState::new(),
-            import_image_dialog: ImageImportDialog::new(runtime.clone(), context.clone()),
+            import_image_dialog: ImageImportDialog::new(
+                runtime.clone(),
+                // creating a new toolbox for the import dialogue to avoid lock contention with the session toolbox
+                //Arc::new(Toolbox::new(runtime.clone())),
+                toolbox.clone(),
+                context.clone(),
+            ),
             runtime,
             context,
         }
@@ -178,7 +185,7 @@ impl MaskEditState {
     }
 }
 
-pub enum AddedImage {
-    ImageFromPath(PathBuf),
-    TempImage(Arc<Image>),
+pub struct AddedImage {
+    pub image: Arc<Image>,
+    pub identifier: Option<LibraryImageIdentifier>,
 }

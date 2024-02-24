@@ -37,7 +37,7 @@ impl Library {
         self.num_temp_images
     }
 
-    fn add_image(&mut self, image: Arc<Image>, identifier: LibraryImageIdentifier) {
+    pub fn add_image(&mut self, image: Arc<Image>, identifier: LibraryImageIdentifier) {
         let image = self
             .toolbox
             .convert_image_format(image, ImageFormat::Rgba16Float);

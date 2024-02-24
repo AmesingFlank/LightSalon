@@ -5,7 +5,8 @@ use eframe::{
 };
 use egui_extras::{Column, TableBuilder};
 use salon_core::{
-    runtime::{ColorSpace, ImageFormat, ImageReaderJpeg, Runtime},
+    library::LibraryImageIdentifier,
+    runtime::{ColorSpace, ImageFormat, ImageReaderJpeg, Runtime, Toolbox},
     session::Session,
 };
 use std::{future::Future, ops::Add, sync::Arc};
@@ -138,6 +139,7 @@ pub struct ImageImportDialog {
         std::sync::mpsc::Receiver<AddedImage>,
     ),
     runtime: Arc<Runtime>,
+    toolbox: Arc<Toolbox>,
     context: egui::Context,
     input: HtmlInputElement,
     closure: Option<Closure<dyn FnMut()>>,
@@ -155,7 +157,7 @@ impl Drop for ImageImportDialog {
 
 #[cfg(target_arch = "wasm32")]
 impl ImageImportDialog {
-    pub fn new(runtime: Arc<Runtime>, context: egui::Context) -> Self {
+    pub fn new(runtime: Arc<Runtime>, toolbox: Arc<Toolbox>, context: egui::Context) -> Self {
         let document = window().unwrap().document().unwrap();
         let body = document.body().unwrap();
         let input = document
@@ -171,6 +173,7 @@ impl ImageImportDialog {
         Self {
             channel: std::sync::mpsc::channel(),
             runtime,
+            toolbox,
             context,
 
             input,
@@ -187,6 +190,7 @@ impl ImageImportDialog {
         }
 
         let runtime = self.runtime.clone();
+        let toolbox = self.toolbox.clone();
         let context = self.context.clone();
         let sender = self.channel.0.clone();
         let input_clone = self.input.clone();
@@ -202,8 +206,9 @@ impl ImageImportDialog {
                     let reader = FileReader::new().unwrap();
                     let reader_clone = reader.clone();
                     let runtime = runtime.clone();
-                    let sender = sender.clone();
+                    let toolbox = toolbox.clone();
                     let context = context.clone();
+                    let sender = sender.clone();
 
                     let onload_closure = Closure::once(Box::new(move || {
                         let array_buffer = reader_clone
@@ -217,8 +222,12 @@ impl ImageImportDialog {
                             ext.as_str(),
                         );
                         match image {
-                            Ok(img) => {
-                                let added_img = AddedImage::TempImage(Arc::new(img));
+                            Ok(image) => {
+                                let image = Arc::new(image);
+                                let added_img = AddedImage {
+                                    image,
+                                    identifier: None,
+                                };
                                 sender.send(added_img).expect("failed to send added image");
                                 context.request_repaint();
                             }
@@ -258,15 +267,17 @@ pub struct ImageImportDialog {
         std::sync::mpsc::Receiver<AddedImage>,
     ),
     runtime: Arc<Runtime>,
+    toolbox: Arc<Toolbox>,
     context: egui::Context,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 impl ImageImportDialog {
-    pub fn new(runtime: Arc<Runtime>, context: egui::Context) -> Self {
+    pub fn new(runtime: Arc<Runtime>, toolbox: Arc<Toolbox>, context: egui::Context) -> Self {
         Self {
             channel: std::sync::mpsc::channel(),
             runtime,
+            toolbox,
             context,
         }
     }
@@ -277,14 +288,27 @@ impl ImageImportDialog {
             .pick_files();
 
         let sender = self.channel.0.clone();
+        let runtime = self.runtime.clone();
+        let context = self.context.clone();
 
         execute(async move {
             let files = task.await;
             if let Some(files) = files {
                 for file in files {
-                    sender
-                        .send(AddedImage::ImageFromPath(file.path().to_path_buf()))
-                        .expect("failed to send added image");
+                    let pathbuf = file.path().to_path_buf();
+                    let image = runtime.create_image_from_path(&pathbuf);
+                    if let Ok(image) = image {
+                        let image = Arc::new(image);
+                        let id = LibraryImageIdentifier::Path(pathbuf);
+                        let added_image = AddedImage {
+                            image,
+                            identifier: Some(id),
+                        };
+                        sender
+                            .send(added_image)
+                            .expect("failed to send added image");
+                        context.request_repaint();
+                    }
                 }
             }
         });

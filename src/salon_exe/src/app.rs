@@ -100,11 +100,12 @@ impl App {
         ));
 
         let session = Session::new(runtime.clone());
+        let toolbox = session.toolbox.clone();
         App::create_widget_render_resources(wgpu_render_state, runtime.clone());
 
         Self {
             session,
-            ui_state: AppUiState::new(runtime.clone(), cc.egui_ctx.clone()),
+            ui_state: AppUiState::new(runtime.clone(), toolbox, cc.egui_ctx.clone()),
         }
     }
 
@@ -160,19 +161,16 @@ impl App {
 
     fn maybe_handled_imported_image(&mut self) {
         while let Some(added_image) = self.ui_state.import_image_dialog.get_added_image() {
-            match added_image {
-                AddedImage::ImageFromPath(path) => {
-                    let image_id = self.session.library.add_image_from_path(path);
-                    if let Ok(image_id) = image_id {
-                        self.session.set_current_image(image_id);
-                        self.ui_state.reset_for_different_image();
-                    }
-                }
-                AddedImage::TempImage(img) => {
-                    let image_id = self.session.library.add_image_temp(img);
-                    self.session.set_current_image(image_id);
-                    self.ui_state.reset_for_different_image();
-                }
+            if let Some(identifier) = added_image.identifier {
+                self.session
+                    .library
+                    .add_image(added_image.image, identifier.clone());
+                self.session.set_current_image(identifier);
+                self.ui_state.reset_for_different_image();
+            } else {
+                let identifier = self.session.library.add_image_temp(added_image.image);
+                self.session.set_current_image(identifier);
+                self.ui_state.reset_for_different_image();
             }
         }
     }
