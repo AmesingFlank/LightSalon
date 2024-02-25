@@ -16,6 +16,20 @@ pub struct Library {
     num_temp_images: usize,
     runtime: Arc<Runtime>,
     toolbox: Arc<Toolbox>,
+    persistent_state: LibraryPersistentState,
+}
+
+#[derive(Clone, serde::Deserialize, serde::Serialize)]
+pub struct LibraryPersistentState {
+    pub paths: Vec<PathBuf>,
+}
+
+impl LibraryPersistentState {
+    pub fn new() -> Self {
+        Self {
+            paths: Vec::new(),
+        }
+    }
 }
 
 impl Library {
@@ -26,6 +40,7 @@ impl Library {
             num_temp_images: 0,
             runtime,
             toolbox,
+            persistent_state: LibraryPersistentState::new(),
         }
     }
 
@@ -87,5 +102,9 @@ impl Library {
         identifier: &LibraryImageIdentifier,
     ) -> Arc<Image> {
         self.images[&identifier].clone()
+    }
+
+    pub fn get_persistent_state(&self) -> &LibraryPersistentState {
+        &self.persistent_state
     }
 }
