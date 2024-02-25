@@ -206,6 +206,12 @@ impl App {
             }
         }
     }
+
+    pub fn maybe_handle_app_exit(&mut self, ctx: &egui::Context) {
+        if ctx.input(|i| i.viewport().close_requested()) {
+            
+        }
+    }
 }
 
 impl eframe::App for App {
@@ -226,6 +232,7 @@ impl eframe::App for App {
         ui::app_ui(ctx, &mut self.session, &mut self.ui_state);
 
         self.maybe_handle_dropped_image(ctx);
-        self.maybe_handled_imported_image()
+        self.maybe_handled_imported_image();
+        self.maybe_handle_app_exit(ctx);
     }
 }

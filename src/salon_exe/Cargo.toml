@@ -9,12 +9,7 @@ path = "src/main.rs"
 
 [dependencies]
 wgpu = "0.19.0"
-futures = "0.3.0"
-pollster = "0.3.0"
 bytemuck = "1.7.1"
-image = "0.24.0"
-rfd = "0.12.0"
-serde_json = "1.0"
 
 eframe = { version = "0.26.2", default-features = false, features = [
     "wgpu",
@@ -32,10 +27,14 @@ log = { version = "0.4", features = ["std"] }
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 env_logger = "0.10"
+futures = "0.3.0"
+rfd = "0.12.0"
 
 # web:
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen-futures = "0.4"
 # needs to specify exact version here, because web-sys under `web_sys_unstable_apis` doesn't follow SemVer rules, and 0.3.68 fails to compile..
-web-sys = {version = "=0.3.67", features = ["File", "FilePropertyBag"]}
+web-sys = { version = "=0.3.67", features = [
+    "Blob", "File", "FilePropertyBag", 'HtmlAnchorElement', 'HtmlInputElement', 'FileReader', 'Url',
+]}
 js-sys = "=0.3.67"

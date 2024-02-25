@@ -19,7 +19,6 @@ use salon_core::session::Session;
 use salon_core::shader::{Shader, ShaderLibraryModule};
 use salon_core::utils::rectangle::Rectangle;
 use salon_core::utils::vec::{vec2, Vec2};
-use serde_json::de;
 
 use super::utils::pos2_to_vec2;
 use super::widgets::MainImageCallback;
