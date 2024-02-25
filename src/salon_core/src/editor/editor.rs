@@ -60,10 +60,9 @@ impl Editor {
     }
 
     pub fn clone_edit_history(&self) -> EditHistory {
-        let mut history = self.edit_history.clone();
-        for e in history.iter_mut() {
-            // remove any scaling
-            e.scale_factor = None;
+        let mut history = Vec::new();
+        for i in 0..=self.current_edit_index {
+            history.push(self.edit_history[i].clone());
         }
         history
     }
