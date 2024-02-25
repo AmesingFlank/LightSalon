@@ -2,15 +2,15 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::editor::{Edit, EditHistory, Editor};
-use crate::library::{Library, LibraryImageIdentifier};
+use crate::library::{Library, LibraryImageIdentifier, LibraryPersistentState};
 use crate::runtime::{Runtime, Toolbox};
 
 pub struct Session {
     pub library: Library,
     pub editor: Editor,
-    pub state: SessionState,
     pub runtime: Arc<Runtime>,
     pub toolbox: Arc<Toolbox>,
+    state: SessionState,
 }
 
 impl Session {
@@ -57,10 +57,17 @@ impl Session {
 
         self.editor.execute_current_edit();
     }
+
+    pub fn get_persistent_state(&self) -> SessionPersistanceState {
+        let library_state = self.library.get_persistent_state();
+        SessionPersistanceState { library_state }
+    }
+
+    pub fn load_persistant_state(&mut self, state: SessionPersistanceState) {
+        self.library.load_persistent_state(state.library_state);
+    }
 }
 
-
-#[derive(serde::Deserialize, serde::Serialize)]
 pub struct SessionState {
     pub current_image_identifier: Option<LibraryImageIdentifier>,
     library_images_edit_histories: HashMap<LibraryImageIdentifier, EditHistory>,
@@ -73,4 +80,9 @@ impl SessionState {
             library_images_edit_histories: HashMap::new(),
         }
     }
+}
+
+#[derive(Clone, serde::Deserialize, serde::Serialize)]
+pub struct SessionPersistanceState {
+    pub library_state: LibraryPersistentState,
 }
