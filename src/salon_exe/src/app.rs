@@ -99,7 +99,7 @@ impl App {
             wgpu_render_state.queue.clone(),
         ));
 
-        let session = Session::new(runtime.clone());
+        let mut session = Session::new(runtime.clone());
         let toolbox = session.toolbox.clone();
         App::create_widget_render_resources(wgpu_render_state, runtime.clone());
 
@@ -209,7 +209,7 @@ impl App {
 
     pub fn maybe_handle_app_exit(&mut self, ctx: &egui::Context) {
         if ctx.input(|i| i.viewport().close_requested()) {
-            
+            self.session.on_exit();
         }
     }
 }

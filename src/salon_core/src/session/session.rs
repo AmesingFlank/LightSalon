@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use crate::editor::{Edit, EditHistory, Editor};
@@ -16,13 +17,15 @@ pub struct Session {
 impl Session {
     pub fn new(runtime: Arc<Runtime>) -> Self {
         let toolbox = Arc::new(Toolbox::new(runtime.clone()));
-        Session {
+        let mut session = Session {
             library: Library::new(runtime.clone(), toolbox.clone()),
             editor: Editor::new(runtime.clone(), toolbox.clone()),
             state: SessionState::new(),
             toolbox,
             runtime,
-        }
+        };
+        session.on_start();
+        session
     }
 
     pub fn set_current_image(&mut self, identifier: LibraryImageIdentifier) {
@@ -58,13 +61,94 @@ impl Session {
         self.editor.execute_current_edit();
     }
 
-    pub fn get_persistent_state(&self) -> SessionPersistanceState {
+    fn get_persistent_state(&self) -> SessionPersistentState {
         let library_state = self.library.get_persistent_state();
-        SessionPersistanceState { library_state }
+        SessionPersistentState { library_state }
     }
 
-    pub fn load_persistant_state(&mut self, state: SessionPersistanceState) {
-        self.library.load_persistent_state(state.library_state);
+    fn load_persistant_state(&mut self) -> Result<bool, String> {
+        if let Some(dir) = self.get_persistent_storage_dir() {
+            let path = dir.join(self.persistent_state_file_name());
+            if path.exists() {
+                let state_json_str = std::fs::read_to_string(&path);
+                if let Err(e) = state_json_str {
+                    let err_str = "failed to read persistent state json from ".to_owned()
+                        + path.to_str().unwrap_or("")
+                        + ": "
+                        + e.to_string().as_str();
+                    return Err(err_str);
+                }
+                let state_json_str = state_json_str.unwrap();
+                let state = serde_json::from_str::<SessionPersistentState>(state_json_str.as_str());
+                if let Err(e) = state {
+                    return Err(
+                        "failed to parse state json file: ".to_owned() + state_json_str.as_str()
+                    );
+                }
+                let state = state.unwrap();
+                self.library.load_persistent_state(state.library_state);
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    }
+
+    fn save_persistent_state(&self) -> Result<bool, String> {
+        if let Some(dir) = self.get_persistent_storage_dir() {
+            let path = dir.join(self.persistent_state_file_name());
+            if !dir.exists() {
+                if let Err(e) = std::fs::create_dir(dir.clone()) {
+                    let err_str = "failed to create persistent state dir ".to_owned()
+                        + dir.to_str().unwrap_or("")
+                        + ": "
+                        + e.to_string().as_str();
+                    return Err(err_str);
+                }
+            }
+            let state = self.get_persistent_state();
+            let state_json_str =
+                serde_json::to_string_pretty(&state).expect("failed to serialize to json");
+            match std::fs::write(&path, state_json_str) {
+                Ok(_) => Ok(true),
+                Err(e) => {
+                    let err_str = "failed to write persistent state json to ".to_owned()
+                        + path.to_str().unwrap_or("")
+                        + ": "
+                        + e.to_string().as_str();
+                    Err(err_str)
+                }
+            }
+        } else {
+            Ok(false)
+        }
+    }
+
+    fn get_persistent_storage_dir(&self) -> Option<PathBuf> {
+        if let Some(proj_dirs) = directories::ProjectDirs::from("com", "Light Salon", "Light Salon")
+        {
+            let path = proj_dirs.config_dir().to_path_buf();
+            Some(path)
+        } else {
+            None
+        }
+    }
+
+    fn persistent_state_file_name(&self) -> &str {
+        "session.json"
+    }
+
+    pub fn on_exit(&mut self) {
+        let save_state_result = self.save_persistent_state();
+        if let Err(e) = save_state_result {
+            log::error!("{}", e);
+        }
+    }
+
+    fn on_start(&mut self) {
+        let load_state_result = self.load_persistant_state();
+        if let Err(e) = load_state_result {
+            log::error!("{}", e);
+        }
     }
 }
 
@@ -83,6 +167,6 @@ impl SessionState {
 }
 
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
-pub struct SessionPersistanceState {
+pub struct SessionPersistentState {
     pub library_state: LibraryPersistentState,
 }
