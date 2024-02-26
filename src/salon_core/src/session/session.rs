@@ -127,7 +127,7 @@ impl Session {
         if let Some(proj_dirs) = directories::ProjectDirs::from("com", "LightSalon", "LightSalon") {
             let path = proj_dirs.data_local_dir().to_path_buf();
             // Win: ~\AppData\Local\LightSalon
-            // Mac: ~/Library/Application\ Support/LightSalon
+            // Mac: ~/Library/Application\ Support/com.LightSalon.LightSalon
             Some(path)
         } else {
             None
