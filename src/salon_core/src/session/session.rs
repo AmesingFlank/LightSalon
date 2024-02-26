@@ -97,7 +97,7 @@ impl Session {
         if let Some(dir) = self.get_persistent_storage_dir() {
             let path = dir.join(self.persistent_state_file_name());
             if !dir.exists() {
-                if let Err(e) = std::fs::create_dir(dir.clone()) {
+                if let Err(e) = std::fs::create_dir_all(dir.clone()) {
                     let err_str = "failed to create persistent state dir ".to_owned()
                         + dir.to_str().unwrap_or("")
                         + ": "
@@ -124,9 +124,10 @@ impl Session {
     }
 
     fn get_persistent_storage_dir(&self) -> Option<PathBuf> {
-        if let Some(proj_dirs) = directories::ProjectDirs::from("com", "Light Salon", "Light Salon")
-        {
-            let path = proj_dirs.config_dir().to_path_buf();
+        if let Some(proj_dirs) = directories::ProjectDirs::from("com", "LightSalon", "LightSalon") {
+            let path = proj_dirs.data_local_dir().to_path_buf();
+            // Win: ~\AppData\Local\LightSalon
+            // Mac: ~/Library/Application\ Support/LightSalon
             Some(path)
         } else {
             None
