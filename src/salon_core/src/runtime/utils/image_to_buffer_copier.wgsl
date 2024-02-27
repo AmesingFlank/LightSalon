@@ -15,7 +15,7 @@ struct Params {
 var<uniform> params: Params;
 
 @compute
-@workgroup_size(1)
+@workgroup_size(16, 16)
 fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let input_size = textureDimensions(input);
     if(global_id.x >= input_size.x || global_id.y >= input_size.y){

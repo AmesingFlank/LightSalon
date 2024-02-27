@@ -4,6 +4,7 @@ use std::{mem::size_of, sync::Arc};
 use crate::runtime::{Buffer, BufferProperties, ColorSpace, Image, ImageFormat, Runtime};
 
 use crate::shader::{Shader, ShaderLibraryModule};
+use crate::utils::math::div_up;
 
 use super::{
     bind_group_manager, BindGroupDescriptor, BindGroupEntry, BindGroupManager, BindingResource,
@@ -99,11 +100,10 @@ impl ColorSpaceConverter {
             cpass.set_pipeline(pipeline);
 
             cpass.set_bind_group(0, &bind_group, &[]);
-            cpass.dispatch_workgroups(
-                input_img.properties.dimensions.0,
-                input_img.properties.dimensions.1,
-                1,
-            );
+
+            let num_workgroups_x = div_up(input_img.properties.dimensions.0, 16);
+            let num_workgroups_y = div_up(input_img.properties.dimensions.1, 16);
+            cpass.dispatch_workgroups(num_workgroups_x, num_workgroups_y, 1);
         }
         self.runtime.queue.submit(Some(encoder.finish()));
         output_img
