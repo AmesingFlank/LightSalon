@@ -10,14 +10,14 @@ pub enum LibraryImageIdentifier {
     Path(PathBuf),
 }
 
-pub struct LibraryImage {
+struct LibraryItem {
     image: Option<Arc<Image>>,
     thumbnail: Option<Arc<Image>>,
 }
 
 pub struct Library {
-    images: HashMap<LibraryImageIdentifier, LibraryImage>,
-    images_order: Vec<LibraryImageIdentifier>,
+    items: HashMap<LibraryImageIdentifier, LibraryItem>,
+    items_order: Vec<LibraryImageIdentifier>,
     num_temp_images: usize,
     runtime: Arc<Runtime>,
     toolbox: Arc<Toolbox>,
@@ -37,8 +37,8 @@ impl LibraryPersistentState {
 impl Library {
     pub fn new(runtime: Arc<Runtime>, toolbox: Arc<Toolbox>) -> Self {
         Self {
-            images: HashMap::new(),
-            images_order: Vec::new(),
+            items: HashMap::new(),
+            items_order: Vec::new(),
             num_temp_images: 0,
             runtime,
             toolbox,
@@ -46,7 +46,7 @@ impl Library {
     }
 
     pub fn num_images_total(&self) -> usize {
-        self.images.len() as usize
+        self.items.len() as usize
     }
 
     pub fn num_temp_images(&self) -> usize {
@@ -61,13 +61,13 @@ impl Library {
         let image = self
             .toolbox
             .convert_color_space(image, ColorSpace::LinearRGB);
-        let library_image = LibraryImage {
+        let library_image = LibraryItem {
             image: Some(image),
             thumbnail: Some(thumbnail),
         };
-        let old_image = self.images.insert(identifier.clone(), library_image);
+        let old_image = self.items.insert(identifier.clone(), library_image);
         if old_image.is_none() {
-            self.images_order.push(identifier);
+            self.items_order.push(identifier);
         }
     }
 
@@ -86,44 +86,44 @@ impl Library {
     }
 
     pub fn get_identifier_at_index(&self, index: usize) -> &LibraryImageIdentifier {
-        &self.images_order[index]
+        &self.items_order[index]
     }
 
     pub fn get_image_at_index(&mut self, index: usize) -> Arc<Image> {
-        let identifier = &self.images_order[index];
+        let identifier = &self.items_order[index];
         self.get_image_from_identifier(&identifier.clone())
     }
 
     pub fn get_thumbnail_at_index(&mut self, index: usize) -> Arc<Image> {
-        let identifier = &self.images_order[index];
+        let identifier = &self.items_order[index];
         self.get_thumbnail_from_identifier(&identifier.clone())
     }
 
-    fn ensure_loaded(&mut self, identifier: &LibraryImageIdentifier) -> &LibraryImage {
-        if self.images[identifier].image.is_none() {
+    fn ensure_loaded(&mut self, identifier: &LibraryImageIdentifier) -> &LibraryItem {
+        if self.items[identifier].image.is_none() {
             if let LibraryImageIdentifier::Path(ref path) = identifier {
                 let image = self
                     .runtime
                     .create_image_from_path(&path)
                     .expect("failed to create image from path");
                 let image = Arc::new(image);
-                self.images.get_mut(identifier).unwrap().image = Some(image);
+                self.items.get_mut(identifier).unwrap().image = Some(image);
             } else {
                 panic!("cannot load from a non-path identifier {:?}", identifier);
             }
         }
 
-        if self.images[identifier].thumbnail.is_none() {
+        if self.items[identifier].thumbnail.is_none() {
             let thumbnail =
-                self.compute_thumbnail(self.images[identifier].image.as_ref().unwrap().clone());
-            self.images.get_mut(identifier).unwrap().thumbnail = Some(thumbnail)
+                self.compute_thumbnail(self.items[identifier].image.as_ref().unwrap().clone());
+            self.items.get_mut(identifier).unwrap().thumbnail = Some(thumbnail)
         }
-        &self.images[identifier]
+        &self.items[identifier]
     }
 
     pub fn get_image_from_identifier(&mut self, identifier: &LibraryImageIdentifier) -> Arc<Image> {
         self.ensure_loaded(identifier);
-        self.images[identifier].image.as_ref().unwrap().clone()
+        self.items[identifier].image.as_ref().unwrap().clone()
     }
 
     pub fn get_thumbnail_from_identifier(
@@ -131,12 +131,12 @@ impl Library {
         identifier: &LibraryImageIdentifier,
     ) -> Arc<Image> {
         self.ensure_loaded(identifier);
-        self.images[identifier].thumbnail.as_ref().unwrap().clone()
+        self.items[identifier].thumbnail.as_ref().unwrap().clone()
     }
 
     pub fn get_persistent_state(&self) -> LibraryPersistentState {
         let mut paths = Vec::new();
-        for pair in self.images.iter() {
+        for pair in self.items.iter() {
             if let LibraryImageIdentifier::Path(ref path) = pair.0 {
                 paths.push(path.clone())
             }
