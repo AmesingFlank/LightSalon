@@ -53,6 +53,13 @@ impl Library {
         self.num_temp_images
     }
 
+    fn add_item(&mut self, item: LibraryItem, identifier: LibraryImageIdentifier) {
+        let old_item = self.items.insert(identifier.clone(), item);
+        if old_item.is_none() {
+            self.items_order.push(identifier);
+        }
+    }
+
     pub fn add_image(&mut self, image: Arc<Image>, identifier: LibraryImageIdentifier) {
         let thumbnail = self.compute_thumbnail(image.clone());
         let image = self
@@ -61,14 +68,11 @@ impl Library {
         let image = self
             .toolbox
             .convert_color_space(image, ColorSpace::LinearRGB);
-        let library_image = LibraryItem {
+        let library_item = LibraryItem {
             image: Some(image),
             thumbnail: Some(thumbnail),
         };
-        let old_image = self.items.insert(identifier.clone(), library_image);
-        if old_image.is_none() {
-            self.items_order.push(identifier);
-        }
+        self.add_item(library_item, identifier)
     }
 
     pub fn add_image_temp(&mut self, image: Arc<Image>) -> LibraryImageIdentifier {
@@ -107,6 +111,12 @@ impl Library {
                     .create_image_from_path(&path)
                     .expect("failed to create image from path");
                 let image = Arc::new(image);
+                let image = self
+                    .toolbox
+                    .convert_image_format(image, ImageFormat::Rgba16Float);
+                let image = self
+                    .toolbox
+                    .convert_color_space(image, ColorSpace::LinearRGB);
                 self.items.get_mut(identifier).unwrap().image = Some(image);
             } else {
                 panic!("cannot load from a non-path identifier {:?}", identifier);
@@ -146,7 +156,11 @@ impl Library {
 
     pub fn load_persistent_state(&mut self, state: LibraryPersistentState) {
         for path in state.paths {
-            let _ = self.add_image_from_path(path);
+            let item = LibraryItem {
+                image: None,
+                thumbnail: None,
+            };
+            self.add_item(item, LibraryImageIdentifier::Path(path));
         }
     }
 
