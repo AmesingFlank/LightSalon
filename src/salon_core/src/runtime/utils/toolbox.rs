@@ -4,13 +4,15 @@ use crate::runtime::{Buffer, ColorSpace, Image, ImageFormat, Runtime};
 
 use super::{
     color_space_converter::ColorSpaceConverter, image_format_converter::ImageFormatConverter,
-    image_to_buffer_copier::ImageToBufferCopier, mipmap_generator::MipmapGenerator,
+    image_resizer::ImageResizer, image_to_buffer_copier::ImageToBufferCopier,
+    mipmap_generator::MipmapGenerator,
 };
 
 pub struct Toolbox {
     mipmap_generator: RwLock<MipmapGenerator>,
     color_space_converter: RwLock<ColorSpaceConverter>,
     image_format_converter: RwLock<ImageFormatConverter>,
+    image_resizer: RwLock<ImageResizer>,
     image_to_buffer_copier: RwLock<ImageToBufferCopier>,
 }
 
@@ -21,6 +23,7 @@ impl Toolbox {
             color_space_converter: RwLock::new(ColorSpaceConverter::new(runtime.clone())),
             image_format_converter: RwLock::new(ImageFormatConverter::new(runtime.clone())),
             image_to_buffer_copier: RwLock::new(ImageToBufferCopier::new(runtime.clone())),
+            image_resizer: RwLock::new(ImageResizer::new(runtime.clone())),
         }
     }
 
@@ -54,6 +57,11 @@ impl Toolbox {
     ) -> Arc<Image> {
         let mut converter = self.color_space_converter.write().unwrap();
         converter.convert(input_img, dest_color_space)
+    }
+
+    pub fn resize_image(&self, input_img: Arc<Image>, factor: f32) -> Arc<Image> {
+        let mut resizer = self.image_resizer.write().unwrap();
+        resizer.resize(input_img, factor)
     }
 
     pub fn copy_image_to_buffer(&self, input_img: &Image) -> Arc<Buffer> {

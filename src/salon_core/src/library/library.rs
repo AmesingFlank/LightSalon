@@ -4,14 +4,19 @@ use std::{collections::HashMap, path::PathBuf, sync::Arc};
 use crate::runtime::{ColorSpace, Image, Toolbox};
 use crate::runtime::{ImageFormat, Runtime};
 
-#[derive(PartialEq, Eq, Hash, Clone, serde::Deserialize, serde::Serialize)]
+#[derive(PartialEq, Eq, Hash, Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub enum LibraryImageIdentifier {
     Temp(usize), // images that we no longer have access to after the application closes
     Path(PathBuf),
 }
 
+pub struct LibraryImage {
+    image: Option<Arc<Image>>,
+    thumbnail: Option<Arc<Image>>,
+}
+
 pub struct Library {
-    images: HashMap<LibraryImageIdentifier, Arc<Image>>,
+    images: HashMap<LibraryImageIdentifier, LibraryImage>,
     images_order: Vec<LibraryImageIdentifier>,
     num_temp_images: usize,
     runtime: Arc<Runtime>,
@@ -49,13 +54,18 @@ impl Library {
     }
 
     pub fn add_image(&mut self, image: Arc<Image>, identifier: LibraryImageIdentifier) {
+        let thumbnail = self.compute_thumbnail(image.clone());
         let image = self
             .toolbox
             .convert_image_format(image, ImageFormat::Rgba16Float);
         let image = self
             .toolbox
             .convert_color_space(image, ColorSpace::LinearRGB);
-        let old_image = self.images.insert(identifier.clone(), image);
+        let library_image = LibraryImage {
+            image: Some(image),
+            thumbnail: Some(thumbnail),
+        };
+        let old_image = self.images.insert(identifier.clone(), library_image);
         if old_image.is_none() {
             self.images_order.push(identifier);
         }
@@ -81,23 +91,47 @@ impl Library {
 
     pub fn get_image_at_index(&mut self, index: usize) -> Arc<Image> {
         let identifier = &self.images_order[index];
-        self.images[identifier].clone()
+        self.get_image_from_identifier(&identifier.clone())
     }
 
     pub fn get_thumbnail_at_index(&mut self, index: usize) -> Arc<Image> {
         let identifier = &self.images_order[index];
-        self.images[identifier].clone()
+        self.get_thumbnail_from_identifier(&identifier.clone())
+    }
+
+    fn ensure_loaded(&mut self, identifier: &LibraryImageIdentifier) -> &LibraryImage {
+        if self.images[identifier].image.is_none() {
+            if let LibraryImageIdentifier::Path(ref path) = identifier {
+                let image = self
+                    .runtime
+                    .create_image_from_path(&path)
+                    .expect("failed to create image from path");
+                let image = Arc::new(image);
+                self.images.get_mut(identifier).unwrap().image = Some(image);
+            } else {
+                panic!("cannot load from a non-path identifier {:?}", identifier);
+            }
+        }
+
+        if self.images[identifier].thumbnail.is_none() {
+            let thumbnail =
+                self.compute_thumbnail(self.images[identifier].image.as_ref().unwrap().clone());
+            self.images.get_mut(identifier).unwrap().thumbnail = Some(thumbnail)
+        }
+        &self.images[identifier]
     }
 
     pub fn get_image_from_identifier(&mut self, identifier: &LibraryImageIdentifier) -> Arc<Image> {
-        self.images[&identifier].clone()
+        self.ensure_loaded(identifier);
+        self.images[identifier].image.as_ref().unwrap().clone()
     }
 
     pub fn get_thumbnail_from_identifier(
         &mut self,
         identifier: &LibraryImageIdentifier,
     ) -> Arc<Image> {
-        self.images[&identifier].clone()
+        self.ensure_loaded(identifier);
+        self.images[identifier].thumbnail.as_ref().unwrap().clone()
     }
 
     pub fn get_persistent_state(&self) -> LibraryPersistentState {
@@ -113,6 +147,20 @@ impl Library {
     pub fn load_persistent_state(&mut self, state: LibraryPersistentState) {
         for path in state.paths {
             let _ = self.add_image_from_path(path);
+        }
+    }
+
+    fn compute_thumbnail(&self, image: Arc<Image>) -> Arc<Image> {
+        let thumbnail_min_dimension_size = 400.0 as f32;
+        let factor = thumbnail_min_dimension_size
+            / (image.properties.dimensions.0).min(image.properties.dimensions.1) as f32;
+        if factor < 0.5 {
+            self.toolbox.generate_mipmap(&image);
+            let thumbnail = self.toolbox.resize_image(image, factor);
+            self.toolbox.generate_mipmap(&thumbnail);
+            thumbnail
+        } else {
+            image
         }
     }
 }
