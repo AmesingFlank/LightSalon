@@ -66,34 +66,34 @@ pub fn main_image(
                 }
             }
         } else {
-            // request to scale the image into a smaller image before applying all other edits, for better perf.
+            // request to resize the image into a smaller image before applying all other edits, for better perf.
             if let Some(ref input_image) = session.editor.current_input_image {
                 let original_dimensions = input_image.properties.dimensions;
-                let mut unscaled_size =
+                let mut original_size =
                     vec2((original_dimensions.0 as f32, original_dimensions.1 as f32));
                 if let Some(ref crop_rect) = session.editor.get_current_edit_ref().crop {
-                    unscaled_size = unscaled_size * (crop_rect.max - crop_rect.min)
+                    original_size = original_size * (crop_rect.max - crop_rect.min)
                 }
-                let aspect_ratio = unscaled_size.y / unscaled_size.x;
+                let aspect_ratio = original_size.y / original_size.x;
 
                 let size_in_ui = get_image_size_in_ui(ui, aspect_ratio);
                 // HiDPI (aka Apple Retina) scaling factor;
                 let num_pixels_in_ui = size_in_ui * ctx.pixels_per_point();
-                let x_scale = num_pixels_in_ui.x / unscaled_size.x;
-                let y_scale = num_pixels_in_ui.y / unscaled_size.y;
-                let scale = x_scale.max(y_scale); // possible for these two to be slightly different..?
-                if scale < 1.0 {
-                    let mut should_override_scale = false;
-                    if let Some(curr_scale) = session.editor.get_current_edit_ref().scale_factor {
-                        if (curr_scale - scale).abs() > 0.01 {
-                            // overwrite only when scale changes noticeably, to avoid constant-rescaling due to egui size jitters.
-                            should_override_scale = true;
+                let x_factor = num_pixels_in_ui.x / original_size.x;
+                let y_factor = num_pixels_in_ui.y / original_size.y;
+                let factor = x_factor.max(y_factor); // possible for these two to be slightly different..?
+                if factor < 1.0 {
+                    let mut should_override_factor = false;
+                    if let Some(curr_factor) = session.editor.get_current_edit_ref().resize_factor {
+                        if (curr_factor - factor).abs() > 0.01 {
+                            // overwrite only when factor changes noticeably, to avoid constant-rescaling due to egui size jitters.
+                            should_override_factor = true;
                         }
                     } else {
-                        should_override_scale = true;
+                        should_override_factor = true;
                     }
-                    if should_override_scale {
-                        session.editor.override_scale_factor(scale);
+                    if should_override_factor {
+                        session.editor.override_resize_factor(factor);
                         session.editor.execute_current_edit();
                     }
                 }

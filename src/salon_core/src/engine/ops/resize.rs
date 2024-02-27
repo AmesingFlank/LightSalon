@@ -4,7 +4,7 @@ use crate::runtime::Toolbox;
 
 use crate::{
     engine::value_store::ValueStore,
-    ir::{Id, ScaleOp},
+    ir::{Id, ResizeOp},
     runtime::{
         BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager,
         BindingResource, Runtime,
@@ -15,19 +15,19 @@ use crate::{
     utils::math::div_up,
 };
 
-pub struct ScaleImpl {
+pub struct ResizeImpl {
     runtime: Arc<Runtime>,
     pipeline: wgpu::ComputePipeline,
     bind_group_manager: BindGroupManager,
     ring_buffer: RingBuffer,
     texture_sampler: Sampler,
 }
-impl ScaleImpl {
+impl ResizeImpl {
     pub fn new(runtime: Arc<Runtime>) -> Self {
-        let shader_code = Shader::from_code(include_str!("shaders/scale.wgsl")).full_code();
+        let shader_code = Shader::from_code(include_str!("shaders/resize.wgsl")).full_code();
 
         let (pipeline, bind_group_layout) =
-            runtime.create_compute_pipeline(shader_code.as_str(), Some("Scale"));
+            runtime.create_compute_pipeline(shader_code.as_str(), Some("Resize"));
 
         let bind_group_manager = BindGroupManager::new(runtime.clone(), bind_group_layout);
 
@@ -49,7 +49,7 @@ impl ScaleImpl {
             ..Default::default()
         });
 
-        ScaleImpl {
+        ResizeImpl {
             runtime,
             pipeline,
             bind_group_manager,
@@ -58,7 +58,7 @@ impl ScaleImpl {
         }
     }
 }
-impl ScaleImpl {
+impl ResizeImpl {
     pub fn reset(&mut self) {
         self.ring_buffer.mark_all_available();
     }
@@ -66,7 +66,7 @@ impl ScaleImpl {
     pub fn encode_commands(
         &mut self,
         encoder: &mut wgpu::CommandEncoder,
-        op: &ScaleOp,
+        op: &ResizeOp,
         value_store: &mut ValueStore,
         toolbox: &Toolbox,
     ) {

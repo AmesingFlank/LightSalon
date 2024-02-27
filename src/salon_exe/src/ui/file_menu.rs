@@ -40,7 +40,7 @@ fn file_dialogue_export_image(
     if let Some(ref input_img) = session.editor.current_input_image {
         let result = session
             .editor
-            .execute_current_edit_original_scale(input_img.clone());
+            .execute_current_edit_original_size(input_img.clone());
         let final_image = result.final_image.clone();
         let final_image = session
             .toolbox
@@ -71,7 +71,7 @@ fn file_dialogue_export_image(
     if let Some(ref input_img) = session.editor.current_input_image {
         let result = session
             .editor
-            .execute_current_edit_original_scale(input_img.clone());
+            .execute_current_edit_original_size(input_img.clone());
         let final_image = result.final_image.clone();
         let final_image = session
             .toolbox

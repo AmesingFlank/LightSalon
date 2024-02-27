@@ -4,7 +4,7 @@ use crate::ir::{
     AdjustContrastOp, AdjustExposureOp, AdjustHighlightsAndShadowsOp, AdjustTemperatureAndTintOp,
     AdjustVibranceAndSaturationOp, AdjustVignetteOp, ApplyCurveOp, ApplyDehazeOp,
     ApplyMaskedEditsOp, ColorMixGroup, ColorMixOp, ComputeBasicStatisticsOp, ComputeHistogramOp,
-    CropOp, Id, InputOp, Module, Op, PrepareDehazeOp, ScaleOp,
+    CropOp, Id, InputOp, Module, Op, PrepareDehazeOp, ResizeOp,
 };
 
 pub struct IdStore {
@@ -27,7 +27,7 @@ pub fn to_ir_module(edit: &Edit) -> (Module, IdStore) {
 
     let mut current_output_id = input_id;
 
-    maybe_add_scale(edit, &mut module, &mut current_output_id);
+    maybe_add_resize(edit, &mut module, &mut current_output_id);
     maybe_add_crop(edit, &mut module, &mut current_output_id);
 
     let mut masked_edit_id_stores = Vec::new();
@@ -47,16 +47,16 @@ pub fn to_ir_module(edit: &Edit) -> (Module, IdStore) {
     (module, id_store)
 }
 
-fn maybe_add_scale(edit: &Edit, module: &mut Module, current_output_id: &mut Id) {
-    if let Some(ref factor) = edit.scale_factor {
+fn maybe_add_resize(edit: &Edit, module: &mut Module, current_output_id: &mut Id) {
+    if let Some(ref factor) = edit.resize_factor {
         if *factor != 1.0 {
-            let scaled_image_id = module.alloc_id();
-            module.push_op(Op::Scale(ScaleOp {
-                result: scaled_image_id,
+            let resized_image_id = module.alloc_id();
+            module.push_op(Op::Resize(ResizeOp {
+                result: resized_image_id,
                 arg: *current_output_id,
                 factor: *factor,
             }));
-            *current_output_id = scaled_image_id;
+            *current_output_id = resized_image_id;
         }
     }
 }

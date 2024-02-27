@@ -18,7 +18,7 @@ pub enum Op {
     ComputeBasicStatistics(ComputeBasicStatisticsOp),
     ComputeHistogram(ComputeHistogramOp),
     Crop(CropOp),
-    Scale(ScaleOp),
+    Resize(ResizeOp),
     ComputeGlobalMask(ComputeGlobalMaskOp),
     ComputeRadialGradientMask(ComputeRadialGradientMaskOp),
     ComputeLinearGradientMask(ComputeLinearGradientMaskOp),
@@ -45,7 +45,7 @@ impl Op {
             Op::ComputeBasicStatistics(ref o) => vec![o.arg],
             Op::ComputeHistogram(ref o) => vec![o.arg],
             Op::Crop(ref o) => vec![o.arg],
-            Op::Scale(ref o) => vec![o.arg],
+            Op::Resize(ref o) => vec![o.arg],
             Op::ComputeGlobalMask(ref o) => vec![o.target],
             Op::ComputeRadialGradientMask(ref o) => vec![o.target],
             Op::ComputeLinearGradientMask(ref o) => vec![o.target],
@@ -72,7 +72,7 @@ impl Op {
             Op::ComputeBasicStatistics(ref o) => o.result,
             Op::ComputeHistogram(ref o) => o.result,
             Op::Crop(ref o) => o.result,
-            Op::Scale(ref o) => o.result,
+            Op::Resize(ref o) => o.result,
             Op::ComputeGlobalMask(ref o) => o.result,
             Op::ComputeRadialGradientMask(ref o) => o.result,
             Op::ComputeLinearGradientMask(ref o) => o.result,
@@ -204,7 +204,7 @@ pub struct CropOp {
 }
 
 #[derive(Clone, PartialEq, Debug)]
-pub struct ScaleOp {
+pub struct ResizeOp {
     pub result: Id,
     pub arg: Id,
     pub factor: f32,

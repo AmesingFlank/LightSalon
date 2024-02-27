@@ -26,7 +26,7 @@ use super::{
         invert_mask::InvertMaskImpl,
         linear_gradient_mask::ComputeLinearGradientMaskImpl,
         radial_gradient_mask::ComputeRadialGradientMaskImpl,
-        scale::ScaleImpl,
+        resize::ResizeImpl,
         subtract_mask::{self, SubtractMaskImpl},
         temperature_tint::AdjustTemperatureAndTintImpl,
         vibrance_saturation::AdjustVibranceAndSaturationImpl,
@@ -218,8 +218,8 @@ impl Engine {
                         &mut self.toolbox,
                     );
                 }
-                Op::Scale(ref op) => {
-                    self.op_impls.scale.as_mut().unwrap().encode_commands(
+                Op::Resize(ref op) => {
+                    self.op_impls.resize.as_mut().unwrap().encode_commands(
                         &mut encoder,
                         op,
                         &mut execution_context.value_store,
@@ -396,11 +396,11 @@ impl Engine {
                     }
                     self.op_impls.crop.as_mut().unwrap().reset();
                 }
-                Op::Scale(_) => {
-                    if self.op_impls.scale.is_none() {
-                        self.op_impls.scale = Some(ScaleImpl::new(self.runtime.clone()))
+                Op::Resize(_) => {
+                    if self.op_impls.resize.is_none() {
+                        self.op_impls.resize = Some(ResizeImpl::new(self.runtime.clone()))
                     }
-                    self.op_impls.scale.as_mut().unwrap().reset();
+                    self.op_impls.resize.as_mut().unwrap().reset();
                 }
                 Op::ComputeGlobalMask(_) => {
                     if self.op_impls.global_mask.is_none() {
