@@ -63,7 +63,10 @@ impl Library {
         }
     }
 
-    fn add_image(&mut self, image: Arc<Image>, identifier: LibraryImageIdentifier) {
+    pub fn add_image_temp(&mut self, image: Arc<Image>) -> LibraryImageIdentifier {
+        let temp_image_id = LibraryImageIdentifier::Temp(self.num_temp_images);
+        self.num_temp_images += 1;
+
         let thumbnail = self.compute_thumbnail(image.clone());
         let image = self
             .toolbox
@@ -75,13 +78,7 @@ impl Library {
             image: Some(image),
             thumbnail: Some(thumbnail),
         };
-        self.add_item(library_item, identifier)
-    }
-
-    pub fn add_image_temp(&mut self, image: Arc<Image>) -> LibraryImageIdentifier {
-        let temp_image_id = LibraryImageIdentifier::Temp(self.num_temp_images);
-        self.num_temp_images += 1;
-        self.add_image(image, temp_image_id.clone());
+        self.add_item(library_item, temp_image_id.clone());
         temp_image_id
     }
 
@@ -117,6 +114,11 @@ impl Library {
                     .create_image_from_path(&path)
                     .expect("failed to create image from path");
                 let image = Arc::new(image);
+
+                // when loading image from path, always re-compute thumbnail
+                let thumbnail = self.compute_thumbnail(image.clone());
+                self.items.get_mut(identifier).unwrap().thumbnail = Some(thumbnail);
+
                 let image = self
                     .toolbox
                     .convert_image_format(image, ImageFormat::Rgba16Float);
