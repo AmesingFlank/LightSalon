@@ -2764,6 +2764,7 @@ dependencies = [
  "bytemuck",
  "directories",
  "flume",
+ "futures",
  "image",
  "kamadak-exif",
  "log",

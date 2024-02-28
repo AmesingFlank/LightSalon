@@ -1,9 +1,10 @@
+use std::io::Write;
 use std::path::Path;
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use sha256::TrySha256Digest;
 
-use crate::runtime::{ColorSpace, Image, Toolbox};
+use crate::runtime::{ColorSpace, Image, ImageReaderJpeg, Toolbox};
 use crate::runtime::{ImageFormat, Runtime};
 use crate::session::Session;
 
@@ -115,8 +116,9 @@ impl Library {
                     .expect("failed to create image from path");
                 let image = Arc::new(image);
 
-                // when loading image from path, always re-compute thumbnail
+                // when loading image from path, always re-compute thumbnail (before format and color space conversions)
                 let thumbnail = self.compute_thumbnail(image.clone());
+                self.save_thumbnail(thumbnail.clone(), path);
                 self.items.get_mut(identifier).unwrap().thumbnail = Some(thumbnail);
 
                 let image = self
@@ -183,7 +185,7 @@ impl Library {
         }
     }
 
-    fn get_thumbnail_path_for_image_path(&self, image_path: &PathBuf) -> Option<PathBuf> {
+    fn get_thumbnail_path_for_image_path(&self,image_path: &PathBuf) -> Option<PathBuf> {
         if let Ok(digest_str) = image_path.digest() {
             if let Some(storage_dir) = Session::get_persistent_storage_dir() {
                 let file_name = digest_str + ".jpg";
@@ -192,5 +194,17 @@ impl Library {
             }
         }
         None
+    }
+
+    fn save_thumbnail(&self, thumbnail: Arc<Image>, original_image_path: &PathBuf) {
+        if let Some(thumbnail_path) = self.get_thumbnail_path_for_image_path(original_image_path) {
+            let mut image_reader = ImageReaderJpeg::new(self.runtime.clone(), self.toolbox.clone(), thumbnail.clone());
+            std::thread::spawn(move || futures::executor::block_on(async move {
+                std::fs::create_dir_all(thumbnail_path.parent().unwrap()).expect("failed to ensure thumbnail directory");
+                let jpeg_data = image_reader.await_jpeg_data().await;
+                let mut file = std::fs::File::create(&thumbnail_path).expect("failed to create thumbnail file");
+                file.write_all(&jpeg_data).expect("failed to write file");
+            }));
+        }
     }
 }
