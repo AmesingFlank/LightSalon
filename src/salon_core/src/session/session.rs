@@ -67,7 +67,7 @@ impl Session {
     }
 
     fn load_persistant_state(&mut self) -> Result<bool, String> {
-        if let Some(dir) = self.get_persistent_storage_dir() {
+        if let Some(dir) = Session::get_persistent_storage_dir() {
             let path = dir.join(self.persistent_state_file_name());
             if path.exists() {
                 let state_json_str = std::fs::read_to_string(&path);
@@ -94,7 +94,7 @@ impl Session {
     }
 
     fn save_persistent_state(&self) -> Result<bool, String> {
-        if let Some(dir) = self.get_persistent_storage_dir() {
+        if let Some(dir) = Session::get_persistent_storage_dir() {
             let path = dir.join(self.persistent_state_file_name());
             if !dir.exists() {
                 if let Err(e) = std::fs::create_dir_all(dir.clone()) {
@@ -123,7 +123,7 @@ impl Session {
         }
     }
 
-    fn get_persistent_storage_dir(&self) -> Option<PathBuf> {
+    pub fn get_persistent_storage_dir() -> Option<PathBuf> {
         if let Some(proj_dirs) = directories::ProjectDirs::from("com", "LightSalon", "LightSalon") {
             let path = proj_dirs.data_local_dir().to_path_buf();
             // Win: ~\AppData\Local\LightSalon

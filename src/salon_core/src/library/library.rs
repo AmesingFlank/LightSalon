@@ -1,8 +1,11 @@
 use std::path::Path;
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
+use sha256::TrySha256Digest;
+
 use crate::runtime::{ColorSpace, Image, Toolbox};
 use crate::runtime::{ImageFormat, Runtime};
+use crate::session::Session;
 
 #[derive(PartialEq, Eq, Hash, Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub enum LibraryImageIdentifier {
@@ -123,11 +126,10 @@ impl Library {
             }
         }
 
-        if self.items[identifier].thumbnail.is_none() {
-            let thumbnail =
-                self.compute_thumbnail(self.items[identifier].image.as_ref().unwrap().clone());
-            self.items.get_mut(identifier).unwrap().thumbnail = Some(thumbnail)
-        }
+        let thumbnail =
+            self.compute_thumbnail(self.items[identifier].image.as_ref().unwrap().clone());
+        self.items.get_mut(identifier).unwrap().thumbnail = Some(thumbnail);
+
         &self.items[identifier]
     }
 
@@ -176,5 +178,16 @@ impl Library {
         } else {
             image
         }
+    }
+
+    fn get_thumbnail_path_for_image_path(&self, image_path: &PathBuf) -> Option<PathBuf> {
+        if let Ok(digest_str) = image_path.digest() {
+            if let Some(storage_dir) = Session::get_persistent_storage_dir() {
+                let file_name = digest_str + ".jpg";
+                let full_path = storage_dir.join("thumbnails").join(file_name);
+                return Some(full_path);
+            }
+        }
+        None
     }
 }
