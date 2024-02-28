@@ -185,7 +185,7 @@ impl MaskEditState {
     }
 }
 
-pub struct AddedImage {
-    pub image: Arc<Image>,
-    pub identifier: Option<LibraryImageIdentifier>,
+pub enum AddedImage {
+    Image(Arc<Image>),
+    ImageFromPath(PathBuf),
 }

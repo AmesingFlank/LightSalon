@@ -224,10 +224,7 @@ impl ImageImportDialog {
                         match image {
                             Ok(image) => {
                                 let image = Arc::new(image);
-                                let added_img = AddedImage {
-                                    image,
-                                    identifier: None,
-                                };
+                                let added_img = AddedImage::Image(image);
                                 sender.send(added_img).expect("failed to send added image");
                                 context.request_repaint();
                             }
@@ -296,19 +293,11 @@ impl ImageImportDialog {
             if let Some(files) = files {
                 for file in files {
                     let pathbuf = file.path().to_path_buf();
-                    let image = runtime.create_image_from_path(&pathbuf);
-                    if let Ok(image) = image {
-                        let image = Arc::new(image);
-                        let id = LibraryImageIdentifier::Path(pathbuf);
-                        let added_image = AddedImage {
-                            image,
-                            identifier: Some(id),
-                        };
-                        sender
-                            .send(added_image)
-                            .expect("failed to send added image");
-                        context.request_repaint();
-                    }
+                    let added_image = AddedImage::ImageFromPath(pathbuf);
+                    sender
+                        .send(added_image)
+                        .expect("failed to send added image");
+                    context.request_repaint();
                 }
             }
         });

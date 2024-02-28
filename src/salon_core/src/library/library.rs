@@ -63,7 +63,7 @@ impl Library {
         }
     }
 
-    pub fn add_image(&mut self, image: Arc<Image>, identifier: LibraryImageIdentifier) {
+    fn add_image(&mut self, image: Arc<Image>, identifier: LibraryImageIdentifier) {
         let thumbnail = self.compute_thumbnail(image.clone());
         let image = self
             .toolbox
@@ -85,11 +85,14 @@ impl Library {
         temp_image_id
     }
 
-    pub fn add_image_from_path(&mut self, path: PathBuf) -> Result<LibraryImageIdentifier, String> {
-        let image = self.runtime.create_image_from_path(&path)?;
+    pub fn add_item_from_path(&mut self, path: PathBuf) -> LibraryImageIdentifier {
         let id = LibraryImageIdentifier::Path(path);
-        self.add_image(Arc::new(image), id.clone());
-        Ok(id)
+        let item = LibraryItem {
+            image: None,
+            thumbnail: None,
+        };
+        self.add_item(item, id.clone());
+        id
     }
 
     pub fn get_identifier_at_index(&self, index: usize) -> &LibraryImageIdentifier {
@@ -126,9 +129,11 @@ impl Library {
             }
         }
 
-        let thumbnail =
-            self.compute_thumbnail(self.items[identifier].image.as_ref().unwrap().clone());
-        self.items.get_mut(identifier).unwrap().thumbnail = Some(thumbnail);
+        if self.items[identifier].thumbnail.is_none() {
+            let thumbnail =
+                self.compute_thumbnail(self.items[identifier].image.as_ref().unwrap().clone());
+            self.items.get_mut(identifier).unwrap().thumbnail = Some(thumbnail);
+        }
 
         &self.items[identifier]
     }
@@ -158,11 +163,7 @@ impl Library {
 
     pub fn load_persistent_state(&mut self, state: LibraryPersistentState) {
         for path in state.paths {
-            let item = LibraryItem {
-                image: None,
-                thumbnail: None,
-            };
-            self.add_item(item, LibraryImageIdentifier::Path(path));
+            self.add_item_from_path(path);
         }
     }
 

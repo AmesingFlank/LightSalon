@@ -161,16 +161,17 @@ impl App {
 
     fn maybe_handled_imported_image(&mut self) {
         while let Some(added_image) = self.ui_state.import_image_dialog.get_added_image() {
-            if let Some(identifier) = added_image.identifier {
-                self.session
-                    .library
-                    .add_image(added_image.image, identifier.clone());
-                self.session.set_current_image(identifier);
-                self.ui_state.reset_for_different_image();
-            } else {
-                let identifier = self.session.library.add_image_temp(added_image.image);
-                self.session.set_current_image(identifier);
-                self.ui_state.reset_for_different_image();
+            match added_image {
+                AddedImage::ImageFromPath(path) => {
+                    let identifier = self.session.library.add_item_from_path(path);
+                    self.session.set_current_image(identifier);
+                    self.ui_state.reset_for_different_image();
+                }
+                AddedImage::Image(image) => {
+                    let identifier = self.session.library.add_image_temp(image);
+                    self.session.set_current_image(identifier);
+                    self.ui_state.reset_for_different_image();
+                }
             }
         }
     }
@@ -179,11 +180,9 @@ impl App {
         let raw_input = ctx.input(|i| i.raw.clone());
         for dropped_file in raw_input.dropped_files {
             if let Some(pathbuf) = dropped_file.path {
-                let image_id = self.session.library.add_image_from_path(pathbuf);
-                if let Ok(image_id) = image_id {
-                    self.session.set_current_image(image_id);
-                    self.ui_state.reset_for_different_image();
-                }
+                let identifier = self.session.library.add_item_from_path(pathbuf);
+                self.session.set_current_image(identifier);
+                self.ui_state.reset_for_different_image();
             } else {
                 if let Some(bytes) = dropped_file.bytes {
                     let file_name = dropped_file.name;
