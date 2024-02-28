@@ -181,6 +181,7 @@ impl Library {
             self.toolbox.generate_mipmap(&thumbnail);
             thumbnail
         } else {
+            self.toolbox.generate_mipmap(&image);
             image
         }
     }
