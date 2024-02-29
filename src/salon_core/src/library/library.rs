@@ -69,7 +69,8 @@ impl Library {
     fn add_item(&mut self, item: LibraryItem, identifier: LibraryImageIdentifier) {
         let old_item = self.items.insert(identifier.clone(), item);
         if old_item.is_none() {
-            self.item_indices.insert(identifier.clone(), self.items_ordered.len());
+            self.item_indices
+                .insert(identifier.clone(), self.items_ordered.len());
             self.items_ordered.push(identifier);
         }
     }
@@ -112,12 +113,10 @@ impl Library {
     pub fn get_image_at_index(&mut self, index: usize) -> Option<Arc<Image>> {
         while index < self.items_ordered.len() {
             let identifier = self.items_ordered[index].clone();
-            if let Ok(image) = self.get_image_from_identifier(&identifier) {
+            if let Some(image) = self.get_image_from_identifier(&identifier) {
                 return Some(image);
             }
-            self.items.remove(&identifier);
-            self.item_indices.remove(&identifier);
-            self.items_ordered.remove(index);
+            // otherwise this index and the identifier is removed, so try again
         }
         None
     }
@@ -125,46 +124,56 @@ impl Library {
     pub fn get_thumbnail_at_index(&mut self, index: usize) -> Option<Arc<Image>> {
         while index < self.items_ordered.len() {
             let identifier = self.items_ordered[index].clone();
-            if let Ok(thumbnail) = self.get_thumbnail_from_identifier(&identifier) {
+            if let Some(thumbnail) = self.get_thumbnail_from_identifier(&identifier) {
                 return Some(thumbnail);
             }
-            self.items.remove(&identifier);
-            self.item_indices.remove(&identifier);
-            self.items_ordered.remove(index);
+            // otherwise this index and the identifier is removed, so try again
         }
         None
     }
 
+    // return the item or delete the identifier
     fn get_fully_loaded_item(
         &mut self,
         identifier: &LibraryImageIdentifier,
-    ) -> Result<&LibraryItem, String> {
+    ) -> Option<&LibraryItem> {
         if self.items[identifier].image.is_none() {
             if let LibraryImageIdentifier::Path(ref path) = identifier {
-                let image = self.runtime.create_image_from_path(&path)?;
-                let image = Arc::new(image);
+                if let Ok(image) = self.runtime.create_image_from_path(&path) {
+                    let image = Arc::new(image);
 
-                // when loading image from path, always re-compute thumbnail (before format and color space conversions)
-                let thumbnail = self.compute_thumbnail(image.clone());
-                let thumbnail_path = self.save_thumbnail(thumbnail.clone(), path);
+                    // when loading image from path, always re-compute thumbnail (before format and color space conversions)
+                    let thumbnail = self.compute_thumbnail(image.clone());
+                    let thumbnail_path = self.save_thumbnail(thumbnail.clone(), path);
 
-                let image = self
-                    .toolbox
-                    .convert_image_format(image, ImageFormat::Rgba16Float);
-                let image = self
-                    .toolbox
-                    .convert_color_space(image, ColorSpace::LinearRGB);
-                {
-                    let item = self.items.get_mut(identifier).unwrap();
-                    item.image = Some(image);
-                    item.thumbnail = Some(thumbnail);
+                    let image = self
+                        .toolbox
+                        .convert_image_format(image, ImageFormat::Rgba16Float);
+                    let image = self
+                        .toolbox
+                        .convert_color_space(image, ColorSpace::LinearRGB);
+                    {
+                        let item = self.items.get_mut(identifier).unwrap();
+                        item.image = Some(image);
+                        item.thumbnail = Some(thumbnail);
+                        if let Some(ref old_thumbnail_path) = item.thumbnail_path {
+                            let _ = std::fs::remove_file(old_thumbnail_path);
+                        }
+                        item.thumbnail_path = thumbnail_path;
+                    }
+                    return Some(&self.items[identifier]);
+                } else {
+                    // main image path couldn't be loaded, so delete it and its thumbnail
+                    let item = self.items.remove(identifier).unwrap();
+                    let index = self.item_indices.remove(identifier).unwrap();
+                    self.items_ordered.remove(index);
                     if let Some(ref old_thumbnail_path) = item.thumbnail_path {
                         let _ = std::fs::remove_file(old_thumbnail_path);
                     }
-                    item.thumbnail_path = thumbnail_path;
+                    return None;
                 }
             } else {
-                return Err("temp image is empty".to_owned());
+                panic!("temp image is empty");
             }
         }
 
@@ -174,33 +183,36 @@ impl Library {
             self.items.get_mut(identifier).unwrap().thumbnail = Some(thumbnail);
         }
 
-        Ok(&self.items[identifier])
+        Some(&self.items[identifier])
     }
 
+    // return the item or delete the identifier
     pub fn get_image_from_identifier(
         &mut self,
         identifier: &LibraryImageIdentifier,
-    ) -> Result<Arc<Image>, String> {
+    ) -> Option<Arc<Image>> {
         let item = self.get_fully_loaded_item(identifier)?;
-        Ok(item.image.as_ref().unwrap().clone())
+        Some(item.image.as_ref().unwrap().clone())
     }
 
+    // return the item or delete the identifier
     pub fn get_thumbnail_from_identifier(
         &mut self,
         identifier: &LibraryImageIdentifier,
-    ) -> Result<Arc<Image>, String> {
+    ) -> Option<Arc<Image>> {
         if let Some(ref thumbnail) = self.items[identifier].thumbnail {
-            return Ok(thumbnail.clone());
+            return Some(thumbnail.clone());
         }
         if let Some(ref thumbnail_path) = self.items[identifier].thumbnail_path {
-            let thumbnail = self.runtime.create_image_from_path(thumbnail_path)?;
-            let thumbnail = Arc::new(thumbnail);
-            self.toolbox.generate_mipmap(&thumbnail);
-            self.items.get_mut(identifier).unwrap().thumbnail = Some(thumbnail.clone());
-            return Ok(thumbnail);
+            if let Ok(thumbnail) = self.runtime.create_image_from_path(thumbnail_path) {
+                let thumbnail = Arc::new(thumbnail);
+                self.toolbox.generate_mipmap(&thumbnail);
+                self.items.get_mut(identifier).unwrap().thumbnail = Some(thumbnail.clone());
+                return Some(thumbnail);
+            }
         }
         let item = self.get_fully_loaded_item(identifier)?;
-        Ok(item.thumbnail.as_ref().unwrap().clone())
+        Some(item.thumbnail.as_ref().unwrap().clone())
     }
 
     pub fn get_persistent_state(&self) -> LibraryPersistentState {

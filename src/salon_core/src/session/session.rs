@@ -38,7 +38,7 @@ impl Session {
             _ => {}
         }
 
-        if let Ok(new_image) = self.library.get_image_from_identifier(&identifier) {
+        if let Some(new_image) = self.library.get_image_from_identifier(&identifier) {
             if let Some(ref curr_id) = self.state.current_image_identifier {
                 let edit_history = self.editor.clone_edit_history();
                 if edit_history.len() > 0 {
