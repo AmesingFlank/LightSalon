@@ -38,27 +38,29 @@ impl Session {
             _ => {}
         }
 
-        if let Some(ref curr_id) = self.state.current_image_identifier {
-            let edit_history = self.editor.clone_edit_history();
-            if edit_history.len() > 0 {
-                if !(edit_history.len() == 1 && edit_history[0] == Edit::trivial()) {
-                    self.state
-                        .library_images_edit_histories
-                        .insert(curr_id.clone(), edit_history);
+        if let Ok(new_image) = self.library.get_image_from_identifier(&identifier) {
+            if let Some(ref curr_id) = self.state.current_image_identifier {
+                let edit_history = self.editor.clone_edit_history();
+                if edit_history.len() > 0 {
+                    if !(edit_history.len() == 1 && edit_history[0] == Edit::trivial()) {
+                        self.state
+                            .library_images_edit_histories
+                            .insert(curr_id.clone(), edit_history);
+                    }
                 }
             }
+
+            self.editor.current_input_image = Some(new_image);
+            self.state.current_image_identifier = Some(identifier.clone());
+
+            if let Some(history) = self.state.library_images_edit_histories.get(&identifier) {
+                self.editor.set_edit_history(history.clone());
+            } else {
+                self.editor.clear_edit_history();
+            }
+
+            self.editor.execute_current_edit();
         }
-
-        self.editor.current_input_image = Some(self.library.get_image_from_identifier(&identifier));
-        self.state.current_image_identifier = Some(identifier.clone());
-
-        if let Some(history) = self.state.library_images_edit_histories.get(&identifier) {
-            self.editor.set_edit_history(history.clone());
-        } else {
-            self.editor.clear_edit_history();
-        }
-
-        self.editor.execute_current_edit();
     }
 
     fn get_persistent_state(&self) -> SessionPersistentState {

@@ -17,6 +17,7 @@ pub enum LibraryImageIdentifier {
 struct LibraryItem {
     image: Option<Arc<Image>>,
     thumbnail: Option<Arc<Image>>,
+    thumbnail_path: Option<PathBuf>,
 }
 
 pub struct Library {
@@ -29,12 +30,18 @@ pub struct Library {
 
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
 pub struct LibraryPersistentState {
-    pub paths: Vec<PathBuf>,
+    items: Vec<LibraryPersistentStateItem>,
+}
+
+#[derive(Clone, serde::Deserialize, serde::Serialize)]
+struct LibraryPersistentStateItem {
+    pub path: PathBuf,
+    pub thumbnail_path: Option<PathBuf>,
 }
 
 impl LibraryPersistentState {
     pub fn new() -> Self {
-        Self { paths: Vec::new() }
+        Self { items: Vec::new() }
     }
 }
 
@@ -78,6 +85,7 @@ impl Library {
         let library_item = LibraryItem {
             image: Some(image),
             thumbnail: Some(thumbnail),
+            thumbnail_path: None,
         };
         self.add_item(library_item, temp_image_id.clone());
         temp_image_id
@@ -88,6 +96,7 @@ impl Library {
         let item = LibraryItem {
             image: None,
             thumbnail: None,
+            thumbnail_path: None,
         };
         self.add_item(item, id.clone());
         id
@@ -97,29 +106,50 @@ impl Library {
         &self.items_order[index]
     }
 
-    pub fn get_image_at_index(&mut self, index: usize) -> Arc<Image> {
-        let identifier = &self.items_order[index];
-        self.get_image_from_identifier(&identifier.clone())
+    pub fn get_image_at_index(&mut self, index: usize) -> Option<Arc<Image>> {
+        while index < self.items_order.len() {
+            let identifier = self.items_order[index].clone();
+            if let Ok(image) = self.get_image_from_identifier(&identifier) {
+                return Some(image);
+            }
+            self.items.remove(&identifier);
+            self.items_order.remove(index);
+        }
+        None
     }
 
-    pub fn get_thumbnail_at_index(&mut self, index: usize) -> Arc<Image> {
-        let identifier = &self.items_order[index];
-        self.get_thumbnail_from_identifier(&identifier.clone())
+    pub fn get_thumbnail_at_index(&mut self, index: usize) -> Option<Arc<Image>> {
+        while index < self.items_order.len() {
+            let identifier = self.items_order[index].clone();
+            if let Ok(thumbnail) = self.get_thumbnail_from_identifier(&identifier) {
+                return Some(thumbnail);
+            }
+            self.items.remove(&identifier);
+            self.items_order.remove(index);
+        }
+        None
     }
 
-    fn ensure_loaded(&mut self, identifier: &LibraryImageIdentifier) -> &LibraryItem {
+    fn get_fully_loaded_item(
+        &mut self,
+        identifier: &LibraryImageIdentifier,
+    ) -> Result<&LibraryItem, String> {
         if self.items[identifier].image.is_none() {
             if let LibraryImageIdentifier::Path(ref path) = identifier {
-                let image = self
-                    .runtime
-                    .create_image_from_path(&path)
-                    .expect("failed to create image from path");
+                let image = self.runtime.create_image_from_path(&path)?;
                 let image = Arc::new(image);
 
                 // when loading image from path, always re-compute thumbnail (before format and color space conversions)
                 let thumbnail = self.compute_thumbnail(image.clone());
-                self.save_thumbnail(thumbnail.clone(), path);
-                self.items.get_mut(identifier).unwrap().thumbnail = Some(thumbnail);
+                let thumbnail_path = self.save_thumbnail(thumbnail.clone(), path);
+                {
+                    let item = self.items.get_mut(identifier).unwrap();
+                    item.thumbnail = Some(thumbnail);
+                    if let Some(ref old_thumbnail_path) = item.thumbnail_path {
+                        let _ = std::fs::remove_file(old_thumbnail_path);
+                    }
+                    item.thumbnail_path = thumbnail_path;
+                }
 
                 let image = self
                     .toolbox
@@ -129,7 +159,7 @@ impl Library {
                     .convert_color_space(image, ColorSpace::LinearRGB);
                 self.items.get_mut(identifier).unwrap().image = Some(image);
             } else {
-                panic!("cannot load from a non-path identifier {:?}", identifier);
+                return Err("temp image is empty".to_owned());
             }
         }
 
@@ -139,35 +169,59 @@ impl Library {
             self.items.get_mut(identifier).unwrap().thumbnail = Some(thumbnail);
         }
 
-        &self.items[identifier]
+        Ok(&self.items[identifier])
     }
 
-    pub fn get_image_from_identifier(&mut self, identifier: &LibraryImageIdentifier) -> Arc<Image> {
-        self.ensure_loaded(identifier);
-        self.items[identifier].image.as_ref().unwrap().clone()
+    pub fn get_image_from_identifier(
+        &mut self,
+        identifier: &LibraryImageIdentifier,
+    ) -> Result<Arc<Image>, String> {
+        let item = self.get_fully_loaded_item(identifier)?;
+        Ok(item.image.as_ref().unwrap().clone())
     }
 
     pub fn get_thumbnail_from_identifier(
         &mut self,
         identifier: &LibraryImageIdentifier,
-    ) -> Arc<Image> {
-        self.ensure_loaded(identifier);
-        self.items[identifier].thumbnail.as_ref().unwrap().clone()
+    ) -> Result<Arc<Image>, String> {
+        if let Some(ref thumbnail) = self.items[identifier].thumbnail {
+            return Ok(thumbnail.clone());
+        }
+        if let Some(ref thumbnail_path) = self.items[identifier].thumbnail_path {
+            let thumbnail = self.runtime.create_image_from_path(thumbnail_path)?;
+            let thumbnail = Arc::new(thumbnail);
+            self.items.get_mut(identifier).unwrap().thumbnail = Some(thumbnail.clone());
+            return Ok(thumbnail);
+        }
+        let item = self.get_fully_loaded_item(identifier)?;
+        Ok(item.thumbnail.as_ref().unwrap().clone())
     }
 
     pub fn get_persistent_state(&self) -> LibraryPersistentState {
-        let mut paths = Vec::new();
-        for pair in self.items.iter() {
-            if let LibraryImageIdentifier::Path(ref path) = pair.0 {
-                paths.push(path.clone())
+        let mut persistent_items = Vec::new();
+        for (identifier, library_item) in self.items.iter() {
+            if let LibraryImageIdentifier::Path(ref path) = identifier {
+                let item = LibraryPersistentStateItem {
+                    path: path.clone(),
+                    thumbnail_path: library_item.thumbnail_path.clone(),
+                };
+                persistent_items.push(item);
             }
         }
-        LibraryPersistentState { paths }
+        LibraryPersistentState {
+            items: persistent_items,
+        }
     }
 
     pub fn load_persistent_state(&mut self, state: LibraryPersistentState) {
-        for path in state.paths {
-            self.add_item_from_path(path);
+        for item in state.items {
+            let identifier = self.add_item_from_path(item.path);
+            if let Some(thumbnail_path) = item.thumbnail_path {
+                if let Ok(thumbnail_image) = self.runtime.create_image_from_path(&thumbnail_path) {
+                    self.items.get_mut(&identifier).unwrap().thumbnail =
+                        Some(Arc::new(thumbnail_image));
+                }
+            }
         }
     }
 
@@ -186,7 +240,7 @@ impl Library {
         }
     }
 
-    fn get_thumbnail_path_for_image_path(&self,image_path: &PathBuf) -> Option<PathBuf> {
+    fn get_thumbnail_path_for_image_path(&self, image_path: &PathBuf) -> Option<PathBuf> {
         if let Ok(digest_str) = image_path.digest() {
             if let Some(storage_dir) = Session::get_persistent_storage_dir() {
                 let file_name = digest_str + ".jpg";
@@ -197,15 +251,30 @@ impl Library {
         None
     }
 
-    fn save_thumbnail(&self, thumbnail: Arc<Image>, original_image_path: &PathBuf) {
+    fn save_thumbnail(
+        &self,
+        thumbnail: Arc<Image>,
+        original_image_path: &PathBuf,
+    ) -> Option<PathBuf> {
         if let Some(thumbnail_path) = self.get_thumbnail_path_for_image_path(original_image_path) {
-            let mut image_reader = ImageReaderJpeg::new(self.runtime.clone(), self.toolbox.clone(), thumbnail.clone());
-            std::thread::spawn(move || futures::executor::block_on(async move {
-                std::fs::create_dir_all(thumbnail_path.parent().unwrap()).expect("failed to ensure thumbnail directory");
-                let jpeg_data = image_reader.await_jpeg_data().await;
-                let mut file = std::fs::File::create(&thumbnail_path).expect("failed to create thumbnail file");
-                file.write_all(&jpeg_data).expect("failed to write file");
-            }));
+            let mut image_reader = ImageReaderJpeg::new(
+                self.runtime.clone(),
+                self.toolbox.clone(),
+                thumbnail.clone(),
+            );
+            let result = Some(thumbnail_path.clone());
+            std::thread::spawn(move || {
+                futures::executor::block_on(async move {
+                    std::fs::create_dir_all(thumbnail_path.parent().unwrap())
+                        .expect("failed to ensure thumbnail directory");
+                    let jpeg_data = image_reader.await_jpeg_data().await;
+                    let mut file = std::fs::File::create(&thumbnail_path)
+                        .expect("failed to create thumbnail file");
+                    file.write_all(&jpeg_data).expect("failed to write file");
+                })
+            });
+            return result;
         }
+        None
     }
 }
