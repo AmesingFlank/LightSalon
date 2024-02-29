@@ -22,7 +22,8 @@ struct LibraryItem {
 
 pub struct Library {
     items: HashMap<LibraryImageIdentifier, LibraryItem>,
-    items_order: Vec<LibraryImageIdentifier>,
+    item_indices: HashMap<LibraryImageIdentifier, usize>,
+    items_ordered: Vec<LibraryImageIdentifier>,
     num_temp_images: usize,
     runtime: Arc<Runtime>,
     toolbox: Arc<Toolbox>,
@@ -49,7 +50,8 @@ impl Library {
     pub fn new(runtime: Arc<Runtime>, toolbox: Arc<Toolbox>) -> Self {
         Self {
             items: HashMap::new(),
-            items_order: Vec::new(),
+            item_indices: HashMap::new(),
+            items_ordered: Vec::new(),
             num_temp_images: 0,
             runtime,
             toolbox,
@@ -67,7 +69,8 @@ impl Library {
     fn add_item(&mut self, item: LibraryItem, identifier: LibraryImageIdentifier) {
         let old_item = self.items.insert(identifier.clone(), item);
         if old_item.is_none() {
-            self.items_order.push(identifier);
+            self.item_indices.insert(identifier.clone(), self.items_ordered.len());
+            self.items_ordered.push(identifier);
         }
     }
 
@@ -103,29 +106,31 @@ impl Library {
     }
 
     pub fn get_identifier_at_index(&self, index: usize) -> &LibraryImageIdentifier {
-        &self.items_order[index]
+        &self.items_ordered[index]
     }
 
     pub fn get_image_at_index(&mut self, index: usize) -> Option<Arc<Image>> {
-        while index < self.items_order.len() {
-            let identifier = self.items_order[index].clone();
+        while index < self.items_ordered.len() {
+            let identifier = self.items_ordered[index].clone();
             if let Ok(image) = self.get_image_from_identifier(&identifier) {
                 return Some(image);
             }
             self.items.remove(&identifier);
-            self.items_order.remove(index);
+            self.item_indices.remove(&identifier);
+            self.items_ordered.remove(index);
         }
         None
     }
 
     pub fn get_thumbnail_at_index(&mut self, index: usize) -> Option<Arc<Image>> {
-        while index < self.items_order.len() {
-            let identifier = self.items_order[index].clone();
+        while index < self.items_ordered.len() {
+            let identifier = self.items_ordered[index].clone();
             if let Ok(thumbnail) = self.get_thumbnail_from_identifier(&identifier) {
                 return Some(thumbnail);
             }
             self.items.remove(&identifier);
-            self.items_order.remove(index);
+            self.item_indices.remove(&identifier);
+            self.items_ordered.remove(index);
         }
         None
     }
