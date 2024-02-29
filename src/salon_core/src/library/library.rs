@@ -142,14 +142,6 @@ impl Library {
                 // when loading image from path, always re-compute thumbnail (before format and color space conversions)
                 let thumbnail = self.compute_thumbnail(image.clone());
                 let thumbnail_path = self.save_thumbnail(thumbnail.clone(), path);
-                {
-                    let item = self.items.get_mut(identifier).unwrap();
-                    item.thumbnail = Some(thumbnail);
-                    if let Some(ref old_thumbnail_path) = item.thumbnail_path {
-                        let _ = std::fs::remove_file(old_thumbnail_path);
-                    }
-                    item.thumbnail_path = thumbnail_path;
-                }
 
                 let image = self
                     .toolbox
@@ -157,7 +149,15 @@ impl Library {
                 let image = self
                     .toolbox
                     .convert_color_space(image, ColorSpace::LinearRGB);
-                self.items.get_mut(identifier).unwrap().image = Some(image);
+                {
+                    let item = self.items.get_mut(identifier).unwrap();
+                    item.image = Some(image);
+                    item.thumbnail = Some(thumbnail);
+                    if let Some(ref old_thumbnail_path) = item.thumbnail_path {
+                        let _ = std::fs::remove_file(old_thumbnail_path);
+                    }
+                    item.thumbnail_path = thumbnail_path;
+                }
             } else {
                 return Err("temp image is empty".to_owned());
             }
@@ -190,6 +190,7 @@ impl Library {
         if let Some(ref thumbnail_path) = self.items[identifier].thumbnail_path {
             let thumbnail = self.runtime.create_image_from_path(thumbnail_path)?;
             let thumbnail = Arc::new(thumbnail);
+            self.toolbox.generate_mipmap(&thumbnail);
             self.items.get_mut(identifier).unwrap().thumbnail = Some(thumbnail.clone());
             return Ok(thumbnail);
         }
@@ -216,12 +217,7 @@ impl Library {
     pub fn load_persistent_state(&mut self, state: LibraryPersistentState) {
         for item in state.items {
             let identifier = self.add_item_from_path(item.path);
-            if let Some(thumbnail_path) = item.thumbnail_path {
-                if let Ok(thumbnail_image) = self.runtime.create_image_from_path(&thumbnail_path) {
-                    self.items.get_mut(&identifier).unwrap().thumbnail =
-                        Some(Arc::new(thumbnail_image));
-                }
-            }
+            self.items.get_mut(&identifier).unwrap().thumbnail_path = item.thumbnail_path;
         }
     }
 
