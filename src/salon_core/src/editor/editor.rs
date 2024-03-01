@@ -1,4 +1,7 @@
-use std::sync::{mpsc::Receiver, Arc};
+use std::{
+    collections::HashMap,
+    sync::{mpsc::Receiver, Arc},
+};
 
 use crate::{
     engine::{common::ImageHistogram, Engine, ExecutionContext},
@@ -17,14 +20,14 @@ pub struct Editor {
     engine: Engine,
     engine_execution_context: ExecutionContext,
 
-    current_edit_context: Option<EditContext>,
+    current_image_identifier: Option<LibraryImageIdentifier>,
+    edit_contexts: HashMap<LibraryImageIdentifier, EditContext>,
 
     runtime: Arc<Runtime>,
     toolbox: Arc<Toolbox>,
 }
 
 pub struct EditContext {
-    image_identifier: LibraryImageIdentifier,
     input_image: Arc<Image>,
     edit_history: EditHistory,
     current_edit_index: usize,
@@ -138,7 +141,8 @@ impl Editor {
         let engine = Engine::new(runtime.clone(), toolbox.clone());
         Editor {
             engine,
-            current_edit_context: None,
+            current_image_identifier: None,
+            edit_contexts: HashMap::new(),
 
             engine_execution_context: ExecutionContext::new(),
             runtime,
@@ -147,31 +151,35 @@ impl Editor {
     }
 
     pub fn set_current_image(&mut self, identifier: LibraryImageIdentifier, image: Arc<Image>) {
-        if let Some(context) = self.current_edit_context_ref() {
-            if context.image_identifier == identifier {
+        if let Some(ref curr_identifier) = self.current_image_identifier {
+            if *curr_identifier == identifier {
                 return;
             }
         }
 
-        let new_context = EditContext {
-            image_identifier: identifier.clone(),
-            input_image: image,
-            edit_history: vec![Edit::trivial()],
-            current_edit_index: 0,
-            transient_edit: None,
-            current_result: None,
-        };
+        if !self.edit_contexts.contains_key(&identifier) {
+            let new_context = EditContext {
+                input_image: image,
+                edit_history: vec![Edit::trivial()],
+                current_edit_index: 0,
+                transient_edit: None,
+                current_result: None,
+            };
+            self.edit_contexts.insert(identifier.clone(), new_context);
+        }
 
-        self.current_edit_context = Some(new_context);
+        self.current_image_identifier = Some(identifier);
         self.execute_current_edit();
     }
 
     pub fn current_edit_context_ref(&self) -> Option<&EditContext> {
-        self.current_edit_context.as_ref()
+        let identifier = self.current_image_identifier.as_ref()?;
+        self.edit_contexts.get(identifier)
     }
 
     pub fn current_edit_context_mut(&mut self) -> Option<&mut EditContext> {
-        self.current_edit_context.as_mut()
+        let identifier = self.current_image_identifier.as_ref()?;
+        self.edit_contexts.get_mut(identifier)
     }
 
     pub fn update_transient_edit(&mut self, transient_edit: Edit, execute: bool) {
@@ -211,8 +219,8 @@ impl Editor {
     }
 
     pub fn maybe_undo(&mut self) -> bool {
-        if let Some(context) = self.current_edit_context_ref() {
-            if self.current_edit_context_mut().unwrap().maybe_undo() {
+        if let Some(context) = self.current_edit_context_mut() {
+            if context.maybe_undo() {
                 self.execute_current_edit();
                 return true;
             }
@@ -221,8 +229,8 @@ impl Editor {
     }
 
     pub fn maybe_redo(&mut self) -> bool {
-        if let Some(context) = self.current_edit_context_ref() {
-            if self.current_edit_context_mut().unwrap().maybe_undo() {
+        if let Some(context) = self.current_edit_context_mut() {
+            if context.maybe_redo() {
                 self.execute_current_edit();
                 return true;
             }
