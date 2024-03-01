@@ -65,7 +65,15 @@ impl Session {
 
     fn get_persistent_state(&self) -> SessionPersistentState {
         let library_state = self.library.get_persistent_state();
-        SessionPersistentState { library_state }
+        let mut library_images_current_edits = Vec::new();
+        for (id, history) in self.state.library_images_edit_histories.iter() {
+            let last_edit = history.last().unwrap().clone();
+            library_images_current_edits.push((id.clone(), last_edit));
+        }
+        SessionPersistentState {
+            library_state,
+            library_images_current_edits,
+        }
     }
 
     fn load_persistant_state(&mut self) -> Result<bool, String> {
@@ -156,7 +164,7 @@ impl Session {
 }
 
 pub struct SessionState {
-    pub current_image_identifier: Option<LibraryImageIdentifier>,
+    current_image_identifier: Option<LibraryImageIdentifier>,
     library_images_edit_histories: HashMap<LibraryImageIdentifier, EditHistory>,
 }
 
@@ -171,5 +179,6 @@ impl SessionState {
 
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
 pub struct SessionPersistentState {
-    pub library_state: LibraryPersistentState,
+    library_state: LibraryPersistentState,
+    library_images_current_edits: Vec<(LibraryImageIdentifier, Edit)>,
 }
