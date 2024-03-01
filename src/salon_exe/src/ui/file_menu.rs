@@ -37,10 +37,8 @@ fn file_dialogue_export_image(
         .save_file();
     let runtime = session.runtime.clone();
 
-    if let Some(ref input_img) = session.editor.current_input_image {
-        let result = session
-            .editor
-            .execute_current_edit_original_size(input_img.clone());
+    if let Some(context) = session.editor.current_edit_context_mut() {
+        let result = session.editor.execute_current_edit_original_size();
         let final_image = result.final_image.clone();
         let final_image = session
             .toolbox
@@ -68,10 +66,8 @@ fn file_dialogue_export_image(
 ) {
     let runtime = session.runtime.clone();
 
-    if let Some(ref input_img) = session.editor.current_input_image {
-        let result = session
-            .editor
-            .execute_current_edit_original_size(input_img.clone());
+    if let Some(context) = session.editor.current_edit_context_mut() {
+        let result = session.editor.execute_current_edit_original_size();
         let final_image = result.final_image.clone();
         let final_image = session
             .toolbox

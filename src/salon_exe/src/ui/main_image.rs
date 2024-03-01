@@ -30,75 +30,80 @@ pub fn main_image(
     session: &mut Session,
     ui_state: &mut AppUiState,
 ) {
+    if session.editor.current_edit_context_ref().is_none() {
+        return;
+    }
     ui.centered_and_justified(|ui| {
         if ui_state.editor_panel == EditorPanel::CropAndRotate {
-            if let Some(ref original_image) = session.editor.current_input_image {
-                let size = get_image_size_in_ui(ui, original_image.aspect_ratio());
-                let (rect, response) = ui.allocate_exact_size(size, egui::Sense::drag());
+            let context = session.editor.current_edit_context_ref().unwrap();
+            let original_image = context.input_image();
+            let size = get_image_size_in_ui(ui, original_image.aspect_ratio());
+            let (rect, response) = ui.allocate_exact_size(size, egui::Sense::drag());
 
-                let transient_edit = session.editor.clone_transient_edit();
+            let transient_edit = context.transient_edit_ref().clone();
 
-                ui.painter().add(egui_wgpu::Callback::new_paint_callback(
-                    rect,
-                    MainImageCallback {
-                        image: original_image.clone(),
-                        crop_rect: transient_edit.crop.clone(),
-                        mask: None,
-                    },
-                ));
-                let original_rect = rect;
-                let mut curr_rect = original_rect;
-                if let Some(ref rect) = ui_state.crop_drag_state.rect {
-                    curr_rect = rect.clone();
-                }
-                handle_crop_and_rotate_response(ui, &response, curr_rect, original_rect, ui_state);
-                draw_drag_handles(ui, curr_rect, original_rect, ui_state);
-                draw_grid_impl(ui, curr_rect, original_rect, ui_state);
-                if let Some(ref new_rect) = ui_state.crop_drag_state.rect {
-                    handle_new_rect(
-                        ui,
-                        session,
-                        ui_state,
-                        transient_edit,
-                        original_rect,
-                        *new_rect,
-                    );
-                }
+            ui.painter().add(egui_wgpu::Callback::new_paint_callback(
+                rect,
+                MainImageCallback {
+                    image: original_image.clone(),
+                    crop_rect: transient_edit.crop.clone(),
+                    mask: None,
+                },
+            ));
+            let original_rect = rect;
+            let mut curr_rect = original_rect;
+            if let Some(ref rect) = ui_state.crop_drag_state.rect {
+                curr_rect = rect.clone();
+            }
+            handle_crop_and_rotate_response(ui, &response, curr_rect, original_rect, ui_state);
+            draw_drag_handles(ui, curr_rect, original_rect, ui_state);
+            draw_grid_impl(ui, curr_rect, original_rect, ui_state);
+            if let Some(ref new_rect) = ui_state.crop_drag_state.rect {
+                handle_new_rect(
+                    ui,
+                    session,
+                    ui_state,
+                    transient_edit,
+                    original_rect,
+                    *new_rect,
+                );
             }
         } else {
             // request to resize the image into a smaller image before applying all other edits, for better perf.
-            if let Some(ref input_image) = session.editor.current_input_image {
-                let original_dimensions = input_image.properties.dimensions;
-                let mut original_size =
-                    vec2((original_dimensions.0 as f32, original_dimensions.1 as f32));
-                if let Some(ref crop_rect) = session.editor.get_current_edit_ref().crop {
-                    original_size = original_size * (crop_rect.max - crop_rect.min)
-                }
-                let aspect_ratio = original_size.y / original_size.x;
+            let context = session.editor.current_edit_context_mut().unwrap();
+            let input_image = context.input_image();
+            let original_dimensions = input_image.properties.dimensions;
+            let mut original_size =
+                vec2((original_dimensions.0 as f32, original_dimensions.1 as f32));
+            if let Some(ref crop_rect) = context.current_edit_ref().crop {
+                original_size = original_size * (crop_rect.max - crop_rect.min)
+            }
+            let aspect_ratio = original_size.y / original_size.x;
 
-                let size_in_ui = get_image_size_in_ui(ui, aspect_ratio);
-                // HiDPI (aka Apple Retina) scaling factor;
-                let num_pixels_in_ui = size_in_ui * ctx.pixels_per_point();
-                let x_factor = num_pixels_in_ui.x / original_size.x;
-                let y_factor = num_pixels_in_ui.y / original_size.y;
-                let factor = x_factor.max(y_factor); // possible for these two to be slightly different..?
-                if factor < 1.0 {
-                    let mut should_override_factor = false;
-                    if let Some(curr_factor) = session.editor.get_current_edit_ref().resize_factor {
-                        if (curr_factor - factor).abs() > 0.01 {
-                            // overwrite only when factor changes noticeably, to avoid constant-rescaling due to egui size jitters.
-                            should_override_factor = true;
-                        }
-                    } else {
+            let size_in_ui = get_image_size_in_ui(ui, aspect_ratio);
+            // HiDPI (aka Apple Retina) scaling factor;
+            let num_pixels_in_ui = size_in_ui * ctx.pixels_per_point();
+            let x_factor = num_pixels_in_ui.x / original_size.x;
+            let y_factor = num_pixels_in_ui.y / original_size.y;
+            let factor = x_factor.max(y_factor); // possible for these two to be slightly different..?
+            if factor < 1.0 {
+                let mut should_override_factor = false;
+                if let Some(curr_factor) = context.current_edit_ref().resize_factor {
+                    if (curr_factor - factor).abs() > 0.01 {
+                        // overwrite only when factor changes noticeably, to avoid constant-rescaling due to egui size jitters.
                         should_override_factor = true;
                     }
-                    if should_override_factor {
-                        session.editor.override_resize_factor(factor);
-                        session.editor.execute_current_edit();
-                    }
+                } else {
+                    should_override_factor = true;
+                }
+                if should_override_factor {
+                    context.override_resize_factor(factor);
+                    session.editor.execute_current_edit();
                 }
             }
-            if let Some(ref result) = session.editor.current_result {
+
+            let context = session.editor.current_edit_context_mut().unwrap();
+            if let Some(ref result) = context.current_result {
                 let size = get_image_size_in_ui(ui, result.final_image.aspect_ratio());
                 let (rect, response) = ui.allocate_exact_size(size, egui::Sense::drag());
                 let mut mask = None;
@@ -121,7 +126,7 @@ pub fn main_image(
                     draw_grid_impl(ui, rect, rect, ui_state);
                 }
                 if let Some(term_index) = ui_state.selected_mask_term_index {
-                    let mut transient_edit = session.editor.clone_transient_edit();
+                    let mut transient_edit = context.transient_edit_ref().clone();
                     let primitive = &mut transient_edit.masked_edits[ui_state.selected_mask_index]
                         .mask
                         .terms[term_index]

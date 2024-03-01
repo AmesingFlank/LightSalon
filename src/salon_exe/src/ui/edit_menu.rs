@@ -29,10 +29,14 @@ pub fn edit_menu(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) 
 
 pub fn undo_action(session: &mut Session, ui_state: &mut AppUiState) {
     session.editor.maybe_undo();
-    legalize_ui_state(ui_state, session.editor.get_current_edit_ref());
+    if let Some(context) = session.editor.current_edit_context_ref() {
+        legalize_ui_state(ui_state, context.current_edit_ref());
+    }
 }
 
 pub fn redo_action(session: &mut Session, ui_state: &mut AppUiState) {
     session.editor.maybe_redo();
-    legalize_ui_state(ui_state, session.editor.get_current_edit_ref());
+    if let Some(context) = session.editor.current_edit_context_ref() {
+        legalize_ui_state(ui_state, context.current_edit_ref());
+    }
 }

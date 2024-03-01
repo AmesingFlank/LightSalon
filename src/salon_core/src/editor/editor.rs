@@ -2,6 +2,7 @@ use std::sync::{mpsc::Receiver, Arc};
 
 use crate::{
     engine::{common::ImageHistogram, Engine, ExecutionContext},
+    library::LibraryImageIdentifier,
     runtime::{Buffer, BufferReader, Image, Runtime, Toolbox},
 };
 
@@ -16,47 +17,27 @@ pub struct Editor {
     engine: Engine,
     engine_execution_context: ExecutionContext,
 
-    pub current_input_image: Option<Arc<Image>>,
+    current_edit_context: Option<EditContext>,
 
+    runtime: Arc<Runtime>,
+    toolbox: Arc<Toolbox>,
+}
+
+pub struct EditContext {
+    image_identifier: LibraryImageIdentifier,
+    input_image: Arc<Image>,
     edit_history: EditHistory,
     current_edit_index: usize,
 
     // an edit that is being actively modified
     // (e.g. as the user drags the slider, the temporary edit state)
     transient_edit: Option<Edit>,
-
     pub current_result: Option<EditResult>,
-
-    runtime: Arc<Runtime>,
-    toolbox: Arc<Toolbox>,
 }
 
-impl Editor {
-    pub fn new(runtime: Arc<Runtime>, toolbox: Arc<Toolbox>) -> Self {
-        let engine = Engine::new(runtime.clone(), toolbox.clone());
-        Editor {
-            engine,
-            current_input_image: None,
-
-            edit_history: vec![Edit::trivial()],
-            current_edit_index: 0,
-            transient_edit: None,
-
-            current_result: None,
-
-            engine_execution_context: ExecutionContext::new(),
-            runtime,
-            toolbox,
-        }
-    }
-
-    pub fn clear_edit_history(&mut self) {
-        self.set_edit_history(vec![Edit::trivial()]);
-    }
-
-    pub fn set_edit_history(&mut self, history: EditHistory) {
-        self.edit_history = history;
-        self.current_edit_index = self.edit_history.len() - 1;
+impl EditContext {
+    pub fn input_image(&self) -> &Arc<Image> {
+        &self.input_image
     }
 
     pub fn clone_edit_history(&self) -> EditHistory {
@@ -67,23 +48,20 @@ impl Editor {
         history
     }
 
-    fn clone_current_edit(&self) -> Edit {
-        self.edit_history[self.current_edit_index].clone()
-    }
-
-    pub fn get_current_edit_ref(&self) -> &Edit {
+    pub fn current_edit_ref(&self) -> &Edit {
         &self.edit_history[self.current_edit_index]
     }
 
-    pub fn clone_transient_edit(&self) -> Edit {
+    pub fn transient_edit_ref(&self) -> &Edit {
         if self.transient_edit.is_none() {
-            self.clone_current_edit()
+            self.current_edit_ref()
         } else {
-            self.transient_edit.as_ref().unwrap().clone()
+            self.transient_edit.as_ref().unwrap()
         }
     }
 
-    pub fn update_transient_edit(&mut self, transient_edit: Edit, execute: bool) {
+    // returns true iff an update was made
+    fn update_transient_edit(&mut self, transient_edit: Edit) -> bool {
         let mut needs_update = false;
         if let Some(ref curr_transient_edit) = self.transient_edit {
             needs_update = (*curr_transient_edit != transient_edit);
@@ -92,13 +70,12 @@ impl Editor {
         }
         if needs_update {
             self.transient_edit = Some(transient_edit);
-            if execute {
-                self.execute_transient_edit();
-            }
         }
+        needs_update
     }
 
-    pub fn commit_transient_edit(&mut self, execute: bool) {
+    // returns true iff edit history is updated
+    fn commit_transient_edit(&mut self) -> bool {
         let mut needs_commit = false;
         if let Some(ref transient) = self.transient_edit {
             if *transient != self.edit_history[self.current_edit_index] {
@@ -111,11 +88,9 @@ impl Editor {
             }
             self.edit_history.push(self.transient_edit.take().unwrap());
             self.current_edit_index = self.edit_history.len() - 1;
-            if execute {
-                self.execute_current_edit();
-            }
         }
         self.transient_edit = None;
+        needs_commit
     }
 
     pub fn can_undo(&self) -> bool {
@@ -126,52 +101,26 @@ impl Editor {
         self.current_edit_index < self.edit_history.len() - 1
     }
 
-    pub fn maybe_undo(&mut self) {
+    // returns whether or not an undo happened
+    fn maybe_undo(&mut self) -> bool {
         if self.current_edit_index > 0 {
             self.current_edit_index -= 1;
-            self.execute_current_edit();
             self.transient_edit = None;
+            true
+        } else {
+            false
         }
     }
 
-    pub fn maybe_redo(&mut self) {
+    // returns whether or not a redo happened
+    fn maybe_redo(&mut self) -> bool {
         if self.current_edit_index < self.edit_history.len() - 1 {
             self.current_edit_index += 1;
-            self.execute_current_edit();
             self.transient_edit = None;
+            true
+        } else {
+            false
         }
-    }
-
-    pub fn execute_current_edit(&mut self) {
-        if let Some(ref img) = self.current_input_image {
-            let (module, id_store) = to_ir_module(&self.edit_history[self.current_edit_index]);
-            self.engine
-                .execute_module(&module, img.clone(), &mut self.engine_execution_context);
-            self.current_result = Some(self.collect_result(&id_store));
-        }
-    }
-
-    fn execute_transient_edit(&mut self) {
-        if let Some(ref e) = self.transient_edit {
-            if let Some(ref img) = self.current_input_image {
-                let (module, id_store) = to_ir_module(e);
-                self.engine.execute_module(
-                    &module,
-                    img.clone(),
-                    &mut self.engine_execution_context,
-                );
-                self.current_result = Some(self.collect_result(&id_store));
-            }
-        }
-    }
-
-    pub fn execute_current_edit_original_size(&mut self, img: Arc<Image>) -> EditResult {
-        let mut edit = self.edit_history[self.current_edit_index].clone();
-        edit.resize_factor = None;
-        let (module, id_store) = to_ir_module(&edit);
-        self.engine
-            .execute_module(&module, img, &mut self.engine_execution_context);
-        self.collect_result(&id_store)
     }
 
     pub fn override_resize_factor(&mut self, new_resize_factor: f32) {
@@ -182,8 +131,152 @@ impl Editor {
             e.resize_factor = Some(new_resize_factor);
         }
     }
+}
+
+impl Editor {
+    pub fn new(runtime: Arc<Runtime>, toolbox: Arc<Toolbox>) -> Self {
+        let engine = Engine::new(runtime.clone(), toolbox.clone());
+        Editor {
+            engine,
+            current_edit_context: None,
+
+            engine_execution_context: ExecutionContext::new(),
+            runtime,
+            toolbox,
+        }
+    }
+
+    pub fn set_current_image(&mut self, identifier: LibraryImageIdentifier, image: Arc<Image>) {
+        if let Some(context) = self.current_edit_context_ref() {
+            if context.image_identifier == identifier {
+                return;
+            }
+        }
+
+        let new_context = EditContext {
+            image_identifier: identifier.clone(),
+            input_image: image,
+            edit_history: vec![Edit::trivial()],
+            current_edit_index: 0,
+            transient_edit: None,
+            current_result: None,
+        };
+
+        self.current_edit_context = Some(new_context);
+        self.execute_current_edit();
+    }
+
+    pub fn current_edit_context_ref(&self) -> Option<&EditContext> {
+        self.current_edit_context.as_ref()
+    }
+
+    pub fn current_edit_context_mut(&mut self) -> Option<&mut EditContext> {
+        self.current_edit_context.as_mut()
+    }
+
+    pub fn update_transient_edit(&mut self, transient_edit: Edit, execute: bool) {
+        let updated = self
+            .current_edit_context_mut()
+            .unwrap()
+            .update_transient_edit(transient_edit);
+        if updated && execute {
+            self.execute_transient_edit();
+        }
+    }
+
+    pub fn commit_transient_edit(&mut self, execute: bool) {
+        let committed = self
+            .current_edit_context_mut()
+            .unwrap()
+            .commit_transient_edit();
+        if committed && execute {
+            self.execute_current_edit();
+        }
+    }
+
+    pub fn can_undo(&mut self) -> bool {
+        if let Some(context) = self.current_edit_context_ref() {
+            context.can_undo()
+        } else {
+            false
+        }
+    }
+
+    pub fn can_redo(&mut self) -> bool {
+        if let Some(context) = self.current_edit_context_ref() {
+            context.can_redo()
+        } else {
+            false
+        }
+    }
+
+    pub fn maybe_undo(&mut self) -> bool {
+        if let Some(context) = self.current_edit_context_ref() {
+            if self.current_edit_context_mut().unwrap().maybe_undo() {
+                self.execute_current_edit();
+                return true;
+            }
+        }
+        false
+    }
+
+    pub fn maybe_redo(&mut self) -> bool {
+        if let Some(context) = self.current_edit_context_ref() {
+            if self.current_edit_context_mut().unwrap().maybe_undo() {
+                self.execute_current_edit();
+                return true;
+            }
+        }
+        false
+    }
+
+    pub fn execute_current_edit(&mut self) {
+        let (module, id_store) =
+            to_ir_module(self.current_edit_context_ref().unwrap().current_edit_ref());
+        let image = self.current_edit_context_ref().unwrap().input_image.clone();
+        self.engine
+            .execute_module(&module, image, &mut self.engine_execution_context);
+        self.current_edit_context_mut().unwrap().current_result =
+            Some(self.collect_result(&id_store));
+    }
+
+    fn execute_transient_edit(&mut self) {
+        let (module, id_store) = to_ir_module(
+            self.current_edit_context_ref()
+                .unwrap()
+                .transient_edit_ref(),
+        );
+        let image = self.current_edit_context_ref().unwrap().input_image.clone();
+        self.engine
+            .execute_module(&module, image, &mut self.engine_execution_context);
+        self.current_edit_context_mut().unwrap().current_result =
+            Some(self.collect_result(&id_store));
+    }
+
+    pub fn execute_current_edit_original_size(&mut self) -> EditResult {
+        let mut edit = self
+            .current_edit_context_ref()
+            .unwrap()
+            .current_edit_ref()
+            .clone();
+        edit.resize_factor = None;
+        let image = self.current_edit_context_ref().unwrap().input_image.clone();
+        let (module, id_store) = to_ir_module(&edit);
+        self.engine
+            .execute_module(&module, image, &mut self.engine_execution_context);
+        self.collect_result(&id_store)
+    }
 
     fn collect_result(&mut self, id_store: &IdStore) -> EditResult {
+        let mut histogram_initial_value = None;
+        if let Some(context) = self.current_edit_context_mut() {
+            if let Some(ref mut current_result) = context.current_result {
+                let current_histogram = &mut current_result.histogram_final;
+                current_histogram.poll_value();
+                histogram_initial_value = current_histogram.take_value();
+            }
+        }
+
         let value_map = &self.engine_execution_context.value_store.map;
 
         let output_value = value_map.get(&id_store.output).expect("cannot find output");
@@ -195,12 +288,6 @@ impl Editor {
             .expect("cannot find data for editor")
             .as_buffer();
 
-        let mut histogram_initial_value = None;
-        if let Some(ref mut curr_result) = self.current_result {
-            let current_histogram = &mut curr_result.histogram_final;
-            current_histogram.poll_value();
-            histogram_initial_value = current_histogram.take_value();
-        }
         let final_histogram = BufferReader::new(
             self.runtime.clone(),
             final_histogram_buffer.clone(),

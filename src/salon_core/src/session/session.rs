@@ -11,7 +11,6 @@ pub struct Session {
     pub editor: Editor,
     pub runtime: Arc<Runtime>,
     pub toolbox: Arc<Toolbox>,
-    state: SessionState,
 }
 
 impl Session {
@@ -20,7 +19,6 @@ impl Session {
         let mut session = Session {
             library: Library::new(runtime.clone(), toolbox.clone()),
             editor: Editor::new(runtime.clone(), toolbox.clone()),
-            state: SessionState::new(),
             toolbox,
             runtime,
         };
@@ -29,51 +27,14 @@ impl Session {
     }
 
     pub fn set_current_image(&mut self, identifier: LibraryImageIdentifier) {
-        match self.state.current_image_identifier {
-            Some(ref i) => {
-                if *i == identifier {
-                    return;
-                }
-            }
-            _ => {}
-        }
-
         if let Some(new_image) = self.library.get_image_from_identifier(&identifier) {
-            if let Some(ref curr_id) = self.state.current_image_identifier {
-                let edit_history = self.editor.clone_edit_history();
-                if edit_history.len() > 0 {
-                    if !(edit_history.len() == 1 && edit_history[0] == Edit::trivial()) {
-                        self.state
-                            .library_images_edit_histories
-                            .insert(curr_id.clone(), edit_history);
-                    }
-                }
-            }
-
-            self.editor.current_input_image = Some(new_image);
-            self.state.current_image_identifier = Some(identifier.clone());
-
-            if let Some(history) = self.state.library_images_edit_histories.get(&identifier) {
-                self.editor.set_edit_history(history.clone());
-            } else {
-                self.editor.clear_edit_history();
-            }
-
-            self.editor.execute_current_edit();
+            self.editor.set_current_image(identifier, new_image.clone());
         }
     }
 
     fn get_persistent_state(&self) -> SessionPersistentState {
         let library_state = self.library.get_persistent_state();
-        let mut library_images_current_edits = Vec::new();
-        for (id, history) in self.state.library_images_edit_histories.iter() {
-            let last_edit = history.last().unwrap().clone();
-            library_images_current_edits.push((id.clone(), last_edit));
-        }
-        SessionPersistentState {
-            library_state,
-            library_images_current_edits,
-        }
+        SessionPersistentState { library_state }
     }
 
     fn load_persistant_state(&mut self) -> Result<bool, String> {
@@ -163,22 +124,8 @@ impl Session {
     }
 }
 
-pub struct SessionState {
-    current_image_identifier: Option<LibraryImageIdentifier>,
-    library_images_edit_histories: HashMap<LibraryImageIdentifier, EditHistory>,
-}
-
-impl SessionState {
-    pub fn new() -> Self {
-        Self {
-            current_image_identifier: None,
-            library_images_edit_histories: HashMap::new(),
-        }
-    }
-}
 
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
 pub struct SessionPersistentState {
     library_state: LibraryPersistentState,
-    library_images_current_edits: Vec<(LibraryImageIdentifier, Edit)>,
 }

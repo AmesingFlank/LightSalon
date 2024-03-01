@@ -11,7 +11,7 @@ use super::{
 };
 
 pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
-    if session.editor.current_input_image.is_none() {
+    if session.editor.current_edit_context_ref().is_none() {
         return;
     }
     ui.horizontal(|ui| {
@@ -35,7 +35,12 @@ pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
 
     match ui_state.editor_panel {
         EditorPanel::LightAndColor => {
-            let mut transient_edit = session.editor.clone_transient_edit();
+            let mut transient_edit = session
+                .editor
+                .current_edit_context_ref()
+                .unwrap()
+                .transient_edit_ref()
+                .clone();
 
             histogram(ui, session, ui_state);
             ui.separator();

@@ -48,9 +48,9 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
 
     let aspect_ratio = session
         .editor
-        .current_input_image
-        .as_ref()
-        .expect("expecting an input image")
+        .current_edit_context_ref()
+        .unwrap()
+        .input_image()
         .aspect_ratio();
 
     let image_height = ui_state.last_frame_size.unwrap().1 * 0.03;
@@ -69,7 +69,12 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                 });
                 row.col(|ui| {
                     ui.horizontal_centered(|mut ui| {
-                        if let Some(ref result) = session.editor.current_result {
+                        if let Some(ref result) = session
+                            .editor
+                            .current_edit_context_ref()
+                            .unwrap()
+                            .current_result
+                        {
                             let mask_img = result.masked_edit_results[mask_index].mask.clone();
                             let image_width = image_height / aspect_ratio;
                             let size = egui::Vec2 {
@@ -122,7 +127,12 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                         row.col(|ui| {
                             ui.horizontal_centered(|mut ui| {
                                 ui.separator();
-                                if let Some(ref result) = session.editor.current_result {
+                                if let Some(ref result) = session
+                                    .editor
+                                    .current_edit_context_ref()
+                                    .unwrap()
+                                    .current_result
+                                {
                                     let mask_img = result.masked_edit_results[mask_index]
                                         .mask_terms[term_index]
                                         .clone();
@@ -267,9 +277,9 @@ fn new_mask_menu_button(
         if ui.button("Radial Gradient").clicked() {
             let aspect_ratio = session
                 .editor
-                .current_input_image
-                .as_ref()
+                .current_edit_context_ref()
                 .expect("expecting an input image")
+                .input_image()
                 .aspect_ratio();
             add_single_primitive_masked_edit(
                 edit,
