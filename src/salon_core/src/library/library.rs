@@ -217,11 +217,11 @@ impl Library {
 
     pub fn get_persistent_state(&self) -> LibraryPersistentState {
         let mut persistent_items = Vec::new();
-        for (identifier, library_item) in self.items.iter() {
+        for identifier in self.items_ordered.iter() {
             if let LibraryImageIdentifier::Path(ref path) = identifier {
                 let item = LibraryPersistentStateItem {
                     path: path.clone(),
-                    thumbnail_path: library_item.thumbnail_path.clone(),
+                    thumbnail_path: self.items[identifier].thumbnail_path.clone(),
                 };
                 persistent_items.push(item);
             }
