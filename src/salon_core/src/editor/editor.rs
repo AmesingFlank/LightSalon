@@ -28,7 +28,7 @@ pub struct Editor {
 }
 
 pub struct EditContext {
-    input_image: Arc<Image>,
+    input_image: Option<Arc<Image>>,
     edit_history: EditHistory,
     current_edit_index: usize,
 
@@ -40,7 +40,7 @@ pub struct EditContext {
 
 impl EditContext {
     pub fn input_image(&self) -> &Arc<Image> {
-        &self.input_image
+        &self.input_image.as_ref().unwrap()
     }
 
     pub fn clone_edit_history(&self) -> EditHistory {
@@ -157,9 +157,12 @@ impl Editor {
             }
         }
 
-        if !self.edit_contexts.contains_key(&identifier) {
+        if let Some(context) = self.edit_contexts.get_mut(&identifier) {
+            // update the image, in case it was None before (e.g. if the context is populated from a persistent state)
+            context.input_image = Some(image)
+        } else {
             let new_context = EditContext {
-                input_image: image,
+                input_image: Some(image),
                 edit_history: vec![Edit::trivial()],
                 current_edit_index: 0,
                 transient_edit: None,
@@ -241,7 +244,11 @@ impl Editor {
     pub fn execute_current_edit(&mut self) {
         let (module, id_store) =
             to_ir_module(self.current_edit_context_ref().unwrap().current_edit_ref());
-        let image = self.current_edit_context_ref().unwrap().input_image.clone();
+        let image = self
+            .current_edit_context_ref()
+            .unwrap()
+            .input_image()
+            .clone();
         self.engine
             .execute_module(&module, image, &mut self.engine_execution_context);
         self.current_edit_context_mut().unwrap().current_result =
@@ -254,7 +261,11 @@ impl Editor {
                 .unwrap()
                 .transient_edit_ref(),
         );
-        let image = self.current_edit_context_ref().unwrap().input_image.clone();
+        let image = self
+            .current_edit_context_ref()
+            .unwrap()
+            .input_image()
+            .clone();
         self.engine
             .execute_module(&module, image, &mut self.engine_execution_context);
         self.current_edit_context_mut().unwrap().current_result =
@@ -268,7 +279,11 @@ impl Editor {
             .current_edit_ref()
             .clone();
         edit.resize_factor = None;
-        let image = self.current_edit_context_ref().unwrap().input_image.clone();
+        let image = self
+            .current_edit_context_ref()
+            .unwrap()
+            .input_image()
+            .clone();
         let (module, id_store) = to_ir_module(&edit);
         self.engine
             .execute_module(&module, image, &mut self.engine_execution_context);
@@ -338,4 +353,43 @@ impl Editor {
             masked_edit_results,
         }
     }
+
+    pub fn get_persistent_state(&self) -> EditorPersistentState {
+        let mut edit_context_states = Vec::new();
+        for (identifier, context) in self.edit_contexts.iter() {
+            let state = EditContextPersistentState {
+                identifier: identifier.clone(),
+                current_edit: context.current_edit_ref().clone(),
+            };
+            edit_context_states.push(state);
+        }
+        EditorPersistentState {
+            edit_context_states,
+        }
+    }
+
+    pub fn load_persistent_state(&mut self, state: EditorPersistentState) {
+        for edit_context_state in state.edit_context_states {
+            let new_context = EditContext {
+                input_image: None,
+                edit_history: vec![edit_context_state.current_edit],
+                current_edit_index: 0,
+                transient_edit: None,
+                current_result: None,
+            };
+            self.edit_contexts
+                .insert(edit_context_state.identifier, new_context);
+        }
+    }
+}
+
+#[derive(Clone, serde::Deserialize, serde::Serialize)]
+pub struct EditorPersistentState {
+    edit_context_states: Vec<EditContextPersistentState>,
+}
+
+#[derive(Clone, serde::Deserialize, serde::Serialize)]
+struct EditContextPersistentState {
+    identifier: LibraryImageIdentifier,
+    current_edit: Edit,
 }

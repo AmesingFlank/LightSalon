@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use crate::editor::{Edit, EditHistory, Editor};
+use crate::editor::{Edit, EditHistory, Editor, EditorPersistentState};
 use crate::library::{Library, LibraryImageIdentifier, LibraryPersistentState};
 use crate::runtime::{Runtime, Toolbox};
 
@@ -34,7 +34,11 @@ impl Session {
 
     fn get_persistent_state(&self) -> SessionPersistentState {
         let library_state = self.library.get_persistent_state();
-        SessionPersistentState { library_state }
+        let editor_state = self.editor.get_persistent_state();
+        SessionPersistentState {
+            library_state,
+            editor_state,
+        }
     }
 
     fn load_persistant_state(&mut self) -> Result<bool, String> {
@@ -58,6 +62,7 @@ impl Session {
                 }
                 let state = state.unwrap();
                 self.library.load_persistent_state(state.library_state);
+                self.editor.load_persistent_state(state.editor_state);
                 return Ok(true);
             }
         }
@@ -124,8 +129,8 @@ impl Session {
     }
 }
 
-
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
 pub struct SessionPersistentState {
     library_state: LibraryPersistentState,
+    editor_state: EditorPersistentState,
 }
