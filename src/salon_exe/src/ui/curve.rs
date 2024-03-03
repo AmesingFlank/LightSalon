@@ -139,28 +139,24 @@ pub fn curve(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState, edit
                         }
                     }
                 }
-                let mut dx = response.response.drag_delta().x;
-                let mut dy = response.response.drag_delta().y;
-                dx = dx * 1.0 / (ui.available_height() * 1.5);
-                dy = dy * -1.0 / (ui.available_height() * 1.5);
+
                 if let Some(ref selected) = ui_state.selected_curve_control_point_index {
-                    let mut p = control_points[*selected];
+                    if let Some(ref coords) = response.inner {
+                        let mut p = (coords.x as f32, coords.y as f32);
+                        p.0 = p.0.min(1.0).max(0.0);
+                        p.1 = p.1.min(1.0).max(0.0);
 
-                    p.1 += dy;
-                    p.1 = p.1.min(1.0).max(0.0);
+                        if *selected > 0 {
+                            let prev = control_points[*selected - 1];
+                            p.0 = p.0.max(prev.0 + 0.05);
+                        }
+                        if *selected < control_points.len() - 1 {
+                            let next = control_points[*selected + 1];
+                            p.0 = p.0.min(next.0 - 0.05);
+                        }
 
-                    p.0 += dx;
-                    p.0 = p.0.min(1.0).max(0.0);
-                    if *selected > 0 {
-                        let prev = control_points[*selected - 1];
-                        p.0 = p.0.max(prev.0 + 0.05);
+                        control_points[*selected] = p;
                     }
-                    if *selected < control_points.len() - 1 {
-                        let next = control_points[*selected + 1];
-                        p.0 = p.0.min(next.0 - 0.05);
-                    }
-
-                    control_points[*selected] = p;
                 }
             }
 
@@ -187,7 +183,7 @@ pub fn curve(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState, edit
                     }
                 }
             }
-            if response.response.drag_released() {
+            if response.response.drag_stopped() {
                 ui_state.selected_curve_control_point_index = None;
             }
         });
