@@ -335,7 +335,7 @@ fn radial_gradient_control_points(
         }
         draw_control_point_circle(ui, rect, p_abs.xy());
     }
-    if response.drag_released() {
+    if response.drag_stopped() {
         mask_edit_state.dragged_control_point_index = None;
         return true;
     }
@@ -421,7 +421,7 @@ fn linear_gradient_control_points(
         );
     }
 
-    if response.drag_released() {
+    if response.drag_stopped() {
         mask_edit_state.dragged_control_point_index = None;
         return true;
     }
@@ -555,7 +555,7 @@ fn handle_crop_and_rotate_response(
             new_rect.min.y = new_rect.min.y.max(original_rect.min.y);
             new_rect.max.x = new_rect.max.x.min(original_rect.max.x);
             new_rect.max.y = new_rect.max.y.min(original_rect.max.y);
-        } else if response.drag_released() {
+        } else if response.drag_stopped() {
             ui_state.crop_drag_state.edge_or_corner = None;
         }
     } else if ui_state.crop_drag_state.translation {
@@ -572,7 +572,7 @@ fn handle_crop_and_rotate_response(
             new_rect.max.x += delta.x;
             new_rect.min.y += delta.y;
             new_rect.max.y += delta.y;
-        } else if response.drag_released() {
+        } else if response.drag_stopped() {
             ui_state.crop_drag_state.translation = false;
         }
     } else {
