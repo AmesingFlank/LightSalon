@@ -100,6 +100,7 @@ pub struct EditorSlider<'a> {
     custom_parser: Option<NumParser<'a>>,
     trailing_fill: Option<bool>,
     color_override: Option<([f32; 3], [f32; 3], ColorSpace)>,
+    double_click_reset_value: Option<f64>,
 }
 
 impl<'a> EditorSlider<'a> {
@@ -147,6 +148,7 @@ impl<'a> EditorSlider<'a> {
             custom_parser: None,
             trailing_fill: None,
             color_override: None,
+            double_click_reset_value: None,
         }
     }
 
@@ -298,8 +300,18 @@ impl<'a> EditorSlider<'a> {
         self
     }
 
-    pub fn color_override(mut self, color_left: [f32; 3], color_right: [f32; 3], color_space: ColorSpace) -> Self {
+    pub fn color_override(
+        mut self,
+        color_left: [f32; 3],
+        color_right: [f32; 3],
+        color_space: ColorSpace,
+    ) -> Self {
         self.color_override = Some((color_left, color_right, color_space));
+        self
+    }
+
+    pub fn double_click_reset_value(mut self, reset_value: f64) -> Self {
+        self.double_click_reset_value = Some(reset_value);
         self
     }
 
@@ -563,7 +575,7 @@ impl<'a> EditorSlider<'a> {
             SliderOrientation::Horizontal => vec2(ui.spacing().slider_width, thickness),
             SliderOrientation::Vertical => vec2(thickness, ui.spacing().slider_width),
         };
-        ui.allocate_response(desired_size, Sense::drag())
+        ui.allocate_response(desired_size, Sense::click_and_drag())
     }
 
     /// Just the slider, no text
@@ -573,74 +585,22 @@ impl<'a> EditorSlider<'a> {
 
         if let Some(pointer_position_2d) = response.interact_pointer_pos() {
             let position = self.pointer_position(pointer_position_2d);
-            let new_value = if self.smart_aim {
-                let aim_radius = ui.input(|i| i.aim_radius());
-                emath::smart_aim::best_in_range_f64(
-                    self.value_from_position(position - aim_radius, position_range),
-                    self.value_from_position(position + aim_radius, position_range),
-                )
+            if response.double_clicked() {
+                if let Some(v) = self.double_click_reset_value.clone() {
+                    self.set_value(v);
+                }
             } else {
-                self.value_from_position(position, position_range)
-            };
-            self.set_value(new_value);
-        }
-
-        let mut decrement = 0usize;
-        let mut increment = 0usize;
-
-        if response.has_focus() {
-            let (dec_key, inc_key) = match self.orientation {
-                SliderOrientation::Horizontal => (Key::ArrowLeft, Key::ArrowRight),
-                // Note that this is for moving the slider position,
-                // so up = decrement y coordinate:
-                SliderOrientation::Vertical => (Key::ArrowUp, Key::ArrowDown),
-            };
-
-            ui.input(|input| {
-                decrement += input.num_presses(dec_key);
-                increment += input.num_presses(inc_key);
-            });
-        }
-
-        #[cfg(feature = "accesskit")]
-        {
-            use accesskit::Action;
-            ui.input(|input| {
-                decrement += input.num_accesskit_action_requests(response.id, Action::Decrement);
-                increment += input.num_accesskit_action_requests(response.id, Action::Increment);
-            });
-        }
-
-        let kb_step = increment as f32 - decrement as f32;
-
-        if kb_step != 0.0 {
-            let prev_value = self.get_value();
-            let prev_position = self.position_from_value(prev_value, position_range);
-            let new_position = prev_position + kb_step;
-            let new_value = match self.step {
-                Some(step) => prev_value + (kb_step as f64 * step),
-                None if self.smart_aim => {
+                let new_value = if self.smart_aim {
                     let aim_radius = ui.input(|i| i.aim_radius());
                     emath::smart_aim::best_in_range_f64(
-                        self.value_from_position(new_position - aim_radius, position_range),
-                        self.value_from_position(new_position + aim_radius, position_range),
+                        self.value_from_position(position - aim_radius, position_range),
+                        self.value_from_position(position + aim_radius, position_range),
                     )
-                }
-                _ => self.value_from_position(new_position, position_range),
-            };
-            self.set_value(new_value);
-        }
-
-        #[cfg(feature = "accesskit")]
-        {
-            use accesskit::{Action, ActionData};
-            ui.input(|input| {
-                for request in input.accesskit_action_requests(response.id, Action::SetValue) {
-                    if let Some(ActionData::NumericValue(new_value)) = request.data {
-                        self.set_value(new_value);
-                    }
-                }
-            });
+                } else {
+                    self.value_from_position(position, position_range)
+                };
+                self.set_value(new_value);
+            }
         }
 
         // Paint it:
@@ -655,7 +615,6 @@ impl<'a> EditorSlider<'a> {
 
             if let Some(ref color_override_params) = self.color_override {
                 let (left, right, space) = color_override_params;
-                let interpolate_in_hsl = color_override_params.2;
                 ui.painter().add(egui_wgpu::Callback::new_paint_callback(
                     rail_rect,
                     EditorSliderRectCallback {

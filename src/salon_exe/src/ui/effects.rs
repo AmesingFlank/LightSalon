@@ -17,7 +17,15 @@ pub fn effects(
         .default_open(true)
         .show(ui, |ui| {
             ui.spacing_mut().slider_width = ui.available_width() * 0.6;
-            ui.add(EditorSlider::new(&mut edit.dehaze, 0.0..=100.0).text("Dehaze"));
-            ui.add(EditorSlider::new(&mut edit.vignette, -100.0..=100.0).text("Vignette"));
+            ui.add(
+                EditorSlider::new(&mut edit.dehaze, 0.0..=100.0)
+                    .double_click_reset_value(0.0)
+                    .text("Dehaze"),
+            );
+            ui.add(
+                EditorSlider::new(&mut edit.vignette, -100.0..=100.0)
+                    .double_click_reset_value(0.0)
+                    .text("Vignette"),
+            );
         });
 }

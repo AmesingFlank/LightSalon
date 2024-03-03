@@ -5,11 +5,7 @@ use eframe::{
     epaint::Color32,
 };
 use egui_plot::{Line, MarkerShape, Plot, Points};
-use salon_core::{
-    editor::GlobalEdit,
-    runtime::ColorSpace,
-    session::Session,
-};
+use salon_core::{editor::GlobalEdit, runtime::ColorSpace, session::Session};
 
 use super::{
     widgets::{ColoredRadioButton, EditorSlider},
@@ -41,9 +37,9 @@ pub fn color_mixer(
             let colors_checked: [Color32; 8] = [
                 Color32::from_rgb(255, 177, 189), // HSLuv (0.0 / 8.0 * 2 * PI, 100, 90)
                 Color32::from_rgb(255, 182, 138), // HSLuv (1.0 / 8.0 * 2 * PI, 100, 90)
-                Color32::from_rgb(193, 215, 0),  // HSLuv (2.0 / 8.0 * 2 * PI, 100, 90)
-                Color32::from_rgb(33, 255, 72),  // HSLuv (3.0 / 8.0 * 2 * PI, 100, 90)
-                Color32::from_rgb(0, 251, 212),  // HSLuv (4.0 / 8.0 * 2 * PI, 100, 90)
+                Color32::from_rgb(193, 215, 0),   // HSLuv (2.0 / 8.0 * 2 * PI, 100, 90)
+                Color32::from_rgb(33, 255, 72),   // HSLuv (3.0 / 8.0 * 2 * PI, 100, 90)
+                Color32::from_rgb(0, 251, 212),   // HSLuv (4.0 / 8.0 * 2 * PI, 100, 90)
                 Color32::from_rgb(130, 208, 255), // HSLuv (5.0 / 8.0 * 2 * PI, 100, 90)
                 Color32::from_rgb(195, 188, 255), // HSLuv (6.0 / 8.0 * 2 * PI, 100, 90)
                 Color32::from_rgb(255, 172, 240), // HSLuv (7.0 / 8.0 * 2 * PI, 100, 90)
@@ -89,6 +85,7 @@ pub fn color_mixer(
                         [right_hue, 100.0, 60.0],
                         ColorSpace::HSLuv,
                     )
+                    .double_click_reset_value(0.0)
                     .text("Hue"),
             );
 
@@ -102,16 +99,19 @@ pub fn color_mixer(
                     [base_hue, 100.0, 60.0],
                     ColorSpace::HSLuv,
                 )
+                .double_click_reset_value(0.0)
                 .text("Saturation"),
             );
 
             ui.add(
                 EditorSlider::new(&mut edit.color_mixer_edits[index].lightness, -100.0..=100.0)
+                    .double_click_reset_value(0.0)
                     .color_override(
                         [base_hue, 100.0, 0.0],
                         [base_hue, 100.0, 100.0],
                         ColorSpace::HSLuv,
                     )
+                    .double_click_reset_value(0.0)
                     .text("Lightness"),
             );
         });
