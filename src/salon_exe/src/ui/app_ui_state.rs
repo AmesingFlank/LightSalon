@@ -29,9 +29,6 @@ pub struct AppUiState {
     pub mask_edit_state: MaskEditState,
 
     pub import_image_dialog: ImageImportDialog,
-
-    runtime: Arc<Runtime>,
-    context: egui::Context,
 }
 
 impl AppUiState {
@@ -50,13 +47,9 @@ impl AppUiState {
             mask_edit_state: MaskEditState::new(),
             import_image_dialog: ImageImportDialog::new(
                 runtime.clone(),
-                // creating a new toolbox for the import dialogue to avoid lock contention with the session toolbox
-                //Arc::new(Toolbox::new(runtime.clone())),
                 toolbox.clone(),
                 context.clone(),
             ),
-            runtime,
-            context,
         }
     }
 
