@@ -14,6 +14,7 @@ pub struct AppUiState {
     pub fps_counter: FpsCounterState,
 
     pub show_grid: bool,
+    pub show_comparison: bool,
 
     pub editor_panel: EditorPanel,
 
@@ -37,6 +38,7 @@ impl AppUiState {
             last_frame_size: None,
             fps_counter: FpsCounterState::new(),
             show_grid: false,
+            show_comparison: false,
             editor_panel: EditorPanel::LightAndColor,
             selected_curve_control_point_index: None,
             curve_scope: CurveScope::RGB,
