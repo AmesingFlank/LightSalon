@@ -76,7 +76,7 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                             .current_result
                         {
                             let mask_img = result.masked_edit_results[mask_index].mask.clone();
-                            let image_width = image_height / aspect_ratio;
+                            let image_width = image_height / mask_img.aspect_ratio();
                             let size = egui::Vec2 {
                                 x: image_width,
                                 y: image_height,
