@@ -38,14 +38,13 @@ pub fn main_image(
     } else {
         if ui_state.show_comparison {
             ui.columns(2, |columns| {
-                let context = session.editor.current_edit_context_ref().unwrap();
-                let original_image = context.input_image();
-                let size = get_image_size_in_ui(&columns[0], original_image.aspect_ratio());
-                let (rect, _) = columns[0].allocate_exact_size(size, egui::Sense::drag());
+                columns[0].centered_and_justified(|ui| {
+                    let context = session.editor.current_edit_context_ref().unwrap();
+                    let original_image = context.input_image();
+                    let size = get_image_size_in_ui(ui, original_image.aspect_ratio());
+                    let (rect, _) = ui.allocate_exact_size(size, egui::Sense::drag());
 
-                columns[0]
-                    .painter()
-                    .add(egui_wgpu::Callback::new_paint_callback(
+                    ui.painter().add(egui_wgpu::Callback::new_paint_callback(
                         rect,
                         MainImageCallback {
                             image: original_image.clone(),
@@ -53,6 +52,8 @@ pub fn main_image(
                             mask: None,
                         },
                     ));
+                });
+
                 show_edited_image(ctx, &mut columns[1], session, ui_state);
             });
         } else {
