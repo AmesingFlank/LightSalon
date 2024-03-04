@@ -67,7 +67,7 @@ pub fn curve(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState, edit
                 .include_y(1.0 + margin)
                 .show_axes([false, false])
                 .show_grid([false, false])
-                .sense(egui::Sense::drag());
+                .sense(egui::Sense::click_and_drag());
 
             let response = plot.show(ui, |plot_ui| {
                 let ptr_coords = plot_ui.pointer_coordinate();
@@ -126,9 +126,36 @@ pub fn curve(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState, edit
                 plot_ui.line(curve);
                 ptr_coords
             });
+            if response.response.interact_pointer_pos().is_some() {
+                if let Some(ref selected) = ui_state.selected_curve_control_point_index {
+                    if response.response.double_clicked() {
+                        if *selected == 0 {
+                            control_points[0] = GlobalEdit::initial_control_points()[0];
+                        } else if *selected == control_points.len() - 1 {
+                            control_points[*selected] = GlobalEdit::initial_control_points()[1];
+                        } else {
+                            control_points.remove(*selected);
+                        }
+                        ui_state.selected_curve_control_point_index = None;
+                    } else {
+                        if let Some(ref coords) = response.inner {
+                            let mut p = (coords.x as f32, coords.y as f32);
+                            p.0 = p.0.min(1.0).max(0.0);
+                            p.1 = p.1.min(1.0).max(0.0);
 
-            if response.response.dragged() || response.response.drag_started() {
-                if ui_state.selected_curve_control_point_index.is_none() {
+                            if *selected > 0 {
+                                let prev = control_points[*selected - 1];
+                                p.0 = p.0.max(prev.0 + 0.05);
+                            }
+                            if *selected < control_points.len() - 1 {
+                                let next = control_points[*selected + 1];
+                                p.0 = p.0.min(next.0 - 0.05);
+                            }
+
+                            control_points[*selected] = p;
+                        }
+                    }
+                } else {
                     if let Some(ref coords) = response.inner {
                         for i in 0..control_points.len() {
                             let p = control_points[i];
@@ -138,52 +165,26 @@ pub fn curve(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState, edit
                             }
                         }
                     }
-                }
-
-                if let Some(ref selected) = ui_state.selected_curve_control_point_index {
-                    if let Some(ref coords) = response.inner {
-                        let mut p = (coords.x as f32, coords.y as f32);
-                        p.0 = p.0.min(1.0).max(0.0);
-                        p.1 = p.1.min(1.0).max(0.0);
-
-                        if *selected > 0 {
-                            let prev = control_points[*selected - 1];
-                            p.0 = p.0.max(prev.0 + 0.05);
-                        }
-                        if *selected < control_points.len() - 1 {
-                            let next = control_points[*selected + 1];
-                            p.0 = p.0.min(next.0 - 0.05);
-                        }
-
-                        control_points[*selected] = p;
-                    }
-                }
-            }
-
-            if response.response.clicked()
-                || (response.response.drag_started()
-                    && ui_state.selected_curve_control_point_index.is_none())
-            {
-                if ui_state.selected_curve_control_point_index.is_none() {
-                    if let Some(ref coords) = response.inner {
-                        let new_point = (coords.x as f32, coords.y as f32);
-                        for i in 0..control_points.len() - 1 {
-                            let this_p = control_points[i];
-                            let next_p = control_points[i + 1];
-                            if this_p.0 < new_point.0 && new_point.0 < next_p.0 {
-                                let new_point_idx = i + 1;
-                                control_points.insert(new_point_idx, new_point);
-                                if response.response.drag_started() {
+                    if ui_state.selected_curve_control_point_index.is_none() {
+                        if let Some(ref coords) = response.inner {
+                            let new_point = (coords.x as f32, coords.y as f32);
+                            for i in 0..control_points.len() - 1 {
+                                let this_p = control_points[i];
+                                let next_p = control_points[i + 1];
+                                if this_p.0 < new_point.0 && new_point.0 < next_p.0 {
+                                    let new_point_idx = i + 1;
+                                    control_points.insert(new_point_idx, new_point);
                                     ui_state.selected_curve_control_point_index =
                                         Some(new_point_idx);
+                                    break;
                                 }
-                                break;
                             }
                         }
                     }
                 }
             }
-            if response.response.drag_stopped() {
+
+            if response.response.drag_stopped() || response.response.clicked() {
                 ui_state.selected_curve_control_point_index = None;
             }
         });
