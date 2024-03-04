@@ -13,12 +13,19 @@ use std::{future::Future, ops::Add, sync::Arc};
 
 pub fn file_menu(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
     ui.menu_button("File", |ui| {
-        if ui.button("Import Image").clicked() {
+        if ui
+            .add_enabled(true, egui::Button::new("Import Image"))
+            .clicked()
+        {
             ui.close_menu();
             ui_state.import_image_dialog.open();
         }
 
-        if ui.button("Export Image").clicked() {
+        let has_current_img = session.editor.current_edit_context_ref().is_some();
+        if ui
+            .add_enabled(has_current_img, egui::Button::new("Export Image"))
+            .clicked()
+        {
             ui.close_menu();
             let ctx = ui.ctx().clone();
             file_dialogue_export_image(ctx, session, ui_state);
