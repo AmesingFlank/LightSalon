@@ -586,6 +586,7 @@ impl<'a> EditorSlider<'a> {
         if let Some(pointer_position_2d) = response.interact_pointer_pos() {
             let position = self.pointer_position(pointer_position_2d);
             if response.double_clicked() {
+                // currently, double clicking in a position where the handle is not at resets the handle as well. This is the same behavior as lightroom web
                 if let Some(v) = self.double_click_reset_value.clone() {
                     self.set_value(v);
                 }
