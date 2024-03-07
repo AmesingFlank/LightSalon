@@ -116,7 +116,7 @@ impl MainImageRenderResources {
             queue.write_buffer(
                 &buffer.buffer,
                 size_of::<u32>() as u64 * 2,
-                bytemuck::cast_slice(&[rect.min.x, rect.min.y, rect.max.x, rect.max.y]),
+                bytemuck::cast_slice(&[rect.min().x, rect.min().y, rect.max().x, rect.max().y]),
             );
         } else {
             queue.write_buffer(

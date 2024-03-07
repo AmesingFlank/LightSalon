@@ -3,7 +3,7 @@ use std::{collections::HashMap, mem::size_of, sync::Arc};
 use crate::runtime::Toolbox;
 
 use crate::{
-    engine::{value_store::ValueStore},
+    engine::value_store::ValueStore,
     ir::{CropOp, Id},
     runtime::{
         BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager,
@@ -72,12 +72,10 @@ impl CropImpl {
     ) {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
 
-        let x_scale = op.rect.max.x - op.rect.min.x;
-        let y_scale = op.rect.max.y - op.rect.min.y;
         let input_dimensions = input_img.properties.dimensions;
         let output_dimensions = (
-            (input_dimensions.0 as f32 * x_scale) as u32,
-            (input_dimensions.1 as f32 * y_scale) as u32,
+            (input_dimensions.0 as f32 * op.rect.size.x) as u32,
+            (input_dimensions.1 as f32 * op.rect.size.y) as u32,
         );
         let output_properties = ImageProperties {
             dimensions: output_dimensions,
@@ -95,7 +93,12 @@ impl CropImpl {
         self.runtime.queue.write_buffer(
             &buffer.buffer,
             0,
-            bytemuck::cast_slice(&[op.rect.min.x, op.rect.min.y, op.rect.max.x, op.rect.max.y]),
+            bytemuck::cast_slice(&[
+                op.rect.min().x,
+                op.rect.min().y,
+                op.rect.max().x,
+                op.rect.max().y,
+            ]),
         );
 
         let bind_group = self.bind_group_manager.get_or_create(BindGroupDescriptor {

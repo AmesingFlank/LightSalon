@@ -75,7 +75,7 @@ fn show_edited_image(
         let original_dimensions = input_image.properties.dimensions;
         let mut original_size = vec2((original_dimensions.0 as f32, original_dimensions.1 as f32));
         if let Some(ref crop_rect) = context.current_edit_ref().crop {
-            original_size = original_size * (crop_rect.max - crop_rect.min)
+            original_size = original_size * crop_rect.size;
         }
         let aspect_ratio = original_size.y / original_size.x;
 
@@ -203,29 +203,23 @@ fn handle_new_rect(
     let max_x = (new_rect.max.x - original_rect.min.x) / original_rect.width();
     let max_y = (new_rect.max.y - original_rect.min.y) / original_rect.height();
 
-    let new_crop_rect = Rectangle {
-        min: vec2((min_x, min_y)),
-        max: vec2((max_x, max_y)),
-    };
+    let new_crop_rect = Rectangle::from_min_max(vec2((min_x, min_y)), vec2((max_x, max_y)));
 
     if transient_edit.crop != Some(new_crop_rect) {
-        let mut old_crop_rect = Rectangle {
-            min: vec2((0.0, 0.0)),
-            max: vec2((1.0, 1.0)),
-        };
+        let mut old_crop_rect = Rectangle::from_min_max(vec2((0.0, 0.0)), vec2((1.0, 1.0)));
         if let Some(ref curr_crop_rect) = transient_edit.crop {
             old_crop_rect = *curr_crop_rect;
         }
         let transform_xy = |x: &mut f32, y: &mut f32| {
             let abs_xy =
-                old_crop_rect.min + (old_crop_rect.max - old_crop_rect.min) * vec2((*x, *y));
-            let xy = (abs_xy - new_crop_rect.min) / (new_crop_rect.max - new_crop_rect.min);
+                old_crop_rect.min() + (old_crop_rect.max() - old_crop_rect.min()) * vec2((*x, *y));
+            let xy = (abs_xy - new_crop_rect.min()) / (new_crop_rect.max() - new_crop_rect.min());
             *x = xy.x;
             *y = xy.y;
         };
         let transform_xy_size = |x_size: &mut f32, y_size: &mut f32| {
-            let size = vec2((*x_size, *y_size)) * (old_crop_rect.max - old_crop_rect.min)
-                / (new_crop_rect.max - new_crop_rect.min);
+            let size = vec2((*x_size, *y_size)) * (old_crop_rect.max() - old_crop_rect.min())
+                / (new_crop_rect.max() - new_crop_rect.min());
             *x_size = size.x;
             *y_size = size.y;
         };
