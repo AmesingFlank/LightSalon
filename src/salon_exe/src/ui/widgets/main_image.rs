@@ -116,13 +116,13 @@ impl MainImageRenderResources {
             queue.write_buffer(
                 &buffer.buffer,
                 size_of::<u32>() as u64 * 2,
-                bytemuck::cast_slice(&[rect.min().x, rect.min().y, rect.max().x, rect.max().y]),
+                bytemuck::cast_slice(&[rect.center.x, rect.center.y, rect.size.x, rect.size.y]),
             );
         } else {
             queue.write_buffer(
                 &buffer.buffer,
                 size_of::<u32>() as u64 * 2,
-                bytemuck::cast_slice(&[0.0 as f32, 0.0, 1.0, 1.0]),
+                bytemuck::cast_slice(&[0.5 as f32, 0.5, 1.0, 1.0]),
             );
         }
 

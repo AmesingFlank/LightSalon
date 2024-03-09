@@ -8,10 +8,10 @@ struct Params {
 
     indicate_mask: u32,
 
-    crop_min_x: f32,
-    crop_min_y: f32,
-    crop_max_x: f32,
-    crop_max_y: f32,
+    crop_center_x: f32,
+    crop_center_y: f32,
+    crop_size_x: f32,
+    crop_size_y: f32,
 };
 
 @group(0) @binding(0)
@@ -55,7 +55,11 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
         color = linear_to_srgb(color);
     }
 
-    if (uv.x < params.crop_min_x || uv.x > params.crop_max_x || uv.y < params.crop_min_y || uv.y > params.crop_max_y){
+    let crop_min_x = params.crop_center_x - 0.5 *  params.crop_size_x;
+    let crop_min_y = params.crop_center_y - 0.5 *  params.crop_size_y;
+    let crop_max_x = params.crop_center_x + 0.5 *  params.crop_size_x;
+    let crop_max_y = params.crop_center_y + 0.5 *  params.crop_size_y;
+    if (uv.x < crop_min_x  || uv.x > crop_max_x || uv.y < crop_min_y || uv.y > crop_max_y){
         color *= 0.3;
     }
 
