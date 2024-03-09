@@ -94,10 +94,10 @@ impl CropImpl {
             &buffer.buffer,
             0,
             bytemuck::cast_slice(&[
-                op.rect.min().x,
-                op.rect.min().y,
-                op.rect.max().x,
-                op.rect.max().y,
+                op.rect.center.x,
+                op.rect.center.y,
+                op.rect.size.x,
+                op.rect.size.y,
             ]),
         );
 

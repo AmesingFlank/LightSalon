@@ -8,10 +8,10 @@ var tex_sampler: sampler;
 var output: texture_storage_2d<rgba16float, write>;
 
 struct Params {
-    min_x: f32,
-    min_y: f32,
-    max_x: f32,
-    max_y: f32,
+    center_x: f32,
+    center_y: f32,
+    size_x: f32,
+    size_y: f32,
 };
 
 @group(0) @binding(3)
@@ -26,8 +26,8 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         return;
     }
 
-    let x = params.min_x + f32(global_id.x) / f32(input_size.x - 1u);
-    let y = params.min_y + f32(global_id.y) / f32(input_size.y - 1u);
+    let x = params.center_x - 0.5 * params.size_x + f32(global_id.x) / f32(input_size.x - 1u);
+    let y = params.center_y - 0.5 * params.size_y + f32(global_id.y) / f32(input_size.y - 1u);
     
     var c = textureSampleLevel(input, tex_sampler, vec2(x, y), 0.0).rgb;
     textureStore(output, global_id.xy, vec4<f32>(c, 1.0));
