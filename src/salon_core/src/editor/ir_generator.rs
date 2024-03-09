@@ -4,7 +4,7 @@ use crate::ir::{
     AdjustContrastOp, AdjustExposureOp, AdjustHighlightsAndShadowsOp, AdjustTemperatureAndTintOp,
     AdjustVibranceAndSaturationOp, AdjustVignetteOp, ApplyCurveOp, ApplyDehazeOp,
     ApplyMaskedEditsOp, ColorMixGroup, ColorMixOp, ComputeBasicStatisticsOp, ComputeHistogramOp,
-    CropOp, Id, InputOp, Module, Op, PrepareDehazeOp, ResizeOp,
+    RotateAndCropOp, Id, InputOp, Module, Op, PrepareDehazeOp, ResizeOp,
 };
 
 pub struct IdStore {
@@ -62,12 +62,12 @@ fn maybe_add_resize(edit: &Edit, module: &mut Module, current_output_id: &mut Id
 }
 
 fn maybe_add_crop(edit: &Edit, module: &mut Module, current_output_id: &mut Id) {
-    if let Some(ref crop) = edit.crop {
+    if let Some(ref crop) = edit.crop_rect {
         let cropped_image_id = module.alloc_id();
-        module.push_op(Op::Crop(CropOp {
+        module.push_op(Op::RotateAndCrop(RotateAndCropOp {
             result: cropped_image_id,
             arg: *current_output_id,
-            rect: crop.clone(),
+            crop_rect: crop.clone(),
         }));
         *current_output_id = cropped_image_id;
     }

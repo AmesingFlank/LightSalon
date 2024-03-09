@@ -1,7 +1,7 @@
 use super::ops::{
     add_mask::AddMaskImpl, apply_masked_edits::ApplyMaskedEditsImpl,
     basic_statistics::ComputeBasicStatisticsImpl, color_mix::ColorMixImpl,
-    contrast::AdjustContrastImpl, crop::CropImpl, curve::ApplyCurveImpl,
+    contrast::AdjustContrastImpl, rotate_and_crop::RotateAndCropImpl, curve::ApplyCurveImpl,
     dehaze_apply::ApplyDehazeImpl, dehaze_prepare::PrepareDehazeImpl, exposure::AdjustExposureImpl,
     global_mask::ComputeGlobalMaskImpl, highlights_shadows::AdjustHighlightsAndShadowsImpl,
     histogram::ComputeHistogramImpl, invert_mask::InvertMaskImpl,
@@ -25,7 +25,7 @@ pub struct OpImplCollection {
     pub apply_dehaze: Option<ApplyDehazeImpl>,
     pub basic_statistics: Option<ComputeBasicStatisticsImpl>,
     pub histogram: Option<ComputeHistogramImpl>,
-    pub crop: Option<CropImpl>,
+    pub rotate_and_crop: Option<RotateAndCropImpl>,
     pub resize: Option<ResizeImpl>,
     pub global_mask: Option<ComputeGlobalMaskImpl>,
     pub radial_gradient_mask: Option<ComputeRadialGradientMaskImpl>,

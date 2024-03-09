@@ -17,7 +17,7 @@ pub enum Op {
     ApplyDehaze(ApplyDehazeOp),
     ComputeBasicStatistics(ComputeBasicStatisticsOp),
     ComputeHistogram(ComputeHistogramOp),
-    Crop(CropOp),
+    RotateAndCrop(RotateAndCropOp),
     Resize(ResizeOp),
     ComputeGlobalMask(ComputeGlobalMaskOp),
     ComputeRadialGradientMask(ComputeRadialGradientMaskOp),
@@ -44,7 +44,7 @@ impl Op {
             Op::ApplyDehaze(ref o) => vec![o.arg],
             Op::ComputeBasicStatistics(ref o) => vec![o.arg],
             Op::ComputeHistogram(ref o) => vec![o.arg],
-            Op::Crop(ref o) => vec![o.arg],
+            Op::RotateAndCrop(ref o) => vec![o.arg],
             Op::Resize(ref o) => vec![o.arg],
             Op::ComputeGlobalMask(ref o) => vec![o.target],
             Op::ComputeRadialGradientMask(ref o) => vec![o.target],
@@ -71,7 +71,7 @@ impl Op {
             Op::ApplyDehaze(ref o) => o.result,
             Op::ComputeBasicStatistics(ref o) => o.result,
             Op::ComputeHistogram(ref o) => o.result,
-            Op::Crop(ref o) => o.result,
+            Op::RotateAndCrop(ref o) => o.result,
             Op::Resize(ref o) => o.result,
             Op::ComputeGlobalMask(ref o) => o.result,
             Op::ComputeRadialGradientMask(ref o) => o.result,
@@ -197,10 +197,10 @@ pub struct ComputeHistogramOp {
 }
 
 #[derive(Clone, PartialEq, Debug)]
-pub struct CropOp {
+pub struct RotateAndCropOp {
     pub result: Id,
     pub arg: Id,
-    pub rect: Rectangle,
+    pub crop_rect: Rectangle,
 }
 
 #[derive(Clone, PartialEq, Debug)]

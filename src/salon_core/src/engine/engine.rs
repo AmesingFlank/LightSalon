@@ -15,7 +15,7 @@ use super::{
         basic_statistics::ComputeBasicStatisticsImpl,
         color_mix::ColorMixImpl,
         contrast::AdjustContrastImpl,
-        crop::CropImpl,
+        rotate_and_crop::RotateAndCropImpl,
         curve::ApplyCurveImpl,
         dehaze_apply::ApplyDehazeImpl,
         dehaze_prepare::PrepareDehazeImpl,
@@ -210,8 +210,8 @@ impl Engine {
                         &mut self.toolbox,
                     );
                 }
-                Op::Crop(ref op) => {
-                    self.op_impls.crop.as_mut().unwrap().encode_commands(
+                Op::RotateAndCrop(ref op) => {
+                    self.op_impls.rotate_and_crop.as_mut().unwrap().encode_commands(
                         &mut encoder,
                         op,
                         &mut execution_context.value_store,
@@ -390,11 +390,11 @@ impl Engine {
                     }
                     self.op_impls.histogram.as_mut().unwrap().reset();
                 }
-                Op::Crop(_) => {
-                    if self.op_impls.crop.is_none() {
-                        self.op_impls.crop = Some(CropImpl::new(self.runtime.clone()))
+                Op::RotateAndCrop(_) => {
+                    if self.op_impls.rotate_and_crop.is_none() {
+                        self.op_impls.rotate_and_crop = Some(RotateAndCropImpl::new(self.runtime.clone()))
                     }
-                    self.op_impls.crop.as_mut().unwrap().reset();
+                    self.op_impls.rotate_and_crop.as_mut().unwrap().reset();
                 }
                 Op::Resize(_) => {
                     if self.op_impls.resize.is_none() {

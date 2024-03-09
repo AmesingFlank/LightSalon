@@ -74,7 +74,7 @@ fn show_edited_image(
         let input_image = context.input_image();
         let original_dimensions = input_image.properties.dimensions;
         let mut original_size = vec2((original_dimensions.0 as f32, original_dimensions.1 as f32));
-        if let Some(ref crop_rect) = context.current_edit_ref().crop {
+        if let Some(ref crop_rect) = context.current_edit_ref().crop_rect {
             original_size = original_size * crop_rect.size;
         }
         let aspect_ratio = original_size.y / original_size.x;
@@ -165,7 +165,7 @@ fn image_crop_and_rotate(
             rect,
             MainImageCallback {
                 image: original_image.clone(),
-                crop_rect: transient_edit.crop.clone(),
+                crop_rect: transient_edit.crop_rect.clone(),
                 mask: None,
             },
         ));
@@ -205,9 +205,9 @@ fn handle_new_rect(
 
     let new_crop_rect = Rectangle::from_min_max(vec2((min_x, min_y)), vec2((max_x, max_y)));
 
-    if transient_edit.crop != Some(new_crop_rect) {
+    if transient_edit.crop_rect != Some(new_crop_rect) {
         let mut old_crop_rect = Rectangle::from_min_max(vec2((0.0, 0.0)), vec2((1.0, 1.0)));
-        if let Some(ref curr_crop_rect) = transient_edit.crop {
+        if let Some(ref curr_crop_rect) = transient_edit.crop_rect {
             old_crop_rect = *curr_crop_rect;
         }
         let transform_xy = |x: &mut f32, y: &mut f32| {
@@ -239,7 +239,7 @@ fn handle_new_rect(
                 }
             }
         }
-        transient_edit.crop = Some(new_crop_rect);
+        transient_edit.crop_rect = Some(new_crop_rect);
         session.editor.update_transient_edit(transient_edit, false);
     }
 }

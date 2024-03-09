@@ -4,7 +4,7 @@ use crate::runtime::Toolbox;
 
 use crate::{
     engine::value_store::ValueStore,
-    ir::{CropOp, Id},
+    ir::{RotateAndCropOp, Id},
     runtime::{
         BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager,
         BindingResource, Runtime,
@@ -15,16 +15,16 @@ use crate::{
     utils::math::div_up,
 };
 
-pub struct CropImpl {
+pub struct RotateAndCropImpl {
     runtime: Arc<Runtime>,
     pipeline: wgpu::ComputePipeline,
     bind_group_manager: BindGroupManager,
     ring_buffer: RingBuffer,
     texture_sampler: Sampler,
 }
-impl CropImpl {
+impl RotateAndCropImpl {
     pub fn new(runtime: Arc<Runtime>) -> Self {
-        let shader_code = Shader::from_code(include_str!("shaders/crop.wgsl")).full_code();
+        let shader_code = Shader::from_code(include_str!("shaders/rotate_and_crop.wgsl")).full_code();
 
         let (pipeline, bind_group_layout) =
             runtime.create_compute_pipeline(shader_code.as_str(), Some("Crop"));
@@ -49,7 +49,7 @@ impl CropImpl {
             ..Default::default()
         });
 
-        CropImpl {
+        RotateAndCropImpl {
             runtime,
             pipeline,
             bind_group_manager,
@@ -58,7 +58,7 @@ impl CropImpl {
         }
     }
 }
-impl CropImpl {
+impl RotateAndCropImpl {
     pub fn reset(&mut self) {
         self.ring_buffer.mark_all_available();
     }
@@ -66,7 +66,7 @@ impl CropImpl {
     pub fn encode_commands(
         &mut self,
         encoder: &mut wgpu::CommandEncoder,
-        op: &CropOp,
+        op: &RotateAndCropOp,
         value_store: &mut ValueStore,
         toolbox: &Toolbox,
     ) {
@@ -74,8 +74,8 @@ impl CropImpl {
 
         let input_dimensions = input_img.properties.dimensions;
         let output_dimensions = (
-            (input_dimensions.0 as f32 * op.rect.size.x) as u32,
-            (input_dimensions.1 as f32 * op.rect.size.y) as u32,
+            (input_dimensions.0 as f32 * op.crop_rect.size.x) as u32,
+            (input_dimensions.1 as f32 * op.crop_rect.size.y) as u32,
         );
         let output_properties = ImageProperties {
             dimensions: output_dimensions,
@@ -94,10 +94,10 @@ impl CropImpl {
             &buffer.buffer,
             0,
             bytemuck::cast_slice(&[
-                op.rect.center.x,
-                op.rect.center.y,
-                op.rect.size.x,
-                op.rect.size.y,
+                op.crop_rect.center.x,
+                op.crop_rect.center.y,
+                op.crop_rect.size.x,
+                op.crop_rect.size.y,
             ]),
         );
 
