@@ -79,33 +79,34 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                     }
                 });
                 row.col(|ui| {
-                    ui.horizontal_centered(|mut ui| {
-                        if let Some(ref result) = session
-                            .editor
-                            .current_edit_context_ref()
-                            .unwrap()
-                            .current_result
-                        {
-                            let mask_img = result.masked_edit_results[mask_index].mask.clone();
-                            let (rect, response) = ui.allocate_exact_size(
-                                mask_indicator_size,
-                                egui::Sense::click_and_drag(),
-                            );
-                            ui.centered_and_justified(|ui| {
+                    ui.with_layout(egui::Layout::left_to_right(egui::Align::LEFT), |ui| {
+                        ui.horizontal_centered(|mut ui| {
+                            if let Some(ref result) = session
+                                .editor
+                                .current_edit_context_ref()
+                                .unwrap()
+                                .current_result
+                            {
+                                let mask_img = result.masked_edit_results[mask_index].mask.clone();
+                                let (rect, response) = ui.allocate_exact_size(
+                                    mask_indicator_size,
+                                    egui::Sense::click_and_drag(),
+                                );
                                 ui.painter().add(egui_wgpu::Callback::new_paint_callback(
                                     rect,
                                     MaskIndicatorCallback {
                                         image: mask_img.clone(),
                                     },
                                 ));
-                            });
-                            if response.clicked() {
+
+                                if response.clicked() {
+                                    select_mask(ui_state, mask_index);
+                                }
+                            }
+                            if ui.label(&edit.masked_edits[mask_index].name).clicked() {
                                 select_mask(ui_state, mask_index);
                             }
-                        }
-                        if ui.label(&edit.masked_edits[mask_index].name).clicked() {
-                            select_mask(ui_state, mask_index);
-                        }
+                        });
                     });
                 });
                 row.col(|ui| {
@@ -135,44 +136,44 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                         }
                         row.col(|ui| {});
                         row.col(|ui| {
-                            ui.horizontal_centered(|mut ui| {
-                                ui.separator();
-                                if let Some(ref result) = session
-                                    .editor
-                                    .current_edit_context_ref()
-                                    .unwrap()
-                                    .current_result
-                                {
-                                    let mask_img = result.masked_edit_results[mask_index]
-                                        .mask_terms[term_index]
-                                        .clone();
-                                    let (rect, response) = ui.allocate_exact_size(
-                                        mask_indicator_size,
-                                        egui::Sense::click_and_drag(),
-                                    );
-                                    ui.centered_and_justified(|ui| {
+                            ui.with_layout(egui::Layout::left_to_right(egui::Align::LEFT), |ui| {
+                                ui.horizontal_centered(|mut ui| {
+                                    ui.separator();
+                                    if let Some(ref result) = session
+                                        .editor
+                                        .current_edit_context_ref()
+                                        .unwrap()
+                                        .current_result
+                                    {
+                                        let mask_img = result.masked_edit_results[mask_index]
+                                            .mask_terms[term_index]
+                                            .clone();
+                                        let (rect, response) = ui.allocate_exact_size(
+                                            mask_indicator_size,
+                                            egui::Sense::click_and_drag(),
+                                        );
                                         ui.painter().add(egui_wgpu::Callback::new_paint_callback(
                                             rect,
                                             MaskIndicatorCallback {
                                                 image: mask_img.clone(),
                                             },
                                         ));
-                                    });
-                                    if response.clicked() {
+                                        if response.clicked() {
+                                            maybe_select_term(ui_state, term_index);
+                                        }
+                                    }
+                                    let mut term_str =
+                                        mask_primtive_type_str(&term.primitive).to_string();
+                                    if term.subtracted {
+                                        term_str += " (Subtracted)"
+                                    }
+                                    if term.inverted {
+                                        term_str += " (Inverted)"
+                                    }
+                                    if ui.label(&term_str).clicked() {
                                         maybe_select_term(ui_state, term_index);
                                     }
-                                }
-                                let mut term_str =
-                                    mask_primtive_type_str(&term.primitive).to_string();
-                                if term.subtracted {
-                                    term_str += " (Subtracted)"
-                                }
-                                if term.inverted {
-                                    term_str += " (Inverted)"
-                                }
-                                if ui.label(&term_str).clicked() {
-                                    maybe_select_term(ui_state, term_index);
-                                }
+                                });
                             });
                         });
                         row.col(|ui| {
