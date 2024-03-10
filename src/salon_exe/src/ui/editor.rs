@@ -6,8 +6,8 @@ use egui_plot::{Line, MarkerShape, Plot, Points};
 use salon_core::{editor::GlobalEdit, session::Session};
 
 use super::{
-    color_adjust, color_mixer, curve, effects, histogram, light_adjust, masking, AppUiState,
-    EditorPanel,
+    color_adjust, color_mixer, curve, effects, histogram, light_adjust, masking, rotate_and_crop,
+    AppUiState, EditorPanel,
 };
 
 pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
@@ -33,15 +33,15 @@ pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
 
     ui.separator();
 
+    let mut transient_edit = session
+        .editor
+        .current_edit_context_ref()
+        .unwrap()
+        .transient_edit_ref()
+        .clone();
+
     match ui_state.editor_panel {
         EditorPanel::LightAndColor => {
-            let mut transient_edit = session
-                .editor
-                .current_edit_context_ref()
-                .unwrap()
-                .transient_edit_ref()
-                .clone();
-
             histogram(ui, session, ui_state);
             ui.separator();
             ScrollArea::vertical().show(ui, |ui| {
@@ -56,15 +56,17 @@ pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
                 color_mixer(ui, session, ui_state, global_edit);
                 effects(ui, session, ui_state, global_edit);
             });
-
+            session.editor.update_transient_edit(transient_edit, true);
             ui.input(|i| {
-                session.editor.update_transient_edit(transient_edit, true);
                 if !i.pointer.any_down() {
                     session.editor.commit_transient_edit(false);
                 }
                 // else a slider could still be being dragged, so the edit should remain transient
             });
         }
-        EditorPanel::CropAndRotate => {}
+        EditorPanel::CropAndRotate => {
+            rotate_and_crop(ui, session, ui_state, &mut transient_edit);
+            session.editor.update_transient_edit(transient_edit, false);
+        }
     }
 }

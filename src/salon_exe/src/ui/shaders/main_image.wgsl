@@ -8,6 +8,7 @@ struct Params {
 
     indicate_mask: u32,
 
+    rotation_radians: f32,
     crop_center_x: f32,
     crop_center_y: f32,
     crop_size_x: f32,

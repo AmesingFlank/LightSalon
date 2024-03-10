@@ -17,6 +17,7 @@ use salon_core::utils::rectangle::Rectangle;
 
 pub struct MainImageCallback {
     pub image: Arc<Image>,
+    pub rotation_degrees: Option<f32>,
     pub crop_rect: Option<Rectangle>,
     pub mask: Option<Arc<Image>>,
 }
@@ -69,7 +70,7 @@ impl MainImageRenderResources {
         let ring_buffer = RingBuffer::new(
             runtime.clone(),
             BufferProperties {
-                size: size_of::<u32>() * 2 + 4 * size_of::<f32>(),
+                size: size_of::<u32>() * 2 + 5 * size_of::<f32>(),
                 host_readable: false,
             },
         );
@@ -112,19 +113,23 @@ impl MainImageRenderResources {
                 render_call.mask.is_some() as u32,
             ]),
         );
-        if let Some(ref rect) = render_call.crop_rect {
-            queue.write_buffer(
-                &buffer.buffer,
-                size_of::<u32>() as u64 * 2,
-                bytemuck::cast_slice(&[rect.center.x, rect.center.y, rect.size.x, rect.size.y]),
-            );
-        } else {
-            queue.write_buffer(
-                &buffer.buffer,
-                size_of::<u32>() as u64 * 2,
-                bytemuck::cast_slice(&[0.5 as f32, 0.5, 1.0, 1.0]),
-            );
-        }
+        let rotation_degrees = render_call.rotation_degrees.clone().unwrap_or(0.0);
+        let rotation_radians = rotation_degrees.to_radians();
+        let crop_rect = render_call
+            .crop_rect
+            .clone()
+            .unwrap_or(Rectangle::regular());
+        queue.write_buffer(
+            &buffer.buffer,
+            size_of::<u32>() as u64 * 2,
+            bytemuck::cast_slice(&[
+                rotation_radians,
+                crop_rect.center.x,
+                crop_rect.center.y,
+                crop_rect.size.x,
+                crop_rect.size.y,
+            ]),
+        );
 
         let bind_group_desc = BindGroupDescriptor {
             entries: vec![

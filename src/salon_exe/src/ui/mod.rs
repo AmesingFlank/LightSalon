@@ -15,6 +15,7 @@ mod app_ui;
 mod menu_bar;
 mod edit_menu;
 mod keyboard_response;
+mod rotate_and_crop;
 
 mod utils;
 
@@ -37,3 +38,4 @@ pub use app_ui::*;
 pub use menu_bar::*;
 pub use edit_menu::*;
 pub use keyboard_response::*;
+pub use rotate_and_crop::*;

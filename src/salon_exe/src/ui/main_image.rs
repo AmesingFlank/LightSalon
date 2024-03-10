@@ -48,6 +48,7 @@ pub fn main_image(
                         rect,
                         MainImageCallback {
                             image: original_image.clone(),
+                            rotation_degrees: None,
                             crop_rect: None,
                             mask: None,
                         },
@@ -117,6 +118,7 @@ fn show_edited_image(
                 rect,
                 MainImageCallback {
                     image: result.final_image.clone(),
+                    rotation_degrees: None,
                     crop_rect: None,
                     mask,
                 },
@@ -165,6 +167,7 @@ fn image_crop_and_rotate(
             rect,
             MainImageCallback {
                 image: original_image.clone(),
+                rotation_degrees: transient_edit.rotation_degrees.clone(),
                 crop_rect: transient_edit.crop_rect.clone(),
                 mask: None,
             },
