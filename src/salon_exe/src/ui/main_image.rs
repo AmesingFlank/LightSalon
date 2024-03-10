@@ -188,12 +188,12 @@ fn image_crop_and_rotate(
         draw_grid_impl(ui, rect.clone(), original_crop_rect.clone(), ui_state);
 
         if let Some(ref new_crop_rect) = new_crop_rect {
-            handle_new_rect(ui, session, ui_state, transient_edit, *new_crop_rect);
+            handle_new_crop_rect(ui, session, ui_state, transient_edit, *new_crop_rect);
         }
     });
 }
 
-fn handle_new_rect(
+fn handle_new_crop_rect(
     ui: &mut Ui,
     session: &mut Session,
     ui_state: &mut AppUiState,
