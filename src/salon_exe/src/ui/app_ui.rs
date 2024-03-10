@@ -28,6 +28,7 @@ pub fn app_ui(ctx: &egui::Context, session: &mut Session, ui_state: &mut AppUiSt
         });
     egui::SidePanel::right("editor_panel")
         .default_width(last_frame_size.0 * 0.2)
+        .max_width(last_frame_size.0 * 0.2)
         .resizable(true)
         .show(ctx, |ui| {
             ui.set_width(ui.available_width());

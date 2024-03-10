@@ -20,7 +20,7 @@ use salon_core::shader::{Shader, ShaderLibraryModule};
 use salon_core::utils::rectangle::Rectangle;
 use salon_core::utils::vec::{vec2, Vec2};
 
-use super::utils::{get_abs_x_in_rect, get_abs_y_in_rect, pos2_to_vec2};
+use super::utils::{get_abs_x_in_rect, get_abs_y_in_rect, get_max_image_size, pos2_to_vec2};
 use super::widgets::MainImageCallback;
 use super::{AppUiState, CropDragEdgeOrCorner, EditorPanel, MaskEditState};
 
@@ -544,21 +544,22 @@ fn handle_crop_and_rotate_response(
             // * 2.0 to counter the fact that this causes the crop rect center to move
             delta = delta * 2.0;
             if let Some(ref edge_or_corner) = ui_state.crop_drag_state.edge_or_corner {
+                let min_crop_size = 0.01;
                 if edge_or_corner.has_left() {
-                    delta.x = delta.x.min(new_crop_rect.size.x);
+                    delta.x = delta.x.min(new_crop_rect.size.x - min_crop_size);
                     delta.x = delta.x.max(-new_crop_rect_min.x);
                 }
                 if edge_or_corner.has_right() {
                     delta.x = delta.x.min(1.0 - new_crop_rect_max.x);
-                    delta.x = delta.x.max(-new_crop_rect.size.x);
+                    delta.x = delta.x.max(-new_crop_rect.size.x + min_crop_size);
                 }
                 if edge_or_corner.has_top() {
-                    delta.y = delta.y.min(new_crop_rect.size.y);
+                    delta.y = delta.y.min(new_crop_rect.size.y - min_crop_size);
                     delta.y = delta.y.max(-new_crop_rect_min.y);
                 }
                 if edge_or_corner.has_bottom() {
                     delta.y = delta.y.min(1.0 - new_crop_rect_max.y);
-                    delta.y = delta.y.max(-new_crop_rect.size.y);
+                    delta.y = delta.y.max(-new_crop_rect.size.y + min_crop_size);
                 }
 
                 match edge_or_corner {
@@ -862,20 +863,9 @@ pub fn get_ui_crop_rect(full_image_rect: egui::Rect, crop_rect: Rectangle) -> eg
 }
 
 pub fn get_image_size_in_ui(ui: &Ui, image_aspect_ratio: f32) -> egui::Vec2 {
-    let max_x = ui.available_width();
-    let max_y = ui.available_height();
-    let ui_aspect_ratio = max_y / max_x;
-
-    let size = if image_aspect_ratio >= ui_aspect_ratio {
-        egui::Vec2 {
-            x: max_y / image_aspect_ratio,
-            y: max_y,
-        }
-    } else {
-        egui::Vec2 {
-            x: max_x,
-            y: max_x * image_aspect_ratio,
-        }
-    };
-    size
+    get_max_image_size(
+        image_aspect_ratio,
+        ui.available_width(),
+        ui.available_height(),
+    )
 }

@@ -12,6 +12,7 @@ use salon_core::{
 };
 
 use super::{
+    utils::get_max_image_size,
     widgets::{EditorSlider, MaskIndicatorCallback},
     AppUiState,
 };
@@ -28,8 +29,26 @@ pub fn masking(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState, ed
 }
 
 pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState, edit: &mut Edit) {
+    let image_aspect_ratio = session
+        .editor
+        .current_edit_context_ref()
+        .unwrap()
+        .input_image()
+        .aspect_ratio();
+
+    let mut mask_aspect_ratio = image_aspect_ratio;
+    if let Some(crop_rect) = edit.crop_rect {
+        mask_aspect_ratio *= crop_rect.size.y / crop_rect.size.x
+    }
+
+    let mask_max_width = ui.available_width() * 0.2;
+    let mask_max_height = mask_max_width * 0.5;
+    let mask_indicator_size =
+        get_max_image_size(mask_aspect_ratio, mask_max_width, mask_max_height);
+    let row_height = mask_max_height * 1.1;
+
     let image_column_width = ui.available_width() * 0.7;
-    let mut table = TableBuilder::new(ui)
+    let table = TableBuilder::new(ui)
         .column(Column::auto())
         .column(Column::auto().at_least(image_column_width))
         .column(Column::remainder())
@@ -37,24 +56,11 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
         .cell_layout(
             egui::Layout::left_to_right(egui::Align::LEFT).with_cross_align(egui::Align::Center),
         );
-    // .cell_layout(
-    //     egui::Layout::top_down(egui::Align::Center).with_cross_align(egui::Align::LEFT),
-    // );
 
     let mut mask_to_delete: Option<usize> = None;
     let mut mask_term_to_delete: Option<(usize, usize)> = None;
     let mut mask_to_duplicate: Option<usize> = None;
     let mut mask_term_to_duplicate: Option<(usize, usize)> = None;
-
-    let aspect_ratio = session
-        .editor
-        .current_edit_context_ref()
-        .unwrap()
-        .input_image()
-        .aspect_ratio();
-
-    let image_height = ui_state.last_frame_size.unwrap().1 * 0.03;
-    let row_height = image_height * 1.2;
 
     table.body(|mut body| {
         for mask_index in 0..edit.masked_edits.len() {
@@ -76,19 +82,18 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                             .current_result
                         {
                             let mask_img = result.masked_edit_results[mask_index].mask.clone();
-                            let image_width = image_height / mask_img.aspect_ratio();
-                            let size = egui::Vec2 {
-                                x: image_width,
-                                y: image_height,
-                            };
-                            let (rect, response) =
-                                ui.allocate_exact_size(size, egui::Sense::click_and_drag());
-                            ui.painter().add(egui_wgpu::Callback::new_paint_callback(
-                                rect,
-                                MaskIndicatorCallback {
-                                    image: mask_img.clone(),
-                                },
-                            ));
+                            let (rect, response) = ui.allocate_exact_size(
+                                mask_indicator_size,
+                                egui::Sense::click_and_drag(),
+                            );
+                            ui.centered_and_justified(|ui| {
+                                ui.painter().add(egui_wgpu::Callback::new_paint_callback(
+                                    rect,
+                                    MaskIndicatorCallback {
+                                        image: mask_img.clone(),
+                                    },
+                                ));
+                            });
                             if response.clicked() {
                                 select_mask(ui_state, mask_index);
                             }
@@ -136,20 +141,18 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                                     let mask_img = result.masked_edit_results[mask_index]
                                         .mask_terms[term_index]
                                         .clone();
-                                    let aspect_ratio = mask_img.aspect_ratio();
-                                    let image_width = image_height / aspect_ratio;
-                                    let size = egui::Vec2 {
-                                        x: image_width,
-                                        y: image_height,
-                                    };
-                                    let (rect, response) =
-                                        ui.allocate_exact_size(size, egui::Sense::click_and_drag());
-                                    ui.painter().add(egui_wgpu::Callback::new_paint_callback(
-                                        rect,
-                                        MaskIndicatorCallback {
-                                            image: mask_img.clone(),
-                                        },
-                                    ));
+                                    let (rect, response) = ui.allocate_exact_size(
+                                        mask_indicator_size,
+                                        egui::Sense::click_and_drag(),
+                                    );
+                                    ui.centered_and_justified(|ui| {
+                                        ui.painter().add(egui_wgpu::Callback::new_paint_callback(
+                                            rect,
+                                            MaskIndicatorCallback {
+                                                image: mask_img.clone(),
+                                            },
+                                        ));
+                                    });
                                     if response.clicked() {
                                         maybe_select_term(ui_state, term_index);
                                     }
@@ -219,7 +222,7 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                                     ui,
                                     ui_state,
                                     &mut edit.masked_edits[mask_index].mask,
-                                    aspect_ratio,
+                                    mask_aspect_ratio,
                                     false,
                                 );
                             }
@@ -227,7 +230,7 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                                 ui,
                                 ui_state,
                                 &mut edit.masked_edits[mask_index].mask,
-                                aspect_ratio,
+                                mask_aspect_ratio,
                                 true,
                             );
                         });
@@ -275,12 +278,15 @@ fn new_mask_menu_button(
 ) {
     ui.menu_button("Create New Mask", |ui| {
         if ui.button("Radial Gradient").clicked() {
-            let aspect_ratio = session
+            let mut aspect_ratio = session
                 .editor
                 .current_edit_context_ref()
                 .expect("expecting an input image")
                 .input_image()
                 .aspect_ratio();
+            if let Some(crop_rect) = edit.crop_rect {
+                aspect_ratio *= crop_rect.size.y / crop_rect.size.x
+            }
             add_single_primitive_masked_edit(
                 edit,
                 ui_state,

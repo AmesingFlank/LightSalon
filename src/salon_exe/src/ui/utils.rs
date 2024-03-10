@@ -42,3 +42,20 @@ pub fn get_abs_x_in_rect(rect: egui::Rect, relative_x: f32) -> f32 {
 pub fn get_abs_y_in_rect(rect: egui::Rect, relative_y: f32) -> f32 {
     rect.min.y + rect.height() * relative_y
 }
+
+pub fn get_max_image_size(image_aspect_ratio: f32, max_width: f32, max_height: f32) -> egui::Vec2 {
+    let ui_aspect_ratio = max_height / max_width;
+
+    let size = if image_aspect_ratio >= ui_aspect_ratio {
+        egui::Vec2 {
+            x: max_height / image_aspect_ratio,
+            y: max_height,
+        }
+    } else {
+        egui::Vec2 {
+            x: max_width,
+            y: max_width * image_aspect_ratio,
+        }
+    };
+    size
+}
