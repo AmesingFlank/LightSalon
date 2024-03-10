@@ -1,11 +1,11 @@
 use super::{Edit, GlobalEdit, MaskedEdit};
 
-use crate::ir::{
+use crate::{ir::{
     AdjustContrastOp, AdjustExposureOp, AdjustHighlightsAndShadowsOp, AdjustTemperatureAndTintOp,
     AdjustVibranceAndSaturationOp, AdjustVignetteOp, ApplyCurveOp, ApplyDehazeOp,
     ApplyMaskedEditsOp, ColorMixGroup, ColorMixOp, ComputeBasicStatisticsOp, ComputeHistogramOp,
-    RotateAndCropOp, Id, InputOp, Module, Op, PrepareDehazeOp, ResizeOp,
-};
+    Id, InputOp, Module, Op, PrepareDehazeOp, ResizeOp, RotateAndCropOp,
+}, utils::rectangle::Rectangle};
 
 pub struct IdStore {
     pub output: Id,
@@ -28,7 +28,7 @@ pub fn to_ir_module(edit: &Edit) -> (Module, IdStore) {
     let mut current_output_id = input_id;
 
     maybe_add_resize(edit, &mut module, &mut current_output_id);
-    maybe_add_crop(edit, &mut module, &mut current_output_id);
+    maybe_add_rotate_and_crop(edit, &mut module, &mut current_output_id);
 
     let mut masked_edit_id_stores = Vec::new();
     for edit in edit.masked_edits.iter() {
@@ -61,13 +61,14 @@ fn maybe_add_resize(edit: &Edit, module: &mut Module, current_output_id: &mut Id
     }
 }
 
-fn maybe_add_crop(edit: &Edit, module: &mut Module, current_output_id: &mut Id) {
-    if let Some(ref crop) = edit.crop_rect {
+fn maybe_add_rotate_and_crop(edit: &Edit, module: &mut Module, current_output_id: &mut Id) {
+    if edit.resize_factor.is_some() || edit.crop_rect.is_some() {
         let cropped_image_id = module.alloc_id();
         module.push_op(Op::RotateAndCrop(RotateAndCropOp {
             result: cropped_image_id,
             arg: *current_output_id,
-            crop_rect: crop.clone(),
+            rotation_degrees: edit.rotation_degrees.clone().unwrap_or(0.0),
+            crop_rect: edit.crop_rect.clone().unwrap_or(Rectangle::regular()),
         }));
         *current_output_id = cropped_image_id;
     }

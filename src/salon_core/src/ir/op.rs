@@ -200,6 +200,7 @@ pub struct ComputeHistogramOp {
 pub struct RotateAndCropOp {
     pub result: Id,
     pub arg: Id,
+    pub rotation_degrees: f32,
     pub crop_rect: Rectangle,
 }
 

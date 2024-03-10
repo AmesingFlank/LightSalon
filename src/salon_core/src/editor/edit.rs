@@ -7,6 +7,7 @@ use serde;
 #[derive(Clone, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct Edit {
     pub resize_factor: Option<f32>,
+    pub rotation_degrees: Option<f32>,
     pub crop_rect: Option<Rectangle>,
     pub masked_edits: Vec<MaskedEdit>,
 }
@@ -15,6 +16,7 @@ impl Edit {
     pub fn trivial() -> Self {
         Self {
             resize_factor: None,
+            rotation_degrees: None,
             crop_rect: None,
             masked_edits: vec![MaskedEdit::new(
                 Mask {
