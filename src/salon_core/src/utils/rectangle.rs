@@ -1,4 +1,4 @@
-use super::vec::Vec2;
+use super::vec::{vec2, Vec2};
 use serde;
 
 #[derive(Clone, Copy, PartialEq, Debug, serde::Deserialize, serde::Serialize)]
@@ -8,6 +8,13 @@ pub struct Rectangle {
 }
 
 impl Rectangle {
+    pub fn regular() -> Self {
+        Self {
+            center: vec2((0.5, 0.5)),
+            size: vec2((1.0, 1.0)),
+        }
+    }
+
     pub fn min(&self) -> Vec2<f32> {
         self.center - self.size * 0.5
     }

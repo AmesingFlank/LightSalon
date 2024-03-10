@@ -20,7 +20,7 @@ use salon_core::shader::{Shader, ShaderLibraryModule};
 use salon_core::utils::rectangle::Rectangle;
 use salon_core::utils::vec::{vec2, Vec2};
 
-use super::utils::pos2_to_vec2;
+use super::utils::{get_abs_x_in_rect, get_abs_y_in_rect, pos2_to_vec2};
 use super::widgets::MainImageCallback;
 use super::{AppUiState, CropDragEdgeOrCorner, EditorPanel, MaskEditState};
 
@@ -123,7 +123,7 @@ fn show_edited_image(
             ));
 
             if ui_state.show_grid {
-                draw_grid_impl(ui, rect, rect, ui_state);
+                draw_grid_impl(ui, rect, Rectangle::regular(), ui_state);
             }
             if let Some(term_index) = ui_state.selected_mask_term_index {
                 let mut transient_edit = context.transient_edit_ref().clone();
@@ -169,23 +169,23 @@ fn image_crop_and_rotate(
                 mask: None,
             },
         ));
-        let original_rect = rect;
-        let mut curr_rect = original_rect;
-        if let Some(ref rect) = ui_state.crop_drag_state.rect {
-            curr_rect = rect.clone();
-        }
-        handle_crop_and_rotate_response(ui, &response, curr_rect, original_rect, ui_state);
-        draw_drag_handles(ui, curr_rect, original_rect, ui_state);
-        draw_grid_impl(ui, curr_rect, original_rect, ui_state);
-        if let Some(ref new_rect) = ui_state.crop_drag_state.rect {
-            handle_new_rect(
-                ui,
-                session,
-                ui_state,
-                transient_edit,
-                original_rect,
-                *new_rect,
-            );
+        let original_crop_rect = transient_edit
+            .crop_rect
+            .clone()
+            .unwrap_or(Rectangle::regular());
+        let new_crop_rect = handle_crop_and_rotate_response(
+            ctx,
+            ui,
+            &response,
+            rect.clone(),
+            original_crop_rect.clone(),
+            ui_state,
+        );
+        draw_drag_handles(ui, rect.clone(), original_crop_rect.clone(), ui_state);
+        draw_grid_impl(ui, rect.clone(), original_crop_rect.clone(), ui_state);
+
+        if let Some(ref new_crop_rect) = new_crop_rect {
+            handle_new_rect(ui, session, ui_state, transient_edit, *new_crop_rect);
         }
     });
 }
@@ -195,21 +195,16 @@ fn handle_new_rect(
     session: &mut Session,
     ui_state: &mut AppUiState,
     mut transient_edit: Edit,
-    original_rect: egui::Rect,
-    new_rect: egui::Rect,
+    new_crop_rect: Rectangle,
 ) {
-    let min_x = (new_rect.min.x - original_rect.min.x) / original_rect.width();
-    let min_y = (new_rect.min.y - original_rect.min.y) / original_rect.height();
-    let max_x = (new_rect.max.x - original_rect.min.x) / original_rect.width();
-    let max_y = (new_rect.max.y - original_rect.min.y) / original_rect.height();
-
-    let new_crop_rect = Rectangle::from_min_max(vec2((min_x, min_y)), vec2((max_x, max_y)));
-
     if transient_edit.crop_rect != Some(new_crop_rect) {
-        let mut old_crop_rect = Rectangle::from_min_max(vec2((0.0, 0.0)), vec2((1.0, 1.0)));
-        if let Some(ref curr_crop_rect) = transient_edit.crop_rect {
-            old_crop_rect = *curr_crop_rect;
+        if transient_edit.crop_rect.is_none() && new_crop_rect == Rectangle::regular() {
+            return;
         }
+        let old_crop_rect = transient_edit
+            .crop_rect
+            .clone()
+            .unwrap_or(Rectangle::regular());
         let transform_xy = |x: &mut f32, y: &mut f32| {
             let abs_xy =
                 old_crop_rect.min() + (old_crop_rect.max() - old_crop_rect.min()) * vec2((*x, *y));
@@ -524,131 +519,155 @@ fn set_edge_or_corner_cursor(ui: &mut Ui, edge_or_corner: CropDragEdgeOrCorner) 
 }
 
 fn handle_crop_and_rotate_response(
+    ctx: &egui::Context,
     ui: &mut Ui,
     response: &egui::Response,
-    curr_rect: egui::Rect,
-    original_rect: egui::Rect,
+    curr_image_rect: egui::Rect,
+    original_crop_rect: Rectangle,
     ui_state: &mut AppUiState,
-) {
+) -> Option<Rectangle> {
+    let original_ui_crop_rect = get_ui_crop_rect(curr_image_rect, original_crop_rect);
     if let Some(ref edge_or_corner) = ui_state.crop_drag_state.edge_or_corner {
         set_edge_or_corner_cursor(ui, *edge_or_corner);
         if response.dragged() {
-            let aspect_ratio = curr_rect.height() / curr_rect.width();
-            let new_rect = ui_state.crop_drag_state.rect.as_mut().unwrap();
+            let mut new_crop_rect = original_crop_rect;
+            let mut new_crop_rect_min = new_crop_rect.min();
+            let mut new_crop_rect_max = new_crop_rect.max();
             let delta = response.drag_delta();
+            let mut delta = vec2((
+                delta.x / curr_image_rect.width(),
+                delta.y / curr_image_rect.height(),
+            ));
+            // * 2.0 to counter the fact that this causes the crop rect center to move
+            delta = delta * 2.0;
             if let Some(ref edge_or_corner) = ui_state.crop_drag_state.edge_or_corner {
+                if edge_or_corner.has_left() {
+                    delta.x = delta.x.min(new_crop_rect.size.x);
+                    delta.x = delta.x.max(-new_crop_rect_min.x);
+                }
+                if edge_or_corner.has_right() {
+                    delta.x = delta.x.min(1.0 - new_crop_rect_max.x);
+                    delta.x = delta.x.max(-new_crop_rect.size.x);
+                }
+                if edge_or_corner.has_top() {
+                    delta.y = delta.y.min(new_crop_rect.size.y);
+                    delta.y = delta.y.max(-new_crop_rect_min.y);
+                }
+                if edge_or_corner.has_bottom() {
+                    delta.y = delta.y.min(1.0 - new_crop_rect_max.y);
+                    delta.y = delta.y.max(-new_crop_rect.size.y);
+                }
+
                 match edge_or_corner {
                     CropDragEdgeOrCorner::Left => {
-                        new_rect.min.x += delta.x;
+                        new_crop_rect_min.x += delta.x;
                     }
                     CropDragEdgeOrCorner::Right => {
-                        new_rect.max.x += delta.x;
+                        new_crop_rect_max.x += delta.x;
                     }
                     CropDragEdgeOrCorner::Top => {
-                        new_rect.min.y += delta.y;
+                        new_crop_rect_min.y += delta.y;
                     }
                     CropDragEdgeOrCorner::Bottom => {
-                        new_rect.max.y += delta.y;
+                        new_crop_rect_max.y += delta.y;
                     }
                     CropDragEdgeOrCorner::TopLeft => {
                         if delta.x.signum() == delta.y.signum() {
-                            let x_abs = delta.x.abs().min(delta.y.abs() / aspect_ratio);
-                            new_rect.min.x += x_abs * delta.x.signum();
-                            new_rect.min.y += x_abs * aspect_ratio * delta.y.signum();
+                            let x_abs = delta.x.abs().min(delta.y.abs());
+                            new_crop_rect_min.x += x_abs * delta.x.signum();
+                            new_crop_rect_min.y += x_abs * delta.y.signum();
                         }
                     }
                     CropDragEdgeOrCorner::BottomRight => {
                         if delta.x.signum() == delta.y.signum() {
-                            let x_abs = delta.x.abs().min(delta.y.abs() / aspect_ratio);
-                            new_rect.max.x += x_abs * delta.x.signum();
-                            new_rect.max.y += x_abs * aspect_ratio * delta.y.signum();
+                            let x_abs = delta.x.abs().min(delta.y.abs());
+                            new_crop_rect_max.x += x_abs * delta.x.signum();
+                            new_crop_rect_max.y += x_abs * delta.y.signum();
                         }
                     }
                     CropDragEdgeOrCorner::TopRight => {
                         if delta.x.signum() == -delta.y.signum() {
-                            let x_abs = delta.x.abs().min(delta.y.abs() / aspect_ratio);
-                            new_rect.max.x += x_abs * delta.x.signum();
-                            new_rect.min.y += x_abs * aspect_ratio * delta.y.signum();
+                            let x_abs = delta.x.abs().min(delta.y.abs());
+                            new_crop_rect_max.x += x_abs * delta.x.signum();
+                            new_crop_rect_min.y += x_abs * delta.y.signum();
                         }
                     }
                     CropDragEdgeOrCorner::BottomLeft => {
                         if delta.x.signum() == -delta.y.signum() {
-                            let x_abs = delta.x.abs().min(delta.y.abs() / aspect_ratio);
-                            new_rect.min.x += x_abs * delta.x.signum();
-                            new_rect.max.y += x_abs * aspect_ratio * delta.y.signum();
+                            let x_abs = delta.x.abs().min(delta.y.abs());
+                            new_crop_rect_min.x += x_abs * delta.x.signum();
+                            new_crop_rect_max.y += x_abs * delta.y.signum();
                         }
                     }
-                    _ => {}
                 }
             }
-
-            new_rect.min.x = new_rect.min.x.min(curr_rect.max.x);
-            new_rect.min.y = new_rect.min.y.min(curr_rect.max.y);
-            new_rect.max.x = new_rect.max.x.max(curr_rect.min.x);
-            new_rect.max.y = new_rect.max.y.max(curr_rect.min.y);
-
-            new_rect.min.x = new_rect.min.x.max(original_rect.min.x);
-            new_rect.min.y = new_rect.min.y.max(original_rect.min.y);
-            new_rect.max.x = new_rect.max.x.min(original_rect.max.x);
-            new_rect.max.y = new_rect.max.y.min(original_rect.max.y);
+            new_crop_rect = Rectangle::from_min_max(new_crop_rect_min, new_crop_rect_max);
+            return Some(new_crop_rect);
         } else if response.drag_stopped() {
             ui_state.crop_drag_state.edge_or_corner = None;
         }
     } else if ui_state.crop_drag_state.translation {
         ui.output_mut(|out| out.cursor_icon = CursorIcon::Grabbing);
         if response.dragged() {
-            let mut delta = response.drag_delta();
-            delta.x = delta.x.min(original_rect.max.x - curr_rect.max.x);
-            delta.x = delta.x.max(original_rect.min.x - curr_rect.min.x);
-            delta.y = delta.y.min(original_rect.max.y - curr_rect.max.y);
-            delta.y = delta.y.max(original_rect.min.y - curr_rect.min.y);
+            let delta = response.drag_delta();
+            let mut delta = vec2((
+                delta.x / curr_image_rect.width(),
+                delta.y / curr_image_rect.height(),
+            ));
 
-            let new_rect = ui_state.crop_drag_state.rect.as_mut().unwrap();
-            new_rect.min.x += delta.x;
-            new_rect.max.x += delta.x;
-            new_rect.min.y += delta.y;
-            new_rect.max.y += delta.y;
+            // the image is dragged, relative to a fixed crop rect
+            delta = delta * -1.0;
+
+            let mut new_crop_rect = original_crop_rect;
+            delta.x = delta.x.min(1.0 - new_crop_rect.max().x);
+            delta.y = delta.y.min(1.0 - new_crop_rect.max().y);
+            delta.x = delta.x.max(-new_crop_rect.min().x);
+            delta.y = delta.y.max(-new_crop_rect.min().y);
+
+            new_crop_rect.center = new_crop_rect.center + delta;
+            return Some(new_crop_rect);
         } else if response.drag_stopped() {
             ui_state.crop_drag_state.translation = false;
         }
     } else {
         if let Some(hover_pos) = response.hover_pos() {
-            if let Some(edge_or_corner) = find_edge_or_corner(hover_pos, curr_rect) {
+            if let Some(edge_or_corner) = find_edge_or_corner(hover_pos, original_ui_crop_rect) {
                 set_edge_or_corner_cursor(ui, edge_or_corner);
                 if response.drag_started() {
                     ui_state.crop_drag_state.edge_or_corner = Some(edge_or_corner);
-                    ui_state.crop_drag_state.rect = Some(curr_rect);
                 }
             } else {
-                if curr_rect.contains(hover_pos) {
+                if curr_image_rect.contains(hover_pos) {
                     ui.output_mut(|out| out.cursor_icon = CursorIcon::Grab);
                     if response.drag_started() {
                         ui_state.crop_drag_state.translation = true;
-                        ui_state.crop_drag_state.rect = Some(curr_rect);
                     }
                 }
             }
         }
     }
+    None
 }
 
 fn draw_drag_handles(
     ui: &mut Ui,
-    rect: egui::Rect,
-    original_rect: egui::Rect,
+    full_image_rect: egui::Rect,
+    crop_rect: Rectangle,
     ui_state: &mut AppUiState,
 ) {
-    let width = original_rect.width().min(original_rect.height()) * 0.005;
-    let length = rect.width().min(rect.height()) * 0.1;
-    let stroke_non_selected = egui::Stroke::new(width, Color32::from_gray(250));
-    let stroke_selected = egui::Stroke::new(width, Color32::from_rgb(50, 150, 200));
+    let ui_crop_rect = get_ui_crop_rect(full_image_rect, crop_rect);
+
+    let thickness = full_image_rect.width().min(full_image_rect.height()) * 0.005;
+    let length: egui::Vec2 = ui_crop_rect.size() * 0.1;
+    let stroke_non_selected = egui::Stroke::new(thickness, Color32::from_gray(250));
+    let stroke_selected = egui::Stroke::new(thickness, Color32::from_rgb(50, 150, 200));
 
     let selected_edge_or_corner = ui_state.crop_drag_state.edge_or_corner.clone();
 
-    let top_y = rect.min.y - width * 0.5;
-    let bottom_y = rect.max.y + width * 0.5;
-    let left_x = rect.min.x - width * 0.5;
-    let right_x = rect.max.x + width * 0.5;
+    let top_y = ui_crop_rect.min.y - thickness * 0.5;
+    let bottom_y = ui_crop_rect.max.y + thickness * 0.5;
+    let left_x = ui_crop_rect.min.x - thickness * 0.5;
+    let right_x = ui_crop_rect.max.x + thickness * 0.5;
 
     let stroke = if selected_edge_or_corner == Some(CropDragEdgeOrCorner::Top) {
         stroke_selected
@@ -657,8 +676,8 @@ fn draw_drag_handles(
     };
     ui.painter().hline(
         egui::Rangef::new(
-            rect.min.x + rect.width() * 0.5 - length * 0.5,
-            rect.min.x + rect.width() * 0.5 + length * 0.5,
+            ui_crop_rect.center().x - length.x * 0.5,
+            ui_crop_rect.center().x + length.x * 0.5,
         ),
         top_y,
         stroke,
@@ -671,8 +690,8 @@ fn draw_drag_handles(
     };
     ui.painter().hline(
         egui::Rangef::new(
-            rect.min.x + rect.width() * 0.5 - length * 0.5,
-            rect.min.x + rect.width() * 0.5 + length * 0.5,
+            ui_crop_rect.center().x - length.x * 0.5,
+            ui_crop_rect.center().x + length.x * 0.5,
         ),
         bottom_y,
         stroke,
@@ -686,8 +705,8 @@ fn draw_drag_handles(
     ui.painter().vline(
         left_x,
         egui::Rangef::new(
-            rect.min.y + rect.height() * 0.5 - length * 0.5,
-            rect.min.y + rect.height() * 0.5 + length * 0.5,
+            ui_crop_rect.center().y - length.y * 0.5,
+            ui_crop_rect.center().y + length.y * 0.5,
         ),
         stroke,
     );
@@ -700,8 +719,8 @@ fn draw_drag_handles(
     ui.painter().vline(
         right_x,
         egui::Rangef::new(
-            rect.min.y + rect.height() * 0.5 - length * 0.5,
-            rect.min.y + rect.height() * 0.5 + length * 0.5,
+            ui_crop_rect.center().y - length.y * 0.5,
+            ui_crop_rect.center().y + length.y * 0.5,
         ),
         stroke,
     );
@@ -712,13 +731,19 @@ fn draw_drag_handles(
         stroke_non_selected
     };
     ui.painter().hline(
-        egui::Rangef::new(rect.min.x - width, rect.min.x - width + length * 0.5),
+        egui::Rangef::new(
+            ui_crop_rect.min.x - thickness,
+            ui_crop_rect.min.x - thickness + length.x * 0.5,
+        ),
         top_y,
         stroke,
     );
     ui.painter().vline(
         left_x,
-        egui::Rangef::new(rect.min.y - width, rect.min.y - width + length * 0.5),
+        egui::Rangef::new(
+            ui_crop_rect.min.y - thickness,
+            ui_crop_rect.min.y - thickness + length.y * 0.5,
+        ),
         stroke,
     );
 
@@ -728,13 +753,19 @@ fn draw_drag_handles(
         stroke_non_selected
     };
     ui.painter().hline(
-        egui::Rangef::new(rect.max.x + width - length * 0.5, rect.max.x + width),
+        egui::Rangef::new(
+            ui_crop_rect.max.x + thickness - length.x * 0.5,
+            ui_crop_rect.max.x + thickness,
+        ),
         top_y,
         stroke,
     );
     ui.painter().vline(
         right_x,
-        egui::Rangef::new(rect.min.y - width, rect.min.y - width + length * 0.5),
+        egui::Rangef::new(
+            ui_crop_rect.min.y - thickness,
+            ui_crop_rect.min.y - thickness + length.y * 0.5,
+        ),
         stroke,
     );
 
@@ -744,13 +775,19 @@ fn draw_drag_handles(
         stroke_non_selected
     };
     ui.painter().hline(
-        egui::Rangef::new(rect.min.x - width, rect.min.x - width + length * 0.5),
+        egui::Rangef::new(
+            ui_crop_rect.min.x - thickness,
+            ui_crop_rect.min.x - thickness + length.x * 0.5,
+        ),
         bottom_y,
         stroke,
     );
     ui.painter().vline(
         left_x,
-        egui::Rangef::new(rect.max.y + width - length * 0.5, rect.max.y + width),
+        egui::Rangef::new(
+            ui_crop_rect.max.y + thickness - length.y * 0.5,
+            ui_crop_rect.max.y + thickness,
+        ),
         stroke,
     );
 
@@ -760,26 +797,33 @@ fn draw_drag_handles(
         stroke_non_selected
     };
     ui.painter().hline(
-        egui::Rangef::new(rect.max.x + width - length * 0.5, rect.max.x + width),
+        egui::Rangef::new(
+            ui_crop_rect.max.x + thickness - length.x * 0.5,
+            ui_crop_rect.max.x + thickness,
+        ),
         bottom_y,
         stroke,
     );
     ui.painter().vline(
         right_x,
-        egui::Rangef::new(rect.max.y + width - length * 0.5, rect.max.y + width),
+        egui::Rangef::new(
+            ui_crop_rect.max.y + thickness - length.y * 0.5,
+            ui_crop_rect.max.y + thickness,
+        ),
         stroke,
     );
 }
 
 fn draw_grid_impl(
     ui: &mut Ui,
-    rect: egui::Rect,
-    original_rect: egui::Rect,
+    full_image_rect: egui::Rect,
+    crop_rect: Rectangle,
     ui_state: &mut AppUiState,
 ) {
-    let width = original_rect.width().min(original_rect.height()) * 0.001;
+    let width = full_image_rect.width().min(full_image_rect.height()) * 0.001;
     let stroke_non_selected = egui::Stroke::new(width, Color32::from_gray(200));
     let stroke_selected = egui::Stroke::new(width * 2.0, Color32::from_rgb(50, 150, 200));
+    let ui_crop_rect = get_ui_crop_rect(full_image_rect, crop_rect);
     for t in [0.0, 1.0, 2.0, 3.0] {
         let mut stroke = stroke_non_selected;
         if let Some(ref edge_or_corner) = ui_state.crop_drag_state.edge_or_corner {
@@ -788,8 +832,8 @@ fn draw_grid_impl(
             }
         }
         ui.painter().hline(
-            egui::Rangef::new(rect.min.x, rect.max.x),
-            rect.min.y + rect.height() * t / 3.0,
+            egui::Rangef::new(ui_crop_rect.min.x, ui_crop_rect.max.x),
+            ui_crop_rect.min.y + ui_crop_rect.height() * t / 3.0,
             stroke,
         );
 
@@ -800,11 +844,18 @@ fn draw_grid_impl(
             }
         }
         ui.painter().vline(
-            rect.min.x + rect.width() * t / 3.0,
-            egui::Rangef::new(rect.min.y, rect.max.y),
+            ui_crop_rect.min.x + ui_crop_rect.width() * t / 3.0,
+            egui::Rangef::new(ui_crop_rect.min.y, ui_crop_rect.max.y),
             stroke,
         );
     }
+}
+
+pub fn get_ui_crop_rect(full_image_rect: egui::Rect, crop_rect: Rectangle) -> egui::Rect {
+    egui::Rect::from_center_size(
+        full_image_rect.center(),
+        full_image_rect.size() * egui::vec2(crop_rect.size.x, crop_rect.size.y),
+    )
 }
 
 pub fn get_image_size_in_ui(ui: &Ui, image_aspect_ratio: f32) -> egui::Vec2 {

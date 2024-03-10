@@ -6,7 +6,10 @@ use salon_core::{
     editor::Edit,
     runtime::Image,
     session::Session,
-    utils::vec::{vec2, Vec2},
+    utils::{
+        rectangle::Rectangle,
+        vec::{vec2, Vec2},
+    },
 };
 
 use super::AppUiState;
@@ -30,4 +33,12 @@ pub fn legalize_ui_state(ui_state: &mut AppUiState, edit: &Edit) {
             ui_state.selected_mask_term_index = None;
         }
     }
+}
+
+pub fn get_abs_x_in_rect(rect: egui::Rect, relative_x: f32) -> f32 {
+    rect.min.x + rect.width() * relative_x
+}
+
+pub fn get_abs_y_in_rect(rect: egui::Rect, relative_y: f32) -> f32 {
+    rect.min.y + rect.height() * relative_y
 }
