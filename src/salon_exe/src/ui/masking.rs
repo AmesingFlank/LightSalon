@@ -47,11 +47,16 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
         get_max_image_size(mask_aspect_ratio, mask_max_width, mask_max_height);
     let row_height = mask_max_height * 1.1;
 
-    let image_column_width = ui.available_width() * 0.7;
+    let column_widths = vec![
+        ui.available_width() * 0.1,
+        ui.available_width() * 0.75,
+        ui.available_width() * 0.1,
+    ];
+
     let table = TableBuilder::new(ui)
-        .column(Column::auto())
-        .column(Column::auto().at_least(image_column_width))
-        .column(Column::remainder())
+        .column(Column::auto().range(egui::Rangef::point(column_widths[0])))
+        .column(Column::auto().range(egui::Rangef::point(column_widths[1])))
+        .column(Column::auto().range(egui::Rangef::point(column_widths[2])))
         .sense(egui::Sense::click())
         .cell_layout(
             egui::Layout::left_to_right(egui::Align::LEFT).with_cross_align(egui::Align::Center),
