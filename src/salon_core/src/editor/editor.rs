@@ -302,9 +302,9 @@ impl Editor {
 
         let value_map = &self.engine_execution_context.value_store.map;
 
-        let output_value = value_map.get(&id_store.output).expect("cannot find output");
-        let output_image = output_value.as_image().clone();
-        self.toolbox.generate_mipmap(&output_image);
+        let final_image_value = value_map.get(&id_store.final_image).expect("cannot find output");
+        let final_image = final_image_value.as_image().clone();
+        self.toolbox.generate_mipmap(&final_image);
 
         let final_histogram_buffer = value_map
             .get(&id_store.final_histogram)
@@ -347,8 +347,15 @@ impl Editor {
             })
         }
 
+        let geometry_only = value_map
+            .get(&id_store.geometry_only)
+            .expect("cannot find geometry-applied image")
+            .as_image()
+            .clone();
+
         EditResult {
-            final_image: output_image,
+            final_image,
+            geometry_only,
             histogram_final: final_histogram,
             masked_edit_results,
         }

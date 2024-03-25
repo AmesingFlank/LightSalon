@@ -8,7 +8,8 @@ use crate::{ir::{
 }, utils::rectangle::Rectangle};
 
 pub struct IdStore {
-    pub output: Id,
+    pub final_image: Id,
+    pub geometry_only: Id,
     pub final_histogram: Id,
     pub masked_edit_id_stores: Vec<MaskedEditIdStore>,
 }
@@ -30,6 +31,8 @@ pub fn to_ir_module(edit: &Edit) -> (Module, IdStore) {
     maybe_add_resize(edit, &mut module, &mut current_output_id);
     maybe_add_rotate_and_crop(edit, &mut module, &mut current_output_id);
 
+    let geometry_only = current_output_id;
+
     let mut masked_edit_id_stores = Vec::new();
     for edit in edit.masked_edits.iter() {
         let masked_id_store = add_masked_edit(edit, &mut module, current_output_id);
@@ -39,7 +42,8 @@ pub fn to_ir_module(edit: &Edit) -> (Module, IdStore) {
 
     let final_histogram_id = add_final_histogram(&mut module, &current_output_id);
     let id_store = IdStore {
-        output: current_output_id,
+        final_image: current_output_id,
+        geometry_only,
         final_histogram: final_histogram_id,
         masked_edit_id_stores,
     };
