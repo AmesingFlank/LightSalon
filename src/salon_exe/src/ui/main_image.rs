@@ -41,17 +41,23 @@ pub fn main_image(
                 columns[0].centered_and_justified(|ui| {
                     let context = session.editor.current_edit_context_ref().unwrap();
                     let original_image = context.input_image();
-                    let size = get_image_size_in_ui(ui, original_image.aspect_ratio());
-                    let (rect, _) = ui.allocate_exact_size(size, egui::Sense::drag());
+
+                    let main_image_callback = MainImageCallback {
+                        image: original_image.clone(),
+                        rotation_degrees: None,
+                        crop_rect: None,
+                        mask: None,
+                        ui_max_rect: ui.max_rect(),
+                    };
+
+                    let main_image_allocated_rect = main_image_callback.required_allocated_rect();
+
+                    let _response =
+                        ui.allocate_rect(main_image_allocated_rect, egui::Sense::drag());
 
                     ui.painter().add(egui_wgpu::Callback::new_paint_callback(
-                        rect,
-                        MainImageCallback {
-                            image: original_image.clone(),
-                            rotation_degrees: None,
-                            crop_rect: None,
-                            mask: None,
-                        },
+                        main_image_allocated_rect,
+                        main_image_callback,
                     ));
                 });
 
@@ -112,20 +118,24 @@ fn show_edited_image(
                 );
             }
 
-            let size = get_image_size_in_ui(ui, result.final_image.aspect_ratio());
-            let (rect, response) = ui.allocate_exact_size(size, egui::Sense::drag());
+            let main_image_callback = MainImageCallback {
+                image: result.final_image.clone(),
+                rotation_degrees: None,
+                crop_rect: None,
+                mask,
+                ui_max_rect: ui.max_rect(),
+            };
+
+            let main_image_allocated_rect = main_image_callback.required_allocated_rect();
+            let cropped_image_ui_rect = main_image_callback.cropped_image_ui_rect();
+            let response = ui.allocate_rect(main_image_allocated_rect, egui::Sense::drag());
             ui.painter().add(egui_wgpu::Callback::new_paint_callback(
-                rect,
-                MainImageCallback {
-                    image: result.final_image.clone(),
-                    rotation_degrees: None,
-                    crop_rect: None,
-                    mask,
-                },
+                main_image_allocated_rect,
+                main_image_callback,
             ));
 
             if ui_state.show_grid {
-                draw_grid_impl(ui, rect, Rectangle::regular(), ui_state);
+                draw_grid_impl(ui, cropped_image_ui_rect, ui_state);
             }
             if let Some(term_index) = ui_state.selected_mask_term_index {
                 let mut transient_edit = context.transient_edit_ref().clone();
@@ -135,7 +145,7 @@ fn show_edited_image(
                     .primitive;
                 let should_commit = mask_primitive_control_points(
                     ui,
-                    rect,
+                    cropped_image_ui_rect,
                     &response,
                     primitive,
                     &mut ui_state.mask_edit_state,
@@ -158,19 +168,23 @@ fn image_crop_and_rotate(
     ui.centered_and_justified(|ui| {
         let context = session.editor.current_edit_context_ref().unwrap();
         let original_image = context.input_image();
-        let size = get_image_size_in_ui(ui, original_image.aspect_ratio());
-        let (rect, response) = ui.allocate_exact_size(size, egui::Sense::drag());
-
         let transient_edit = context.transient_edit_ref().clone();
 
+        let main_image_callback = MainImageCallback {
+            image: original_image.clone(),
+            rotation_degrees: transient_edit.rotation_degrees.clone(),
+            crop_rect: transient_edit.crop_rect.clone(),
+            mask: None,
+            ui_max_rect: ui.max_rect(),
+        };
+
+        let main_image_allocated_rect = main_image_callback.required_allocated_rect();
+        let cropped_image_ui_rect = main_image_callback.cropped_image_ui_rect();
+        let response = ui.allocate_rect(main_image_allocated_rect, egui::Sense::drag());
+
         ui.painter().add(egui_wgpu::Callback::new_paint_callback(
-            rect,
-            MainImageCallback {
-                image: original_image.clone(),
-                rotation_degrees: transient_edit.rotation_degrees.clone(),
-                crop_rect: transient_edit.crop_rect.clone(),
-                mask: None,
-            },
+            main_image_allocated_rect,
+            main_image_callback,
         ));
         let original_crop_rect = transient_edit
             .crop_rect
@@ -180,12 +194,12 @@ fn image_crop_and_rotate(
             ctx,
             ui,
             &response,
-            rect.clone(),
+            cropped_image_ui_rect.clone(),
             original_crop_rect.clone(),
             ui_state,
         );
-        draw_drag_handles(ui, rect.clone(), original_crop_rect.clone(), ui_state);
-        draw_grid_impl(ui, rect.clone(), original_crop_rect.clone(), ui_state);
+        draw_drag_handles(ui, cropped_image_ui_rect, ui_state);
+        draw_grid_impl(ui, cropped_image_ui_rect, ui_state);
 
         if let Some(ref new_crop_rect) = new_crop_rect {
             handle_new_crop_rect(ui, session, ui_state, transient_edit, *new_crop_rect);
@@ -525,11 +539,10 @@ fn handle_crop_and_rotate_response(
     ctx: &egui::Context,
     ui: &mut Ui,
     response: &egui::Response,
-    curr_image_rect: egui::Rect,
+    original_ui_crop_rect: egui::Rect,
     original_crop_rect: Rectangle,
     ui_state: &mut AppUiState,
 ) -> Option<Rectangle> {
-    let original_ui_crop_rect = get_ui_crop_rect(curr_image_rect, original_crop_rect);
     if let Some(ref edge_or_corner) = ui_state.crop_drag_state.edge_or_corner {
         set_edge_or_corner_cursor(ui, *edge_or_corner);
         if response.dragged() {
@@ -538,8 +551,8 @@ fn handle_crop_and_rotate_response(
             let mut new_crop_rect_max = new_crop_rect.max();
             let delta = response.drag_delta();
             let mut delta = vec2((
-                delta.x / curr_image_rect.width(),
-                delta.y / curr_image_rect.height(),
+                delta.x / (original_ui_crop_rect.width() / original_crop_rect.size.x),
+                delta.y / (original_ui_crop_rect.height() / original_crop_rect.size.y),
             ));
             // * 2.0 to counter the fact that this causes the crop rect center to move
             delta = delta * 2.0;
@@ -615,8 +628,8 @@ fn handle_crop_and_rotate_response(
         if response.dragged() {
             let delta = response.drag_delta();
             let mut delta = vec2((
-                delta.x / curr_image_rect.width(),
-                delta.y / curr_image_rect.height(),
+                delta.x / (original_ui_crop_rect.width() / original_crop_rect.size.x),
+                delta.y / (original_ui_crop_rect.height() / original_crop_rect.size.y),
             ));
 
             // the image is dragged, relative to a fixed crop rect
@@ -641,7 +654,7 @@ fn handle_crop_and_rotate_response(
                     ui_state.crop_drag_state.edge_or_corner = Some(edge_or_corner);
                 }
             } else {
-                if curr_image_rect.contains(hover_pos) {
+                if original_ui_crop_rect.contains(hover_pos) {
                     ui.output_mut(|out| out.cursor_icon = CursorIcon::Grab);
                     if response.drag_started() {
                         ui_state.crop_drag_state.translation = true;
@@ -653,15 +666,9 @@ fn handle_crop_and_rotate_response(
     None
 }
 
-fn draw_drag_handles(
-    ui: &mut Ui,
-    full_image_rect: egui::Rect,
-    crop_rect: Rectangle,
-    ui_state: &mut AppUiState,
-) {
-    let ui_crop_rect = get_ui_crop_rect(full_image_rect, crop_rect);
-
-    let thickness = full_image_rect.width().min(full_image_rect.height()) * 0.005;
+fn draw_drag_handles(ui: &mut Ui, ui_crop_rect: egui::Rect, ui_state: &mut AppUiState) {
+    let thickness = ui_crop_rect.width().min(ui_crop_rect.height()) * 0.005;
+    let thickness = thickness.max(3.0);
     let length: egui::Vec2 = ui_crop_rect.size() * 0.1;
     let stroke_non_selected = egui::Stroke::new(thickness, Color32::from_gray(250));
     let stroke_selected = egui::Stroke::new(thickness, Color32::from_rgb(50, 150, 200));
@@ -818,16 +825,11 @@ fn draw_drag_handles(
     );
 }
 
-fn draw_grid_impl(
-    ui: &mut Ui,
-    full_image_rect: egui::Rect,
-    crop_rect: Rectangle,
-    ui_state: &mut AppUiState,
-) {
-    let width = full_image_rect.width().min(full_image_rect.height()) * 0.001;
+fn draw_grid_impl(ui: &mut Ui, ui_crop_rect: egui::Rect, ui_state: &mut AppUiState) {
+    let width = ui_crop_rect.width().min(ui_crop_rect.height()) * 0.001;
+    let width = width.max(1.0);
     let stroke_non_selected = egui::Stroke::new(width, Color32::from_gray(200));
     let stroke_selected = egui::Stroke::new(width * 2.0, Color32::from_rgb(50, 150, 200));
-    let ui_crop_rect = get_ui_crop_rect(full_image_rect, crop_rect);
     for t in [0.0, 1.0, 2.0, 3.0] {
         let mut stroke = stroke_non_selected;
         if let Some(ref edge_or_corner) = ui_state.crop_drag_state.edge_or_corner {

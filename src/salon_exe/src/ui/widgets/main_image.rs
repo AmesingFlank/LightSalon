@@ -15,11 +15,43 @@ use salon_core::runtime::{Buffer, BufferProperties, RingBuffer};
 use salon_core::shader::{Shader, ShaderLibraryModule};
 use salon_core::utils::rectangle::Rectangle;
 
+use crate::ui::get_ui_crop_rect;
+use crate::ui::utils::get_max_image_size;
+
 pub struct MainImageCallback {
     pub image: Arc<Image>,
     pub rotation_degrees: Option<f32>,
     pub crop_rect: Option<Rectangle>,
     pub mask: Option<Arc<Image>>,
+    pub ui_max_rect: egui::Rect,
+}
+
+impl MainImageCallback {
+    pub fn required_allocated_rect(&self) -> egui::Rect {
+        // TODO: rewrite MainImageCallback so that it occupies the entire ui
+        let full_image_ui_rect_size = get_max_image_size(
+            self.image.aspect_ratio(),
+            self.ui_max_rect.width(),
+            self.ui_max_rect.height(),
+        );
+        let full_image_ui_rect =
+            egui::Rect::from_center_size(self.ui_max_rect.center(), full_image_ui_rect_size);
+        full_image_ui_rect
+    }
+
+    pub fn cropped_image_ui_rect(&self) -> egui::Rect {
+        let full_image_ui_rect_size = get_max_image_size(
+            self.image.aspect_ratio(),
+            self.ui_max_rect.width(),
+            self.ui_max_rect.height(),
+        );
+        let full_image_ui_rect =
+            egui::Rect::from_center_size(self.ui_max_rect.center(), full_image_ui_rect_size);
+        get_ui_crop_rect(
+            full_image_ui_rect,
+            self.crop_rect.clone().unwrap_or(Rectangle::regular()),
+        )
+    }
 }
 
 impl egui_wgpu::CallbackTrait for MainImageCallback {
