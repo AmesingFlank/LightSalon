@@ -17,6 +17,7 @@ use salon_core::runtime::{
 use salon_core::runtime::{Buffer, BufferProperties, RingBuffer};
 use salon_core::session::Session;
 use salon_core::shader::{Shader, ShaderLibraryModule};
+use salon_core::utils::math::get_rotation_mat;
 use salon_core::utils::rectangle::Rectangle;
 use salon_core::utils::vec::{vec2, Vec2};
 
@@ -187,12 +188,14 @@ fn image_crop_and_rotate(
             .crop_rect
             .clone()
             .unwrap_or(Rectangle::regular());
+        let original_rotation_degrees = transient_edit.rotation_degrees.clone().unwrap_or(0.0);
         let new_crop_rect = handle_crop_and_rotate_response(
             ctx,
             ui,
             &response,
             cropped_image_ui_rect.clone(),
             original_crop_rect.clone(),
+            original_rotation_degrees,
             ui_state,
         );
         draw_drag_handles(ui, cropped_image_ui_rect, ui_state);
@@ -538,6 +541,7 @@ fn handle_crop_and_rotate_response(
     response: &egui::Response,
     original_ui_crop_rect: egui::Rect,
     original_crop_rect: Rectangle,
+    original_rotation_degrees: f32,
     ui_state: &mut AppUiState,
 ) -> Option<Rectangle> {
     if let Some(ref edge_or_corner) = ui_state.crop_drag_state.edge_or_corner {
@@ -624,13 +628,19 @@ fn handle_crop_and_rotate_response(
         ui.output_mut(|out| out.cursor_icon = CursorIcon::Grabbing);
         if response.dragged() {
             let delta = response.drag_delta();
-            let mut delta = vec2((
-                delta.x / (original_ui_crop_rect.width() / original_crop_rect.size.x),
-                delta.y / (original_ui_crop_rect.height() / original_crop_rect.size.y),
-            ));
+            let mut delta = vec2((delta.x, delta.y));
 
             // the image is dragged, relative to a fixed crop rect
             delta = delta * -1.0;
+
+            let rotation_mat = get_rotation_mat(-original_rotation_degrees.to_radians());
+            delta = rotation_mat * delta;
+
+            delta = delta
+                / vec2((
+                    original_ui_crop_rect.width() / original_crop_rect.size.x,
+                    original_ui_crop_rect.height() / original_crop_rect.size.y,
+                ));
 
             let mut new_crop_rect = original_crop_rect;
             delta.x = delta.x.min(1.0 - new_crop_rect.max().x);
