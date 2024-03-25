@@ -18,14 +18,16 @@ use salon_core::utils::rectangle::Rectangle;
 use crate::ui::get_ui_crop_rect;
 use crate::ui::utils::get_max_image_size;
 
-pub struct MainImageCallback {
+pub struct ImageGeometryEditCallback {
     pub image: Arc<Image>,
-    pub mask: Option<Arc<Image>>,
+    pub rotation_degrees: Option<f32>,
+    pub crop_rect: Option<Rectangle>,
     pub ui_max_rect: egui::Rect,
 }
 
-impl MainImageCallback {
-    pub fn image_ui_rect(&self) -> egui::Rect {
+impl ImageGeometryEditCallback {
+    pub fn required_allocated_rect(&self) -> egui::Rect {
+        // TODO: rewrite ImageGeometryEditCallback so that it occupies the entire ui
         let full_image_ui_rect_size = get_max_image_size(
             self.image.aspect_ratio(),
             self.ui_max_rect.width(),
@@ -35,9 +37,23 @@ impl MainImageCallback {
             egui::Rect::from_center_size(self.ui_max_rect.center(), full_image_ui_rect_size);
         full_image_ui_rect
     }
+
+    pub fn cropped_image_ui_rect(&self) -> egui::Rect {
+        let full_image_ui_rect_size = get_max_image_size(
+            self.image.aspect_ratio(),
+            self.ui_max_rect.width(),
+            self.ui_max_rect.height(),
+        );
+        let full_image_ui_rect =
+            egui::Rect::from_center_size(self.ui_max_rect.center(), full_image_ui_rect_size);
+        get_ui_crop_rect(
+            full_image_ui_rect,
+            self.crop_rect.clone().unwrap_or(Rectangle::regular()),
+        )
+    }
 }
 
-impl egui_wgpu::CallbackTrait for MainImageCallback {
+impl egui_wgpu::CallbackTrait for ImageGeometryEditCallback {
     fn prepare(
         &self,
         device: &wgpu::Device,
@@ -46,7 +62,7 @@ impl egui_wgpu::CallbackTrait for MainImageCallback {
         _egui_encoder: &mut wgpu::CommandEncoder,
         resources: &mut egui_wgpu::CallbackResources,
     ) -> Vec<wgpu::CommandBuffer> {
-        let mut resources: &mut MainImageRenderResources = resources.get_mut().unwrap();
+        let mut resources: &mut ImageGeometryEditRenderResources = resources.get_mut().unwrap();
         resources.prepare(device, queue, self);
         Vec::new()
     }
@@ -57,12 +73,12 @@ impl egui_wgpu::CallbackTrait for MainImageCallback {
         render_pass: &mut wgpu::RenderPass<'a>,
         resources: &'a egui_wgpu::CallbackResources,
     ) {
-        let resources: &MainImageRenderResources = resources.get().unwrap();
+        let resources: &ImageGeometryEditRenderResources = resources.get().unwrap();
         resources.paint(render_pass, self.image.as_ref());
     }
 }
 
-pub struct MainImageRenderResources {
+pub struct ImageGeometryEditRenderResources {
     pipeline: wgpu::RenderPipeline,
     bind_group_manager: BindGroupManager,
     bind_group_key_cache: HashMap<u32, BindGroupDescriptorKey>, // image uuid -> key
@@ -70,22 +86,22 @@ pub struct MainImageRenderResources {
     texture_sampler: Sampler,
 }
 
-impl MainImageRenderResources {
+impl ImageGeometryEditRenderResources {
     pub fn new(runtime: Arc<Runtime>, target_format: wgpu::TextureFormat) -> Self {
-        let shader_code = Shader::from_code(include_str!("../shaders/main_image.wgsl"))
+        let shader_code = Shader::from_code(include_str!("../shaders/image_geometry_edit.wgsl"))
             .with_library(ShaderLibraryModule::ColorSpaces)
             .full_code();
 
         let (pipeline, bind_group_layout) =
-            runtime.create_render_pipeline(shader_code.as_str(), target_format, Some("MainImage"));
+            runtime.create_render_pipeline(shader_code.as_str(), target_format, Some("ImageGeometryEdit"));
 
         let bind_group_manager = BindGroupManager::new(runtime.clone(), bind_group_layout)
-            .with_label("MainImage".to_owned());
+            .with_label("ImageGeometryEdit".to_owned());
 
         let ring_buffer = RingBuffer::new(
             runtime.clone(),
             BufferProperties {
-                size: size_of::<u32>() * 2,
+                size: size_of::<u32>() * 1 + 5 * size_of::<f32>(),
                 host_readable: false,
             },
         );
@@ -100,7 +116,7 @@ impl MainImageRenderResources {
             ..Default::default()
         });
 
-        MainImageRenderResources {
+        ImageGeometryEditRenderResources {
             pipeline,
             bind_group_manager,
             bind_group_key_cache: HashMap::new(),
@@ -117,7 +133,7 @@ impl MainImageRenderResources {
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        render_call: &MainImageCallback,
+        render_call: &ImageGeometryEditCallback,
     ) {
         let buffer = self.ring_buffer.get();
         queue.write_buffer(
@@ -125,7 +141,23 @@ impl MainImageRenderResources {
             0,
             bytemuck::cast_slice(&[
                 render_call.image.properties.color_space as u32,
-                render_call.mask.is_some() as u32,
+            ]),
+        );
+        let rotation_degrees = render_call.rotation_degrees.clone().unwrap_or(0.0);
+        let rotation_radians = rotation_degrees.to_radians();
+        let crop_rect = render_call
+            .crop_rect
+            .clone()
+            .unwrap_or(Rectangle::regular());
+        queue.write_buffer(
+            &buffer.buffer,
+            size_of::<u32>() as u64 ,
+            bytemuck::cast_slice(&[
+                rotation_radians,
+                crop_rect.center.x,
+                crop_rect.center.y,
+                crop_rect.size.x,
+                crop_rect.size.y,
             ]),
         );
 
@@ -142,14 +174,6 @@ impl MainImageRenderResources {
                 BindGroupEntry {
                     binding: 2,
                     resource: BindingResource::Sampler(&self.texture_sampler),
-                },
-                BindGroupEntry {
-                    binding: 3,
-                    resource: if let Some(ref m) = render_call.mask {
-                        BindingResource::Texture(&m)
-                    } else {
-                        BindingResource::Texture(&render_call.image)
-                    },
                 },
             ],
         };

@@ -21,7 +21,7 @@ use salon_core::utils::rectangle::Rectangle;
 use salon_core::utils::vec::{vec2, Vec2};
 
 use super::utils::{get_abs_x_in_rect, get_abs_y_in_rect, get_max_image_size, pos2_to_vec2};
-use super::widgets::MainImageCallback;
+use super::widgets::{ImageGeometryEditCallback, MainImageCallback};
 use super::{AppUiState, CropDragEdgeOrCorner, EditorPanel, MaskEditState};
 
 pub fn main_image(
@@ -44,19 +44,17 @@ pub fn main_image(
 
                     let main_image_callback = MainImageCallback {
                         image: original_image.clone(),
-                        rotation_degrees: None,
-                        crop_rect: None,
                         mask: None,
                         ui_max_rect: ui.max_rect(),
                     };
 
-                    let main_image_allocated_rect = main_image_callback.required_allocated_rect();
+                    let main_image_rect = main_image_callback.image_ui_rect();
 
                     let _response =
-                        ui.allocate_rect(main_image_allocated_rect, egui::Sense::drag());
+                        ui.allocate_rect(main_image_rect, egui::Sense::drag());
 
                     ui.painter().add(egui_wgpu::Callback::new_paint_callback(
-                        main_image_allocated_rect,
+                        main_image_rect,
                         main_image_callback,
                     ));
                 });
@@ -120,22 +118,19 @@ fn show_edited_image(
 
             let main_image_callback = MainImageCallback {
                 image: result.final_image.clone(),
-                rotation_degrees: None,
-                crop_rect: None,
                 mask,
                 ui_max_rect: ui.max_rect(),
             };
 
-            let main_image_allocated_rect = main_image_callback.required_allocated_rect();
-            let cropped_image_ui_rect = main_image_callback.cropped_image_ui_rect();
-            let response = ui.allocate_rect(main_image_allocated_rect, egui::Sense::drag());
+            let main_image_rect = main_image_callback.image_ui_rect();
+            let response = ui.allocate_rect(main_image_rect, egui::Sense::drag());
             ui.painter().add(egui_wgpu::Callback::new_paint_callback(
-                main_image_allocated_rect,
+                main_image_rect,
                 main_image_callback,
             ));
 
             if ui_state.show_grid {
-                draw_grid_impl(ui, cropped_image_ui_rect, ui_state);
+                draw_grid_impl(ui, main_image_rect, ui_state);
             }
             if let Some(term_index) = ui_state.selected_mask_term_index {
                 let mut transient_edit = context.transient_edit_ref().clone();
@@ -145,7 +140,7 @@ fn show_edited_image(
                     .primitive;
                 let should_commit = mask_primitive_control_points(
                     ui,
-                    cropped_image_ui_rect,
+                    main_image_rect,
                     &response,
                     primitive,
                     &mut ui_state.mask_edit_state,
@@ -170,11 +165,10 @@ fn image_crop_and_rotate(
         let original_image = context.input_image();
         let transient_edit = context.transient_edit_ref().clone();
 
-        let main_image_callback = MainImageCallback {
+        let main_image_callback = ImageGeometryEditCallback {
             image: original_image.clone(),
             rotation_degrees: transient_edit.rotation_degrees.clone(),
             crop_rect: transient_edit.crop_rect.clone(),
-            mask: None,
             ui_max_rect: ui.max_rect(),
         };
 
