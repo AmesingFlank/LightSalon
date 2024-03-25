@@ -34,7 +34,7 @@ impl RotateAndCropImpl {
         let ring_buffer = RingBuffer::new(
             runtime.clone(),
             BufferProperties {
-                size: size_of::<f32>() * 4,
+                size: size_of::<f32>() * 2,
                 host_readable: false,
             },
         );
@@ -96,8 +96,6 @@ impl RotateAndCropImpl {
             bytemuck::cast_slice(&[
                 op.crop_rect.center.x,
                 op.crop_rect.center.y,
-                op.crop_rect.size.x,
-                op.crop_rect.size.y,
             ]),
         );
 
