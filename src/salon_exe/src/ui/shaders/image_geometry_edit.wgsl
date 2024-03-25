@@ -1,5 +1,6 @@
 struct VertexOut {
     @location(0) uv: vec2<f32>,
+    @location(1) position_interpolated: vec4<f32>,
     @builtin(position) position: vec4<f32>,
 };
 
@@ -7,10 +8,14 @@ struct Params {
     image_color_space: u32,
 
     rotation_radians: f32,
-    crop_center_x: f32,
-    crop_center_y: f32,
-    crop_size_x: f32,
-    crop_size_y: f32,
+
+    center_x: f32,
+    center_y: f32,
+    width: f32,
+    height: f32,
+    crop_rect_width: f32,
+    crop_rect_height: f32,
+    render_target_aspect_ratio: f32,
 };
 
 @group(0) @binding(0)
@@ -40,9 +45,10 @@ fn vs_main(@builtin(vertex_index) vertex_idx: u32) -> VertexOut {
 
     out.uv = (coords * vec2(1.0, -1.0) + 1.0) * 0.5;
 
-    var pos = out.uv - vec2(params.crop_center_x, params.crop_center_y);
-    pos.y *= -1.0;
-    out.position = vec4(pos * 2.0, 0.0, 1.0);
+    var pos = vec2(params.center_x, params.center_y) + coords * vec2(params.width, params.height) * 0.5;
+
+    out.position = vec4(pos, 0.0, 1.0);
+    out.position_interpolated = out.position;
     return out;
 }
 
@@ -56,13 +62,10 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
         color = linear_to_srgb(color);
     }
 
-    let crop_min_x = params.crop_center_x - 0.5 *  params.crop_size_x;
-    let crop_min_y = params.crop_center_y - 0.5 *  params.crop_size_y;
-    let crop_max_x = params.crop_center_x + 0.5 *  params.crop_size_x;
-    let crop_max_y = params.crop_center_y + 0.5 *  params.crop_size_y;
-    if (uv.x < crop_min_x  || uv.x > crop_max_x || uv.y < crop_min_y || uv.y > crop_max_y){
+    let frag_pos = in.position_interpolated;
+    if (abs(frag_pos.x) > params.crop_rect_width * 0.5 || abs(frag_pos.y) > params.crop_rect_height * 0.5) {
         color *= 0.3;
     }
-    
+
     return vec4(color, 1.0);
 }

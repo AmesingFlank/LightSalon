@@ -50,8 +50,7 @@ pub fn main_image(
 
                     let main_image_rect = main_image_callback.image_ui_rect();
 
-                    let _response =
-                        ui.allocate_rect(main_image_rect, egui::Sense::drag());
+                    let _response = ui.allocate_rect(main_image_rect, egui::Sense::drag());
 
                     ui.painter().add(egui_wgpu::Callback::new_paint_callback(
                         main_image_rect,
@@ -165,21 +164,25 @@ fn image_crop_and_rotate(
         let original_image = context.input_image();
         let transient_edit = context.transient_edit_ref().clone();
 
-        let main_image_callback = ImageGeometryEditCallback {
-            image: original_image.clone(),
-            rotation_degrees: transient_edit.rotation_degrees.clone(),
-            crop_rect: transient_edit.crop_rect.clone(),
+        let full_image_callback = ImageGeometryEditCallback {
+            full_image: original_image.clone(),
+            rotation_degrees: transient_edit.rotation_degrees.clone().unwrap_or(0.0),
+            crop_rect: transient_edit
+                .crop_rect
+                .clone()
+                .unwrap_or(Rectangle::regular()),
             ui_max_rect: ui.max_rect(),
         };
 
-        let main_image_allocated_rect = main_image_callback.required_allocated_rect();
-        let cropped_image_ui_rect = main_image_callback.cropped_image_ui_rect();
-        let response = ui.allocate_rect(main_image_allocated_rect, egui::Sense::drag());
+        let full_image_allocated_rect = full_image_callback.required_allocated_rect();
+        let cropped_image_ui_rect = full_image_callback.cropped_image_ui_rect();
+        let response = ui.allocate_rect(full_image_allocated_rect, egui::Sense::drag());
 
         ui.painter().add(egui_wgpu::Callback::new_paint_callback(
-            main_image_allocated_rect,
-            main_image_callback,
+            full_image_allocated_rect,
+            full_image_callback,
         ));
+
         let original_crop_rect = transient_edit
             .crop_rect
             .clone()

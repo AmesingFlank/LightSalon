@@ -19,37 +19,34 @@ use crate::ui::get_ui_crop_rect;
 use crate::ui::utils::get_max_image_size;
 
 pub struct ImageGeometryEditCallback {
-    pub image: Arc<Image>,
-    pub rotation_degrees: Option<f32>,
-    pub crop_rect: Option<Rectangle>,
+    pub full_image: Arc<Image>,
+    pub rotation_degrees: f32,
+    pub crop_rect: Rectangle,
     pub ui_max_rect: egui::Rect,
 }
 
 impl ImageGeometryEditCallback {
     pub fn required_allocated_rect(&self) -> egui::Rect {
-        // TODO: rewrite ImageGeometryEditCallback so that it occupies the entire ui
+        self.ui_max_rect
+    }
+
+    fn full_image_size(&self) -> egui::Vec2 {
         let full_image_ui_rect_size = get_max_image_size(
-            self.image.aspect_ratio(),
+            self.full_image.aspect_ratio(),
             self.ui_max_rect.width(),
             self.ui_max_rect.height(),
         );
-        let full_image_ui_rect =
-            egui::Rect::from_center_size(self.ui_max_rect.center(), full_image_ui_rect_size);
-        full_image_ui_rect
+        full_image_ui_rect_size * 0.9
     }
 
     pub fn cropped_image_ui_rect(&self) -> egui::Rect {
-        let full_image_ui_rect_size = get_max_image_size(
-            self.image.aspect_ratio(),
-            self.ui_max_rect.width(),
-            self.ui_max_rect.height(),
-        );
-        let full_image_ui_rect =
-            egui::Rect::from_center_size(self.ui_max_rect.center(), full_image_ui_rect_size);
-        get_ui_crop_rect(
-            full_image_ui_rect,
-            self.crop_rect.clone().unwrap_or(Rectangle::regular()),
-        )
+        let full_image_size = self.full_image_size();
+        let cropped_image_size = full_image_size
+            * egui::Vec2 {
+                x: self.crop_rect.size.x,
+                y: self.crop_rect.size.y,
+            };
+        egui::Rect::from_center_size(self.ui_max_rect.center(), cropped_image_size)
     }
 }
 
@@ -74,7 +71,7 @@ impl egui_wgpu::CallbackTrait for ImageGeometryEditCallback {
         resources: &'a egui_wgpu::CallbackResources,
     ) {
         let resources: &ImageGeometryEditRenderResources = resources.get().unwrap();
-        resources.paint(render_pass, self.image.as_ref());
+        resources.paint(render_pass, &self.full_image.as_ref());
     }
 }
 
@@ -92,8 +89,11 @@ impl ImageGeometryEditRenderResources {
             .with_library(ShaderLibraryModule::ColorSpaces)
             .full_code();
 
-        let (pipeline, bind_group_layout) =
-            runtime.create_render_pipeline(shader_code.as_str(), target_format, Some("ImageGeometryEdit"));
+        let (pipeline, bind_group_layout) = runtime.create_render_pipeline(
+            shader_code.as_str(),
+            target_format,
+            Some("ImageGeometryEdit"),
+        );
 
         let bind_group_manager = BindGroupManager::new(runtime.clone(), bind_group_layout)
             .with_label("ImageGeometryEdit".to_owned());
@@ -101,7 +101,7 @@ impl ImageGeometryEditRenderResources {
         let ring_buffer = RingBuffer::new(
             runtime.clone(),
             BufferProperties {
-                size: size_of::<u32>() * 1 + 5 * size_of::<f32>(),
+                size: size_of::<u32>() * 1 + 8 * size_of::<f32>(),
                 host_readable: false,
             },
         );
@@ -139,25 +139,35 @@ impl ImageGeometryEditRenderResources {
         queue.write_buffer(
             &buffer.buffer,
             0,
-            bytemuck::cast_slice(&[
-                render_call.image.properties.color_space as u32,
-            ]),
+            bytemuck::cast_slice(&[render_call.full_image.properties.color_space as u32]),
         );
-        let rotation_degrees = render_call.rotation_degrees.clone().unwrap_or(0.0);
+        let rotation_degrees = render_call.rotation_degrees;
         let rotation_radians = rotation_degrees.to_radians();
-        let crop_rect = render_call
-            .crop_rect
-            .clone()
-            .unwrap_or(Rectangle::regular());
+
+        let full_image_ui_size = render_call.full_image_size();
+        let allocated_rect = render_call.required_allocated_rect();
+        let width = 2.0 * full_image_ui_size.x / allocated_rect.width();
+        let height = 2.0 * full_image_ui_size.y / allocated_rect.height();
+
+        let center_x = width * (render_call.crop_rect.center.x - 0.5) * -1.0;
+        let center_y = height * (render_call.crop_rect.center.y - 0.5) * -1.0 * -1.0;
+
+        let crop_rect_width = width * render_call.crop_rect.size.x;
+        let crop_rect_height = height * render_call.crop_rect.size.y;
+
+        let render_target_aspect_ratio = allocated_rect.height() / allocated_rect.width();
         queue.write_buffer(
             &buffer.buffer,
-            size_of::<u32>() as u64 ,
+            size_of::<u32>() as u64,
             bytemuck::cast_slice(&[
                 rotation_radians,
-                crop_rect.center.x,
-                crop_rect.center.y,
-                crop_rect.size.x,
-                crop_rect.size.y,
+                center_x,
+                center_y,
+                width,
+                height,
+                crop_rect_width,
+                crop_rect_height,
+                render_target_aspect_ratio,
             ]),
         );
 
@@ -169,7 +179,7 @@ impl ImageGeometryEditRenderResources {
                 },
                 BindGroupEntry {
                     binding: 1,
-                    resource: BindingResource::Texture(&render_call.image),
+                    resource: BindingResource::Texture(&render_call.full_image),
                 },
                 BindGroupEntry {
                     binding: 2,
@@ -180,7 +190,7 @@ impl ImageGeometryEditRenderResources {
         let bind_group_key = bind_group_desc.to_key();
         self.bind_group_manager.ensure(bind_group_desc);
         self.bind_group_key_cache
-            .insert(render_call.image.uuid, bind_group_key);
+            .insert(render_call.full_image.uuid, bind_group_key);
     }
 
     fn paint<'rp>(&'rp self, render_pass: &mut wgpu::RenderPass<'rp>, image: &'rp Image) {
