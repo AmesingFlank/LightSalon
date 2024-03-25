@@ -18,6 +18,8 @@ pub fn rotate_and_crop(
     ui.add(
         EditorSlider::new(&mut rotation_degrees, -180.0..=180.0)
             .double_click_reset_value(0.0)
+            .step_by(0.01)
+            .fixed_decimals(2)
             .text("Rotation"),
     );
     if rotation_degrees == 0.0 {
