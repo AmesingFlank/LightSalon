@@ -1,7 +1,7 @@
-use num::Num;
-use std::ops::{Add, Div, Mul, Sub};
-use serde;
 use super::math;
+use num::Num;
+use serde;
+use std::ops::{Add, Div, Mul, Sub};
 
 // these are deliberately similar to WGSL
 #[derive(Clone, Copy, PartialEq, Debug, serde::Deserialize, serde::Serialize)]
@@ -21,6 +21,11 @@ impl<T: Num + Copy> Vec2<T> {
 
     pub fn dot(&self, other: &Self) -> T {
         self.x * other.x + self.y * other.y
+    }
+
+    // https://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect/565282#565282
+    pub fn cross(&self, other: &Self) -> T {
+        self.x * other.y - self.y * other.x
     }
 }
 
