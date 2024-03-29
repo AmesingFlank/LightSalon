@@ -17,7 +17,7 @@ use salon_core::runtime::{
 use salon_core::runtime::{Buffer, BufferProperties, RingBuffer};
 use salon_core::session::Session;
 use salon_core::shader::{Shader, ShaderLibraryModule};
-use salon_core::utils::math::{get_rotation_mat, legalize_crop_rect_translation};
+use salon_core::utils::math::{get_crop_rect_translation_bounds, get_rotation_mat};
 use salon_core::utils::rectangle::Rectangle;
 use salon_core::utils::vec::{vec2, Vec2};
 
@@ -644,12 +644,29 @@ fn handle_crop_and_rotate_response(
                     original_ui_crop_rect.height() / original_crop_rect.size.y,
                 ));
 
-            delta = legalize_crop_rect_translation(
-                original_rotation_degrees,
-                original_crop_rect,
-                original_image_aspect_ratio,
-                delta,
-            );
+            if delta.x != 0.0 || delta.y != 0.0 {
+                let delta_bounds = get_crop_rect_translation_bounds(
+                    original_rotation_degrees,
+                    original_crop_rect,
+                    original_image_aspect_ratio,
+                );
+
+                if delta.x < 0.0 {
+                    let mut neg_x = -delta.x;
+                    neg_x = neg_x.max(delta_bounds[0].0).min(delta_bounds[0].1);
+                    delta.x = -neg_x;
+                } else if delta.x > 0.0 {
+                    delta.x = delta.x.max(delta_bounds[1].0).min(delta_bounds[1].1)
+                }
+
+                if delta.y < 0.0 {
+                    let mut neg_y = -delta.y;
+                    neg_y = neg_y.max(delta_bounds[2].0).min(delta_bounds[2].1);
+                    delta.y = -neg_y;
+                } else if delta.y > 0.0 {
+                    delta.y = delta.y.max(delta_bounds[3].0).min(delta_bounds[3].1)
+                }
+            }
 
             let mut new_crop_rect = original_crop_rect;
             new_crop_rect.center = new_crop_rect.center + delta;

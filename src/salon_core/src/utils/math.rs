@@ -1,5 +1,4 @@
 use num::Num;
-use serde_json::de;
 
 use super::{
     mat::Mat2x2,
@@ -184,53 +183,66 @@ pub fn maybe_shrink_crop_rect_due_to_rotation(
     Some(new_rect)
 }
 
-pub fn legalize_crop_rect_translation(
+pub fn get_crop_rect_translation_bounds(
     rotation_degrees: f32,
     crop_rect: Rectangle,
     image_aspect_ratio: f32,
-    mut delta: Vec2<f32>,
-) -> Vec2<f32> {
+) -> [(f32, f32); 4] {
     let full_image_edge_segments =
         get_full_image_edge_segments(rotation_degrees, crop_rect, image_aspect_ratio);
     let crop_rect_corners =
         get_crop_rect_corner_positions(rotation_degrees, crop_rect, image_aspect_ratio);
 
-    if delta.x == 0.0 && delta.y == 0.0 {
-        return delta;
-    }
-
-    delta.x /= image_aspect_ratio;
-    let ray_dir = delta.normalized();
-
-    let mut curr_t: f32 = delta.length();
-
-    for corner in crop_rect_corners.iter() {
-        let ray_start = *corner;
-        for seg in full_image_edge_segments.iter() {
-            let t = ray_segment_intersect(ray_start, ray_dir, seg.0, seg.1);
-            if let Some(t) = t {
-                let is_outside_full_image = point_is_left_of_segment(*corner, seg.0, seg.1);
-                if is_outside_full_image {
-                    // this corner is already on the wrong side
-                    if t > 0.0 {
-                        // make sure to push it back
-                        curr_t = curr_t.max(t)
-                    } else if t < 0.0 {
-                        curr_t = curr_t.min(t)
-                    }
-                } else {
-                    if t > 0.0 {
-                        // don't go past the segment
-                        curr_t = curr_t.min(t)
-                    } else if t < 0.0 {
-                        curr_t = curr_t.max(t)
+    let mut bounds = [(-f32::INFINITY, f32::INFINITY); 4];
+    let ray_dirs = [
+        vec2((-1.0, 0.0)),
+        vec2((1.0, 0.0)),
+        vec2((0.0, -1.0)),
+        vec2((0.0, 1.0)),
+    ];
+    for i in 0..4 {
+        for corner in crop_rect_corners.iter() {
+            let ray_start = *corner;
+            let ray_dir = ray_dirs[i];
+            for seg in full_image_edge_segments.iter() {
+                let t = ray_segment_intersect(ray_start, ray_dir, seg.0, seg.1);
+                if let Some(t) = t {
+                    let is_outside_full_image = point_is_left_of_segment(*corner, seg.0, seg.1);
+                    if is_outside_full_image {
+                        // this corner is already on the wrong side
+                        if t >= 0.0 {
+                            // make sure to push it back
+                            bounds[i].0 = bounds[i].0.max(t)
+                        } else {
+                            bounds[i].1 = bounds[i].1.min(t)
+                        }
+                    } else {
+                        if t > 0.0 {
+                            // don't go past the segment
+                            bounds[i].1 = bounds[i].1.min(t)
+                        } else if t == 0.0 {
+                            // colinear
+                            let can_go_forwards =
+                                !point_is_left_of_segment(*corner + ray_dir, seg.0, seg.1);
+                            if can_go_forwards {
+                                // don't go backwards
+                                bounds[i].0 = bounds[i].0.max(0.0)
+                            } else {
+                                // don't go backwards
+                                bounds[i].1 = bounds[i].1.min(0.0)
+                            }
+                        } else {
+                            bounds[i].0 = bounds[i].0.max(t)
+                        }
                     }
                 }
             }
         }
     }
 
-    delta = ray_dir * curr_t;
-    delta.x *= image_aspect_ratio;
-    delta
+    for i in 0..2 {
+        bounds[i].0 *= image_aspect_ratio;
+        bounds[i].1 *= image_aspect_ratio;
+    }
+    bounds
 }
