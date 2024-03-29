@@ -64,7 +64,7 @@ pub fn ray_segment_intersect(
     Some(ray_t)
 }
 
-pub fn legalize_crop_rect(
+pub fn maybe_shrink_crop_rect_due_to_rotation(
     rotation_degrees: f32,
     crop_rect: Rectangle,
     image_aspect_ratio: f32,
