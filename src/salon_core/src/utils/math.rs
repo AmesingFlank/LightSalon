@@ -64,11 +64,11 @@ pub fn ray_segment_intersect(
     Some(ray_t)
 }
 
-pub fn maybe_shrink_crop_rect_due_to_rotation(
+fn get_full_image_corner_positions(
     rotation_degrees: f32,
     crop_rect: Rectangle,
     image_aspect_ratio: f32,
-) -> Option<Rectangle> {
+) -> Vec<Vec2<f32>> {
     let rotation_radians = rotation_degrees.to_radians();
     let rotation_mat = get_rotation_mat(rotation_radians);
     let mut corners = vec![
@@ -84,29 +84,62 @@ pub fn maybe_shrink_crop_rect_due_to_rotation(
         *corner = *corner - crop_rect_center;
         *corner = rotation_mat * *corner;
     }
-    let segments = vec![
+    corners
+}
+
+fn get_full_image_edge_segments(
+    rotation_degrees: f32,
+    crop_rect: Rectangle,
+    image_aspect_ratio: f32,
+) -> [(Vec2<f32>, Vec2<f32>); 4] {
+    let corners = get_full_image_corner_positions(rotation_degrees, crop_rect, image_aspect_ratio);
+    [
         (corners[0], corners[1]),
         (corners[1], corners[2]),
         (corners[2], corners[3]),
         (corners[3], corners[0]),
-    ];
-    let mut crop_rect_corners = vec![
+    ]
+}
+
+fn get_crop_rect_corner_positions(
+    rotation_degrees: f32,
+    crop_rect: Rectangle,
+    image_aspect_ratio: f32,
+) -> [Vec2<f32>; 4] {
+    let mut crop_rect_center = crop_rect.center;
+    crop_rect_center.x /= image_aspect_ratio;
+
+    let mut crop_rect_corners = [
         crop_rect.min(),
         vec2((crop_rect.min().x, crop_rect.max().y)),
         crop_rect.max(),
         vec2((crop_rect.max().x, crop_rect.min().y)),
     ];
+
     for corner in crop_rect_corners.iter_mut() {
         corner.x /= image_aspect_ratio;
         *corner = *corner - crop_rect_center;
     }
+
+    crop_rect_corners
+}
+
+pub fn maybe_shrink_crop_rect_due_to_rotation(
+    rotation_degrees: f32,
+    crop_rect: Rectangle,
+    image_aspect_ratio: f32,
+) -> Option<Rectangle> {
+    let full_image_edge_segments =
+        get_full_image_edge_segments(rotation_degrees, crop_rect, image_aspect_ratio);
+    let crop_rect_corners =
+        get_crop_rect_corner_positions(rotation_degrees, crop_rect, image_aspect_ratio);
 
     let mut new_rect = None;
     for corner in crop_rect_corners.iter() {
         let ray_start = vec2((0.0, 0.0));
         let ray_dir = corner.normalized();
         let current_dist_to_corner = corner.length();
-        for seg in segments.iter() {
+        for seg in full_image_edge_segments.iter() {
             let t = ray_segment_intersect(ray_start, ray_dir, seg.0, seg.1);
             if let Some(t) = t {
                 if t >= 0.0 && t < current_dist_to_corner {
@@ -134,4 +167,43 @@ pub fn maybe_shrink_crop_rect_due_to_rotation(
     let mut new_rect = new_rect?;
     new_rect.size.x *= image_aspect_ratio;
     Some(new_rect)
+}
+
+pub fn get_crop_rect_translation_bounds(
+    rotation_degrees: f32,
+    crop_rect: Rectangle,
+    image_aspect_ratio: f32,
+) -> [f32; 4] {
+    let full_image_edge_segments =
+        get_full_image_edge_segments(rotation_degrees, crop_rect, image_aspect_ratio);
+    let crop_rect_corners =
+        get_crop_rect_corner_positions(rotation_degrees, crop_rect, image_aspect_ratio);
+
+    let mut bounds = [f32::INFINITY; 4];
+    let ray_dirs = [
+        vec2((-1.0, 0.0)),
+        vec2((1.0, 0.0)),
+        vec2((0.0, -1.0)),
+        vec2((0.0, 1.0)),
+    ];
+
+    for corner in crop_rect_corners.iter() {
+        for i in 0..4 {
+            let ray_start = *corner;
+            let ray_dir = ray_dirs[i];
+            for seg in full_image_edge_segments.iter() {
+                let t = ray_segment_intersect(ray_start, ray_dir, seg.0, seg.1);
+                if let Some(t) = t {
+                    if t >= 0.0 {
+                        bounds[i] = bounds[i].min(t);
+                    }
+                }
+            }
+        }
+    }
+
+    for i in 0..2 {
+        bounds[i] *= image_aspect_ratio;
+    }
+    bounds
 }

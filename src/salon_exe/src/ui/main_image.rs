@@ -17,7 +17,7 @@ use salon_core::runtime::{
 use salon_core::runtime::{Buffer, BufferProperties, RingBuffer};
 use salon_core::session::Session;
 use salon_core::shader::{Shader, ShaderLibraryModule};
-use salon_core::utils::math::get_rotation_mat;
+use salon_core::utils::math::{get_crop_rect_translation_bounds, get_rotation_mat};
 use salon_core::utils::rectangle::Rectangle;
 use salon_core::utils::vec::{vec2, Vec2};
 
@@ -193,6 +193,7 @@ fn image_crop_and_rotate(
             ctx,
             ui,
             &response,
+            original_image.aspect_ratio(),
             cropped_image_ui_rect.clone(),
             original_crop_rect.clone(),
             original_rotation_degrees,
@@ -539,6 +540,7 @@ fn handle_crop_and_rotate_response(
     ctx: &egui::Context,
     ui: &mut Ui,
     response: &egui::Response,
+    original_image_aspect_ratio: f32,
     original_ui_crop_rect: egui::Rect,
     original_crop_rect: Rectangle,
     original_rotation_degrees: f32,
@@ -642,12 +644,18 @@ fn handle_crop_and_rotate_response(
                     original_ui_crop_rect.height() / original_crop_rect.size.y,
                 ));
 
-            let mut new_crop_rect = original_crop_rect;
-            delta.x = delta.x.min(1.0 - new_crop_rect.max().x);
-            delta.y = delta.y.min(1.0 - new_crop_rect.max().y);
-            delta.x = delta.x.max(-new_crop_rect.min().x);
-            delta.y = delta.y.max(-new_crop_rect.min().y);
+            let delta_bounds = get_crop_rect_translation_bounds(
+                original_rotation_degrees,
+                original_crop_rect,
+                original_image_aspect_ratio,
+            );
+            if delta.x > delta_bounds[1] {
+                println!("{:?} {:?}", delta, delta_bounds);
+            }
+            delta.x = delta.x.max(-delta_bounds[0]).min(delta_bounds[1]);
+            delta.y = delta.y.max(-delta_bounds[2]).min(delta_bounds[3]);
 
+            let mut new_crop_rect = original_crop_rect;
             new_crop_rect.center = new_crop_rect.center + delta;
             return Some(new_crop_rect);
         } else if response.drag_stopped() {
