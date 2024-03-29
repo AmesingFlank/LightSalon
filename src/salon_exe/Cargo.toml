@@ -11,13 +11,13 @@ path = "src/main.rs"
 wgpu = "0.19.0"
 bytemuck = "1.7.1"
 
-eframe = { version = "0.26.2", default-features = false, features = [
+eframe = { version = "0.27.1", default-features = false, features = [
     "wgpu",
     "accesskit",
     "default_fonts",
-], git = "https://github.com/AmesingFlank/egui.git", branch = "with_table_cell_interact_fix"}
-egui_extras = { version = "0.26.2", git = "https://github.com/AmesingFlank/egui.git", branch = "with_table_cell_interact_fix" }
-egui_plot = { version = "0.26.2", git = "https://github.com/AmesingFlank/egui.git", branch = "with_table_cell_interact_fix" }
+] }
+egui_extras = { version = "0.27.1"}
+egui_plot = { version = "0.27.1"}
 
 salon_core = { path = "../salon_core" }
 
