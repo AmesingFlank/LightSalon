@@ -635,14 +635,13 @@ fn handle_crop_and_rotate_response(
             // the image is dragged, relative to a fixed crop rect
             delta = delta * -1.0;
 
-            let rotation_mat = get_rotation_mat(-original_rotation_degrees.to_radians());
-            delta = rotation_mat * delta;
-
             delta = delta
                 / vec2((
                     original_ui_crop_rect.width() / original_crop_rect.size.x,
                     original_ui_crop_rect.height() / original_crop_rect.size.y,
                 ));
+
+            delta.x /= original_image_aspect_ratio;
 
             if delta.x != 0.0 || delta.y != 0.0 {
                 let delta_bounds = get_crop_rect_translation_bounds(
@@ -667,6 +666,11 @@ fn handle_crop_and_rotate_response(
                     delta.y = delta.y.max(delta_bounds[3].0).min(delta_bounds[3].1)
                 }
             }
+
+            let rotation_mat = get_rotation_mat(-original_rotation_degrees.to_radians());
+            delta = rotation_mat * delta;
+
+            delta.x *= original_image_aspect_ratio;
 
             let mut new_crop_rect = original_crop_rect;
             new_crop_rect.center = new_crop_rect.center + delta;
