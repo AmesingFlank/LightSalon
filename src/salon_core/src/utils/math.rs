@@ -128,11 +128,7 @@ fn get_full_image_edge_segments(
     ]
 }
 
-fn get_crop_rect_corner_positions(
-    rotation_degrees: f32,
-    crop_rect: Rectangle,
-    image_aspect_ratio: f32,
-) -> [Vec2<f32>; 4] {
+fn get_crop_rect_corner_positions(crop_rect: Rectangle, image_aspect_ratio: f32) -> [Vec2<f32>; 4] {
     let mut crop_rect_center = crop_rect.center;
     crop_rect_center.x /= image_aspect_ratio;
 
@@ -158,8 +154,7 @@ pub fn maybe_shrink_crop_rect_due_to_rotation(
 ) -> Option<Rectangle> {
     let full_image_edge_segments =
         get_full_image_edge_segments(rotation_degrees, crop_rect, image_aspect_ratio);
-    let crop_rect_corners =
-        get_crop_rect_corner_positions(rotation_degrees, crop_rect, image_aspect_ratio);
+    let crop_rect_corners = get_crop_rect_corner_positions(crop_rect, image_aspect_ratio);
 
     let mut new_rect = None;
     for corner in crop_rect_corners.iter() {
@@ -203,8 +198,7 @@ pub fn get_crop_rect_translation_bounds(
 ) -> [(f32, f32); 4] {
     let full_image_edge_segments =
         get_full_image_edge_segments(rotation_degrees, crop_rect, image_aspect_ratio);
-    let crop_rect_corners =
-        get_crop_rect_corner_positions(rotation_degrees, crop_rect, image_aspect_ratio);
+    let crop_rect_corners = get_crop_rect_corner_positions(crop_rect, image_aspect_ratio);
 
     let mut bounds = [(-f32::INFINITY, f32::INFINITY); 4];
     let ray_dirs = [
