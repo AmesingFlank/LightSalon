@@ -33,6 +33,20 @@ pub fn get_rotation_mat(rotation_radians: f32) -> Mat2x2<f32> {
     )
 }
 
+pub fn get_rotation_mat_from_degrees(rotation_degrees: f32) -> Mat2x2<f32> {
+    // this avoid some numerical precision issues in get_crop_rect_translation_bounds
+    if (rotation_degrees % 360.0).abs() == 180.0 {
+        return Mat2x2::from_rows(vec2((-1.0, 0.0)), vec2((0.0, -1.0)));
+    }
+    if (rotation_degrees % 360.0) == 90.0 || (rotation_degrees % 360.0) == -270.0 {
+        return Mat2x2::from_rows(vec2((0.0, -1.0)), vec2((1.0, 0.0)));
+    }
+    if (rotation_degrees % 360.0) == -90.0 || (rotation_degrees % 360.0) == 270.0 {
+        return Mat2x2::from_rows(vec2((0.0, 1.0)), vec2((-1.0, 0.0)));
+    }
+    get_rotation_mat(rotation_degrees.to_radians())
+}
+
 pub fn ray_ray_intersect(
     start_0: Vec2<f32>,
     dir_0: Vec2<f32>,
@@ -83,8 +97,7 @@ fn get_full_image_corner_positions(
     crop_rect: Rectangle,
     image_aspect_ratio: f32,
 ) -> Vec<Vec2<f32>> {
-    let rotation_radians = rotation_degrees.to_radians();
-    let rotation_mat = get_rotation_mat(rotation_radians);
+    let rotation_mat = get_rotation_mat_from_degrees(rotation_degrees);
     let mut corners = vec![
         vec2((0.0, 0.0)),
         vec2((0.0, 1.0)),
