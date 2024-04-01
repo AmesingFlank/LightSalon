@@ -557,7 +557,7 @@ fn handle_crop_and_rotate_response(
                 delta.x / (original_ui_crop_rect.width() / original_crop_rect.size.x),
                 delta.y / (original_ui_crop_rect.height() / original_crop_rect.size.y),
             ));
-            // * 2.0 to counter the fact that this causes the crop rect center to move
+            // * 2.0 to counter the fact that this causes the crop rect center to move, which causes the full image to move
             delta = delta * 2.0;
             if let Some(ref edge_or_corner) = ui_state.crop_drag_state.edge_or_corner {
                 let min_crop_size = 0.01;
