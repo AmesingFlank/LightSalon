@@ -191,7 +191,7 @@ pub fn maybe_shrink_crop_rect_due_to_rotation(
     Some(new_rect)
 }
 
-// bounds in ui-reference frame (crop-rect is non-rotated, full image is rotated, x and y scale is absolute instead of relative to full image size)
+// bounds in ui-reference frame (crop-rect is non-rotated, full image is rotated, x and y scale are both relative to full image height)
 pub fn get_crop_rect_translation_bounds(
     rotation_degrees: f32,
     crop_rect: Rectangle,
