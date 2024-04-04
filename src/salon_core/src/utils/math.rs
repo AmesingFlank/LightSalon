@@ -191,6 +191,49 @@ pub fn maybe_shrink_crop_rect_due_to_rotation(
     Some(new_rect)
 }
 
+fn update_translation_bounds(
+    full_image_edge_segments: [(Vec2<f32>, Vec2<f32>); 4],
+    point_in_image: Vec2<f32>,
+    translation_dir: Vec2<f32>,
+    curr_bounds: (f32, f32),
+) -> (f32, f32) {
+    let mut bounds = curr_bounds;
+    for seg in full_image_edge_segments.iter() {
+        let t = ray_segment_intersect(point_in_image, translation_dir, seg.0, seg.1);
+        if let Some(t) = t {
+            let is_outside_full_image = point_is_left_of_segment(point_in_image, seg.0, seg.1);
+            if is_outside_full_image {
+                // this corner is already on the wrong side
+                if t >= 0.0 {
+                    // make sure to push it back
+                    bounds.0 = bounds.0.max(t)
+                } else {
+                    bounds.1 = bounds.1.min(t)
+                }
+            } else {
+                if t > 0.0 {
+                    // don't go past the segment
+                    bounds.1 = bounds.1.min(t)
+                } else if t == 0.0 {
+                    // colinear
+                    let can_go_forwards =
+                        !point_is_left_of_segment(point_in_image + translation_dir, seg.0, seg.1);
+                    if can_go_forwards {
+                        // don't go backwards
+                        bounds.0 = bounds.0.max(0.0)
+                    } else {
+                        // don't go backwards
+                        bounds.1 = bounds.1.min(0.0)
+                    }
+                } else {
+                    bounds.0 = bounds.0.max(t)
+                }
+            }
+        }
+    }
+    bounds
+}
+
 // bounds in ui-reference frame (crop-rect is non-rotated, full image is rotated, x and y scale are both relative to full image height)
 pub fn get_crop_rect_translation_bounds(
     rotation_degrees: f32,
@@ -210,41 +253,12 @@ pub fn get_crop_rect_translation_bounds(
     ];
     for i in 0..4 {
         for corner in crop_rect_corners.iter() {
-            let ray_start = *corner;
-            let ray_dir = ray_dirs[i];
-            for seg in full_image_edge_segments.iter() {
-                let t = ray_segment_intersect(ray_start, ray_dir, seg.0, seg.1);
-                if let Some(t) = t {
-                    let is_outside_full_image = point_is_left_of_segment(*corner, seg.0, seg.1);
-                    if is_outside_full_image {
-                        // this corner is already on the wrong side
-                        if t >= 0.0 {
-                            // make sure to push it back
-                            bounds[i].0 = bounds[i].0.max(t)
-                        } else {
-                            bounds[i].1 = bounds[i].1.min(t)
-                        }
-                    } else {
-                        if t > 0.0 {
-                            // don't go past the segment
-                            bounds[i].1 = bounds[i].1.min(t)
-                        } else if t == 0.0 {
-                            // colinear
-                            let can_go_forwards =
-                                !point_is_left_of_segment(*corner + ray_dir, seg.0, seg.1);
-                            if can_go_forwards {
-                                // don't go backwards
-                                bounds[i].0 = bounds[i].0.max(0.0)
-                            } else {
-                                // don't go backwards
-                                bounds[i].1 = bounds[i].1.min(0.0)
-                            }
-                        } else {
-                            bounds[i].0 = bounds[i].0.max(t)
-                        }
-                    }
-                }
-            }
+            bounds[i] = update_translation_bounds(
+                full_image_edge_segments,
+                *corner,
+                ray_dirs[i],
+                bounds[i],
+            );
         }
     }
     bounds
