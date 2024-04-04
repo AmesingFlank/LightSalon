@@ -590,9 +590,10 @@ fn handle_crop_and_rotate_response(
                     _ => {}
                 }
                 if should_keep {
-                    let min_abs = delta.x.abs().min(delta.y.abs());
-                    delta.x = min_abs * delta.x.signum();
-                    delta.y = min_abs * delta.y.signum();
+                    let cropped_aspect_ratio = new_crop_rect.size.y / new_crop_rect.size.x;
+                    let min_abs_x = delta.x.abs().min(delta.y.abs() / cropped_aspect_ratio);
+                    delta.x = min_abs_x * delta.x.signum();
+                    delta.y = min_abs_x * delta.y.signum() * cropped_aspect_ratio;
                 } else {
                     delta = vec2((0.0, 0.0));
                 }
