@@ -550,8 +550,6 @@ fn handle_crop_and_rotate_response(
         set_edge_or_corner_cursor(ui, *edge_or_corner);
         if response.dragged() {
             let mut new_crop_rect = original_crop_rect;
-            let mut new_crop_rect_min = new_crop_rect.min();
-            let mut new_crop_rect_max = new_crop_rect.max();
             let delta = response.drag_delta();
             let mut delta = vec2((
                 delta.x / (original_ui_crop_rect.width() / original_crop_rect.size.x),
@@ -559,69 +557,75 @@ fn handle_crop_and_rotate_response(
             ));
             // * 2.0 to counter the fact that this causes the crop rect center to move, which causes the full image to move
             delta = delta * 2.0;
-            if let Some(ref edge_or_corner) = ui_state.crop_drag_state.edge_or_corner {
-                let min_crop_size = 0.01;
-                if edge_or_corner.has_left() {
-                    delta.x = delta.x.min(new_crop_rect.size.x - min_crop_size);
-                    delta.x = delta.x.max(-new_crop_rect_min.x);
-                }
-                if edge_or_corner.has_right() {
-                    delta.x = delta.x.min(1.0 - new_crop_rect_max.x);
-                    delta.x = delta.x.max(-new_crop_rect.size.x + min_crop_size);
-                }
-                if edge_or_corner.has_top() {
-                    delta.y = delta.y.min(new_crop_rect.size.y - min_crop_size);
-                    delta.y = delta.y.max(-new_crop_rect_min.y);
-                }
-                if edge_or_corner.has_bottom() {
-                    delta.y = delta.y.min(1.0 - new_crop_rect_max.y);
-                    delta.y = delta.y.max(-new_crop_rect.size.y + min_crop_size);
-                }
 
+            let rotation_mat = get_rotation_mat(-original_rotation_degrees.to_radians());
+
+            // let min_crop_size = 0.01;
+            // if edge_or_corner.has_left() {
+            //     delta.x = delta.x.min(new_crop_rect.size.x - min_crop_size);
+            //     delta.x = delta.x.max(-new_crop_rect_min.x);
+            // }
+            // if edge_or_corner.has_right() {
+            //     delta.x = delta.x.min(1.0 - new_crop_rect_max.x);
+            //     delta.x = delta.x.max(-new_crop_rect.size.x + min_crop_size);
+            // }
+            // if edge_or_corner.has_top() {
+            //     delta.y = delta.y.min(new_crop_rect.size.y - min_crop_size);
+            //     delta.y = delta.y.max(-new_crop_rect_min.y);
+            // }
+            // if edge_or_corner.has_bottom() {
+            //     delta.y = delta.y.min(1.0 - new_crop_rect_max.y);
+            //     delta.y = delta.y.max(-new_crop_rect.size.y + min_crop_size);
+            // }
+
+            if edge_or_corner.is_corner() {
+                let mut should_keep = false;
                 match edge_or_corner {
-                    CropDragEdgeOrCorner::Left => {
-                        new_crop_rect_min.x += delta.x;
+                    CropDragEdgeOrCorner::TopLeft | CropDragEdgeOrCorner::BottomRight => {
+                        should_keep = delta.x.signum() == delta.y.signum();
                     }
-                    CropDragEdgeOrCorner::Right => {
-                        new_crop_rect_max.x += delta.x;
+                    CropDragEdgeOrCorner::TopRight | CropDragEdgeOrCorner::BottomLeft => {
+                        should_keep = delta.x.signum() == -delta.y.signum();
                     }
-                    CropDragEdgeOrCorner::Top => {
-                        new_crop_rect_min.y += delta.y;
-                    }
-                    CropDragEdgeOrCorner::Bottom => {
-                        new_crop_rect_max.y += delta.y;
-                    }
-                    CropDragEdgeOrCorner::TopLeft => {
-                        if delta.x.signum() == delta.y.signum() {
-                            let x_abs = delta.x.abs().min(delta.y.abs());
-                            new_crop_rect_min.x += x_abs * delta.x.signum();
-                            new_crop_rect_min.y += x_abs * delta.y.signum();
-                        }
-                    }
-                    CropDragEdgeOrCorner::BottomRight => {
-                        if delta.x.signum() == delta.y.signum() {
-                            let x_abs = delta.x.abs().min(delta.y.abs());
-                            new_crop_rect_max.x += x_abs * delta.x.signum();
-                            new_crop_rect_max.y += x_abs * delta.y.signum();
-                        }
-                    }
-                    CropDragEdgeOrCorner::TopRight => {
-                        if delta.x.signum() == -delta.y.signum() {
-                            let x_abs = delta.x.abs().min(delta.y.abs());
-                            new_crop_rect_max.x += x_abs * delta.x.signum();
-                            new_crop_rect_min.y += x_abs * delta.y.signum();
-                        }
-                    }
-                    CropDragEdgeOrCorner::BottomLeft => {
-                        if delta.x.signum() == -delta.y.signum() {
-                            let x_abs = delta.x.abs().min(delta.y.abs());
-                            new_crop_rect_min.x += x_abs * delta.x.signum();
-                            new_crop_rect_max.y += x_abs * delta.y.signum();
-                        }
-                    }
+                    _ => {}
+                }
+                if should_keep {
+                    let min_abs = delta.x.abs().min(delta.y.abs());
+                    delta.x = min_abs * delta.x.signum();
+                    delta.y = min_abs * delta.y.signum();
+                } else {
+                    delta = vec2((0.0, 0.0));
                 }
             }
-            new_crop_rect = Rectangle::from_min_max(new_crop_rect_min, new_crop_rect_max);
+
+            if edge_or_corner.has_left() {
+                new_crop_rect.size.x -= delta.x;
+            }
+            if edge_or_corner.has_right() {
+                new_crop_rect.size.x += delta.x;
+            }
+            if edge_or_corner.has_top() {
+                new_crop_rect.size.y -= delta.y;
+            }
+            if edge_or_corner.has_bottom() {
+                new_crop_rect.size.y += delta.y;
+            }
+
+            if edge_or_corner.has_left() || edge_or_corner.has_right() {
+                let mut dir = vec2((1.0, 0.0));
+                dir.x /= original_image_aspect_ratio;
+                dir = rotation_mat * dir;
+                dir.x *= original_image_aspect_ratio;
+                new_crop_rect.center = new_crop_rect.center + dir * 0.5 * delta.x;
+            }
+            if edge_or_corner.has_top() || edge_or_corner.has_bottom() {
+                let mut dir = vec2((0.0, 1.0));
+                dir.x /= original_image_aspect_ratio;
+                dir = rotation_mat * dir;
+                dir.x *= original_image_aspect_ratio;
+                new_crop_rect.center = new_crop_rect.center + dir * 0.5 * delta.y;
+            }
+
             return Some(new_crop_rect);
         } else if response.drag_stopped() {
             ui_state.crop_drag_state.edge_or_corner = None;

@@ -129,6 +129,16 @@ pub enum CropDragEdgeOrCorner {
 }
 
 impl CropDragEdgeOrCorner {
+    pub fn is_corner(&self) -> bool {
+        match *self {
+            CropDragEdgeOrCorner::TopLeft
+            | CropDragEdgeOrCorner::TopRight
+            | CropDragEdgeOrCorner::BottomLeft
+            | CropDragEdgeOrCorner::BottomRight => true,
+            _ => false,
+        }
+    }
+    
     pub fn has_left(&self) -> bool {
         match *self {
             CropDragEdgeOrCorner::Left
