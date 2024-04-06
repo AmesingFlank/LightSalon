@@ -205,18 +205,12 @@ fn image_crop_and_rotate(
         draw_grid_impl(ui, cropped_image_ui_rect, ui_state);
 
         if let Some(ref new_crop_rect) = new_crop_rect {
-            handle_new_crop_rect(ui, session, ui_state, transient_edit, *new_crop_rect);
+            handle_new_crop_rect(session, transient_edit, *new_crop_rect);
         }
     });
 }
 
-fn handle_new_crop_rect(
-    ui: &mut Ui,
-    session: &mut Session,
-    ui_state: &mut AppUiState,
-    mut transient_edit: Edit,
-    new_crop_rect: Rectangle,
-) {
+fn handle_new_crop_rect(session: &mut Session, mut transient_edit: Edit, new_crop_rect: Rectangle) {
     if transient_edit.crop_rect != Some(new_crop_rect) {
         if transient_edit.crop_rect.is_none() && new_crop_rect == Rectangle::regular() {
             return;
