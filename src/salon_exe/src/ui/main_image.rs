@@ -17,7 +17,9 @@ use salon_core::runtime::{
 use salon_core::runtime::{Buffer, BufferProperties, RingBuffer};
 use salon_core::session::Session;
 use salon_core::shader::{Shader, ShaderLibraryModule};
-use salon_core::utils::math::{get_crop_rect_translation_bounds, get_rotation_mat};
+use salon_core::utils::math::{
+    get_crop_rect_translation_bounds, get_crop_rect_upscale_bounds, get_rotation_mat,
+};
 use salon_core::utils::rectangle::Rectangle;
 use salon_core::utils::vec::{vec2, Vec2};
 
@@ -560,23 +562,46 @@ fn handle_crop_and_rotate_response(
 
             let rotation_mat = get_rotation_mat(-original_rotation_degrees.to_radians());
 
-            // let min_crop_size = 0.01;
-            // if edge_or_corner.has_left() {
-            //     delta.x = delta.x.min(new_crop_rect.size.x - min_crop_size);
-            //     delta.x = delta.x.max(-new_crop_rect_min.x);
-            // }
-            // if edge_or_corner.has_right() {
-            //     delta.x = delta.x.min(1.0 - new_crop_rect_max.x);
-            //     delta.x = delta.x.max(-new_crop_rect.size.x + min_crop_size);
-            // }
-            // if edge_or_corner.has_top() {
-            //     delta.y = delta.y.min(new_crop_rect.size.y - min_crop_size);
-            //     delta.y = delta.y.max(-new_crop_rect_min.y);
-            // }
-            // if edge_or_corner.has_bottom() {
-            //     delta.y = delta.y.min(1.0 - new_crop_rect_max.y);
-            //     delta.y = delta.y.max(-new_crop_rect.size.y + min_crop_size);
-            // }
+            if edge_or_corner.has_left() && delta.x < 0.0 {
+                let delta_bounds = get_crop_rect_upscale_bounds(
+                    original_rotation_degrees,
+                    new_crop_rect,
+                    vec2((-1.0, 0.0)),
+                    original_image_aspect_ratio,
+                );
+                let mut neg_x = -delta.x;
+                neg_x = neg_x.max(delta_bounds.0).min(delta_bounds.1);
+                delta.x = -neg_x;
+            }
+            if edge_or_corner.has_right() && delta.x > 0.0 {
+                let delta_bounds = get_crop_rect_upscale_bounds(
+                    original_rotation_degrees,
+                    new_crop_rect,
+                    vec2((1.0, 0.0)),
+                    original_image_aspect_ratio,
+                );
+                delta.x = delta.x.max(delta_bounds.0).min(delta_bounds.1);
+            }
+            if edge_or_corner.has_top() && delta.y < 0.0 {
+                let delta_bounds = get_crop_rect_upscale_bounds(
+                    original_rotation_degrees,
+                    new_crop_rect,
+                    vec2((0.0, -1.0)),
+                    original_image_aspect_ratio,
+                );
+                let mut neg_y = -delta.y;
+                neg_y = neg_y.max(delta_bounds.0).min(delta_bounds.1);
+                delta.y = -neg_y;
+            }
+            if edge_or_corner.has_bottom() {
+                let delta_bounds = get_crop_rect_upscale_bounds(
+                    original_rotation_degrees,
+                    new_crop_rect,
+                    vec2((0.0, 1.0)),
+                    original_image_aspect_ratio,
+                );
+                delta.y = delta.y.max(delta_bounds.0).min(delta_bounds.1);
+            }
 
             if edge_or_corner.is_corner() {
                 let mut should_keep = false;
@@ -611,6 +636,10 @@ fn handle_crop_and_rotate_response(
             if edge_or_corner.has_bottom() {
                 new_crop_rect.size.y += delta.y;
             }
+
+            let min_crop_size = 0.02;
+            new_crop_rect.size.x = new_crop_rect.size.x.max(min_crop_size);
+            new_crop_rect.size.y = new_crop_rect.size.y.max(min_crop_size);
 
             if edge_or_corner.has_left() || edge_or_corner.has_right() {
                 let mut dir = vec2((1.0, 0.0));

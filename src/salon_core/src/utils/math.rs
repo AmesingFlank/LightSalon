@@ -1,4 +1,4 @@
-use num::Num;
+use num::{complex::ComplexFloat, Num};
 
 use super::{
     mat::Mat2x2,
@@ -261,5 +261,57 @@ pub fn get_crop_rect_translation_bounds(
             );
         }
     }
+    bounds
+}
+
+pub fn get_crop_rect_upscale_bounds(
+    rotation_degrees: f32,
+    crop_rect: Rectangle,
+    upscale_dir: Vec2<f32>,
+    image_aspect_ratio: f32,
+) -> (f32, f32) {
+    let full_image_edge_segments =
+        get_full_image_edge_segments(rotation_degrees, crop_rect, image_aspect_ratio);
+
+    let mut crop_rect_center = crop_rect.center;
+    crop_rect_center.x /= image_aspect_ratio;
+
+    let mut relevant_corners = Vec::new();
+
+    if upscale_dir.x == 0.0 && upscale_dir.y == 1.0 {
+        relevant_corners = vec![
+            crop_rect.max(),
+            vec2((crop_rect.min().x, crop_rect.max().y)),
+        ]
+    } else if upscale_dir.x == 0.0 && upscale_dir.y == -1.0 {
+        relevant_corners = vec![
+            crop_rect.min(),
+            vec2((crop_rect.max().x, crop_rect.min().y)),
+        ]
+    } else if upscale_dir.x == 1.0 && upscale_dir.y == 0.0 {
+        relevant_corners = vec![
+            crop_rect.max(),
+            vec2((crop_rect.max().x, crop_rect.min().y)),
+        ]
+    } else if upscale_dir.x == -1.0 && upscale_dir.y == 0.0 {
+        relevant_corners = vec![
+            crop_rect.min(),
+            vec2((crop_rect.min().x, crop_rect.max().y)),
+        ]
+    } else {
+        panic!("unexpected upscale_dir");
+    }
+
+    for corner in relevant_corners.iter_mut() {
+        corner.x /= image_aspect_ratio;
+        *corner = *corner - crop_rect_center;
+    }
+
+    let mut bounds = (-f32::INFINITY, f32::INFINITY);
+
+    for corner in relevant_corners.iter() {
+        bounds = update_translation_bounds(full_image_edge_segments, *corner, upscale_dir, bounds);
+    }
+
     bounds
 }
