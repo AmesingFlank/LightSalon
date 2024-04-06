@@ -1,5 +1,7 @@
 use num::{complex::ComplexFloat, Num};
 
+use crate::{editor::Edit, ir::MaskPrimitive, session::Session};
+
 use super::{
     mat::Mat2x2,
     rectangle::Rectangle,
@@ -314,4 +316,48 @@ pub fn get_crop_rect_upscale_bounds(
     }
 
     bounds
+}
+
+
+pub fn handle_new_crop_rect(session: &mut Session, mut transient_edit: Edit, new_crop_rect: Rectangle) {
+    if transient_edit.crop_rect != Some(new_crop_rect) {
+        if transient_edit.crop_rect.is_none() && new_crop_rect == Rectangle::regular() {
+            return;
+        }
+        let old_crop_rect = transient_edit
+            .crop_rect
+            .clone()
+            .unwrap_or(Rectangle::regular());
+        let transform_xy = |x: &mut f32, y: &mut f32| {
+            let abs_xy =
+                old_crop_rect.min() + (old_crop_rect.max() - old_crop_rect.min()) * vec2((*x, *y));
+            let xy = (abs_xy - new_crop_rect.min()) / (new_crop_rect.max() - new_crop_rect.min());
+            *x = xy.x;
+            *y = xy.y;
+        };
+        let transform_xy_size = |x_size: &mut f32, y_size: &mut f32| {
+            let size = vec2((*x_size, *y_size)) * (old_crop_rect.max() - old_crop_rect.min())
+                / (new_crop_rect.max() - new_crop_rect.min());
+            *x_size = size.x;
+            *y_size = size.y;
+        };
+        for masked_edit in transient_edit.masked_edits.iter_mut() {
+            for term in masked_edit.mask.terms.iter_mut() {
+                let prim = &mut term.primitive;
+                match prim {
+                    MaskPrimitive::RadialGradient(ref mut m) => {
+                        transform_xy(&mut m.center_x, &mut m.center_y);
+                        transform_xy_size(&mut m.radius_x, &mut m.radius_y);
+                    }
+                    MaskPrimitive::LinearGradient(ref mut m) => {
+                        transform_xy(&mut m.begin_x, &mut m.begin_y);
+                        transform_xy(&mut m.saturate_x, &mut m.saturate_y);
+                    }
+                    MaskPrimitive::Global(_) => {}
+                }
+            }
+        }
+        transient_edit.crop_rect = Some(new_crop_rect);
+        session.editor.update_transient_edit(transient_edit, false);
+    }
 }

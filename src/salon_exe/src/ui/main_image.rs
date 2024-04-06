@@ -18,7 +18,7 @@ use salon_core::runtime::{Buffer, BufferProperties, RingBuffer};
 use salon_core::session::Session;
 use salon_core::shader::{Shader, ShaderLibraryModule};
 use salon_core::utils::math::{
-    get_crop_rect_translation_bounds, get_crop_rect_upscale_bounds, get_rotation_mat,
+    get_crop_rect_translation_bounds, get_crop_rect_upscale_bounds, get_rotation_mat, handle_new_crop_rect,
 };
 use salon_core::utils::rectangle::Rectangle;
 use salon_core::utils::vec::{vec2, Vec2};
@@ -208,49 +208,6 @@ fn image_crop_and_rotate(
             handle_new_crop_rect(session, transient_edit, *new_crop_rect);
         }
     });
-}
-
-fn handle_new_crop_rect(session: &mut Session, mut transient_edit: Edit, new_crop_rect: Rectangle) {
-    if transient_edit.crop_rect != Some(new_crop_rect) {
-        if transient_edit.crop_rect.is_none() && new_crop_rect == Rectangle::regular() {
-            return;
-        }
-        let old_crop_rect = transient_edit
-            .crop_rect
-            .clone()
-            .unwrap_or(Rectangle::regular());
-        let transform_xy = |x: &mut f32, y: &mut f32| {
-            let abs_xy =
-                old_crop_rect.min() + (old_crop_rect.max() - old_crop_rect.min()) * vec2((*x, *y));
-            let xy = (abs_xy - new_crop_rect.min()) / (new_crop_rect.max() - new_crop_rect.min());
-            *x = xy.x;
-            *y = xy.y;
-        };
-        let transform_xy_size = |x_size: &mut f32, y_size: &mut f32| {
-            let size = vec2((*x_size, *y_size)) * (old_crop_rect.max() - old_crop_rect.min())
-                / (new_crop_rect.max() - new_crop_rect.min());
-            *x_size = size.x;
-            *y_size = size.y;
-        };
-        for masked_edit in transient_edit.masked_edits.iter_mut() {
-            for term in masked_edit.mask.terms.iter_mut() {
-                let prim = &mut term.primitive;
-                match prim {
-                    MaskPrimitive::RadialGradient(ref mut m) => {
-                        transform_xy(&mut m.center_x, &mut m.center_y);
-                        transform_xy_size(&mut m.radius_x, &mut m.radius_y);
-                    }
-                    MaskPrimitive::LinearGradient(ref mut m) => {
-                        transform_xy(&mut m.begin_x, &mut m.begin_y);
-                        transform_xy(&mut m.saturate_x, &mut m.saturate_y);
-                    }
-                    MaskPrimitive::Global(_) => {}
-                }
-            }
-        }
-        transient_edit.crop_rect = Some(new_crop_rect);
-        session.editor.update_transient_edit(transient_edit, false);
-    }
 }
 
 // returns whether pending changes to control points should be committed
