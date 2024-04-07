@@ -378,51 +378,94 @@ pub fn handle_new_crop_rect(
                 }
             }
         }
-        transient_edit.crop_rect = Some(new_crop_rect);
+        if new_crop_rect != Rectangle::regular() {
+            transient_edit.crop_rect = Some(new_crop_rect);
+        } else {
+            transient_edit.crop_rect = None;
+        }
         session.editor.update_transient_edit(transient_edit, false);
     }
 }
 
 pub fn handle_new_rotation(
     session: &mut Session,
-    mut transient_edit: Edit,
+    transient_edit: &mut Edit,
     new_rotation_degrees: f32,
 ) {
     if transient_edit.rotation_degrees != Some(new_rotation_degrees) {
         if transient_edit.rotation_degrees.is_none() && new_rotation_degrees == 0.0 {
             return;
         }
-        let old_crop_rect = transient_edit.rotation_degrees.clone().unwrap_or(0.0);
-        // let transform_xy = |x: &mut f32, y: &mut f32| {
-        //     let abs_xy =
-        //         old_crop_rect.min() + (old_crop_rect.max() - old_crop_rect.min()) * vec2((*x, *y));
-        //     let xy = (abs_xy - new_crop_rect.min()) / (new_crop_rect.max() - new_crop_rect.min());
-        //     *x = xy.x;
-        //     *y = xy.y;
-        // };
-        // let transform_xy_size = |x_size: &mut f32, y_size: &mut f32| {
-        //     let size = vec2((*x_size, *y_size)) * (old_crop_rect.max() - old_crop_rect.min())
-        //         / (new_crop_rect.max() - new_crop_rect.min());
-        //     *x_size = size.x;
-        //     *y_size = size.y;
-        // };
-        // for masked_edit in transient_edit.masked_edits.iter_mut() {
-        //     for term in masked_edit.mask.terms.iter_mut() {
-        //         let prim = &mut term.primitive;
-        //         match prim {
-        //             MaskPrimitive::RadialGradient(ref mut m) => {
-        //                 transform_xy(&mut m.center_x, &mut m.center_y);
-        //                 transform_xy_size(&mut m.radius_x, &mut m.radius_y);
-        //             }
-        //             MaskPrimitive::LinearGradient(ref mut m) => {
-        //                 transform_xy(&mut m.begin_x, &mut m.begin_y);
-        //                 transform_xy(&mut m.saturate_x, &mut m.saturate_y);
-        //             }
-        //             MaskPrimitive::Global(_) => {}
-        //         }
-        //     }
-        // }
-        // transient_edit.crop_rect = Some(new_crop_rect);
-        session.editor.update_transient_edit(transient_edit, false);
+        let original_image_aspect_ratio = session
+            .editor
+            .current_edit_context_ref()
+            .unwrap()
+            .input_image()
+            .aspect_ratio();
+        let old_crop_rect = transient_edit
+            .crop_rect
+            .clone()
+            .unwrap_or(Rectangle::regular());
+
+        let new_crop_rect = maybe_shrink_crop_rect_due_to_rotation(
+            new_rotation_degrees,
+            old_crop_rect,
+            original_image_aspect_ratio,
+        );
+        if let Some(rect) = new_crop_rect {
+            transient_edit.crop_rect = Some(rect)
+        }
+        let new_crop_rect = new_crop_rect.unwrap_or(old_crop_rect);
+
+        let old_rotation_degrees = transient_edit.rotation_degrees.clone().unwrap_or(0.0);
+        let old_inverse_rotation_mat = get_rotation_mat_from_degrees(-old_rotation_degrees);
+        let new_rotation_mat = get_rotation_mat_from_degrees(new_rotation_degrees);
+
+        let transform_xy = |x: &mut f32, y: &mut f32| {
+            let mut xy = vec2((*x, *y));
+            xy = xy - vec2((0.5, 0.5));
+            xy = xy * old_crop_rect.size;
+            xy = xy * vec2((1.0 / original_image_aspect_ratio, 1.0));
+            xy = old_inverse_rotation_mat * xy;
+            xy = old_crop_rect.center * vec2((1.0 / original_image_aspect_ratio, 1.0)) + xy;
+
+            xy = xy - new_crop_rect.center * vec2((1.0 / original_image_aspect_ratio, 1.0));
+            xy = new_rotation_mat * xy;
+            xy = xy * vec2((original_image_aspect_ratio, 1.0));
+            xy = xy / new_crop_rect.size;
+            xy = xy + vec2((0.5, 0.5));
+
+            *x = xy.x;
+            *y = xy.y;
+        };
+        let transform_xy_size = |x_size: &mut f32, y_size: &mut f32| {
+            let size = vec2((*x_size, *y_size)) * old_crop_rect.size / new_crop_rect.size;
+            *x_size = size.x;
+            *y_size = size.y;
+        };
+
+        for masked_edit in transient_edit.masked_edits.iter_mut() {
+            for term in masked_edit.mask.terms.iter_mut() {
+                let prim = &mut term.primitive;
+                match prim {
+                    MaskPrimitive::RadialGradient(ref mut m) => {
+                        transform_xy(&mut m.center_x, &mut m.center_y);
+                        transform_xy_size(&mut m.radius_x, &mut m.radius_y);
+                        m.rotation +=
+                            new_rotation_degrees.to_radians() - old_rotation_degrees.to_radians();
+                    }
+                    MaskPrimitive::LinearGradient(ref mut m) => {
+                        transform_xy(&mut m.begin_x, &mut m.begin_y);
+                        transform_xy(&mut m.saturate_x, &mut m.saturate_y);
+                    }
+                    MaskPrimitive::Global(_) => {}
+                }
+            }
+        }
+        if new_rotation_degrees != 0.0 {
+            transient_edit.rotation_degrees = Some(new_rotation_degrees);
+        } else {
+            transient_edit.rotation_degrees = None;
+        }
     }
 }
