@@ -79,6 +79,34 @@ pub fn point_is_left_of_segment(
     area > 0.0
 }
 
+pub fn greatest_common_denominator(a: u32, b: u32) -> u32 {
+    let (mut bigger, mut smaller) = (a.max(b), a.min(b));
+    while smaller != 0 {
+        let remainder = bigger % smaller;
+        bigger = remainder.max(smaller);
+        smaller = remainder.min(smaller);
+    }
+    bigger
+}
+
+pub fn integer_aspect_ratio(dimensions: (u32, u32)) -> (u32, u32) {
+    let d = greatest_common_denominator(dimensions.0, dimensions.1);
+    (dimensions.0 / d, dimensions.1 / d)
+}
+
+pub fn get_cropped_image_dimensions(
+    input_dimensions: (u32, u32),
+    crop_rect: Rectangle,
+) -> (u32, u32) {
+    let mut dim = (
+        (input_dimensions.0 as f32 * crop_rect.size.x) as u32,
+        (input_dimensions.1 as f32 * crop_rect.size.y) as u32,
+    );
+    dim.0 = dim.0.max(1);
+    dim.1 = dim.1.max(1);
+    dim
+}
+
 pub fn ray_segment_intersect(
     ray_start: Vec2<f32>,
     ray_dir: Vec2<f32>,

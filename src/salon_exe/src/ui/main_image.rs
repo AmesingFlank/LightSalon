@@ -18,7 +18,8 @@ use salon_core::runtime::{Buffer, BufferProperties, RingBuffer};
 use salon_core::session::Session;
 use salon_core::shader::{Shader, ShaderLibraryModule};
 use salon_core::utils::math::{
-    get_crop_rect_translation_bounds, get_crop_rect_upscale_bounds, get_rotation_mat, handle_new_crop_rect,
+    get_crop_rect_translation_bounds, get_crop_rect_upscale_bounds, get_rotation_mat,
+    handle_new_crop_rect,
 };
 use salon_core::utils::rectangle::Rectangle;
 use salon_core::utils::vec::{vec2, Vec2};
@@ -575,6 +576,21 @@ fn handle_crop_and_rotate_response(
                 }
             }
 
+            let min_crop_size = 0.001;
+
+            if edge_or_corner.has_left() {
+                delta.x = delta.x.min(new_crop_rect.size.x - min_crop_size);
+            }
+            if edge_or_corner.has_right() {
+                delta.x = delta.x.max(min_crop_size - new_crop_rect.size.x);
+            }
+            if edge_or_corner.has_top() {
+                delta.y = delta.y.min(new_crop_rect.size.y - min_crop_size);
+            }
+            if edge_or_corner.has_bottom() {
+                delta.y = delta.y.max(min_crop_size - new_crop_rect.size.y);
+            }
+
             if edge_or_corner.has_left() {
                 new_crop_rect.size.x -= delta.x;
             }
@@ -587,10 +603,6 @@ fn handle_crop_and_rotate_response(
             if edge_or_corner.has_bottom() {
                 new_crop_rect.size.y += delta.y;
             }
-
-            let min_crop_size = 0.02;
-            new_crop_rect.size.x = new_crop_rect.size.x.max(min_crop_size);
-            new_crop_rect.size.y = new_crop_rect.size.y.max(min_crop_size);
 
             if edge_or_corner.has_left() || edge_or_corner.has_right() {
                 let mut dir = vec2((1.0, 0.0));

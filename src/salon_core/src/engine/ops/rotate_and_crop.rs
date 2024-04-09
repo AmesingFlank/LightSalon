@@ -2,9 +2,10 @@ use std::{collections::HashMap, mem::size_of, sync::Arc};
 
 use crate::runtime::Toolbox;
 
+use crate::utils::math::get_cropped_image_dimensions;
 use crate::{
     engine::value_store::ValueStore,
-    ir::{RotateAndCropOp, Id},
+    ir::{Id, RotateAndCropOp},
     runtime::{
         BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager,
         BindingResource, Runtime,
@@ -24,7 +25,8 @@ pub struct RotateAndCropImpl {
 }
 impl RotateAndCropImpl {
     pub fn new(runtime: Arc<Runtime>) -> Self {
-        let shader_code = Shader::from_code(include_str!("shaders/rotate_and_crop.wgsl")).full_code();
+        let shader_code =
+            Shader::from_code(include_str!("shaders/rotate_and_crop.wgsl")).full_code();
 
         let (pipeline, bind_group_layout) =
             runtime.create_compute_pipeline(shader_code.as_str(), Some("Crop"));
@@ -73,10 +75,7 @@ impl RotateAndCropImpl {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
 
         let input_dimensions = input_img.properties.dimensions;
-        let output_dimensions = (
-            (input_dimensions.0 as f32 * op.crop_rect.size.x) as u32,
-            (input_dimensions.1 as f32 * op.crop_rect.size.y) as u32,
-        );
+        let output_dimensions = get_cropped_image_dimensions(input_dimensions, op.crop_rect);
         let output_properties = ImageProperties {
             dimensions: output_dimensions,
             ..input_img.properties
