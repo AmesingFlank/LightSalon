@@ -166,7 +166,7 @@ fn image_crop_and_rotate(
     ui.centered_and_justified(|ui| {
         let context = session.editor.current_edit_context_ref().unwrap();
         let original_image = context.input_image();
-        let transient_edit = context.transient_edit_ref().clone();
+        let mut transient_edit = context.transient_edit_ref().clone();
 
         let full_image_callback = ImageGeometryEditCallback {
             full_image: original_image.clone(),
@@ -206,7 +206,12 @@ fn image_crop_and_rotate(
         draw_grid_impl(ui, cropped_image_ui_rect, ui_state);
 
         if let Some(ref new_crop_rect) = new_crop_rect {
-            handle_new_crop_rect(session, transient_edit, *new_crop_rect);
+            handle_new_crop_rect(
+                original_image.aspect_ratio(),
+                &mut transient_edit,
+                *new_crop_rect,
+            );
+            session.editor.update_transient_edit(transient_edit, false);
         }
     });
 }

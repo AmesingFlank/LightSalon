@@ -1,6 +1,6 @@
 use num::{complex::ComplexFloat, Num};
 
-use crate::{editor::Edit, ir::MaskPrimitive, session::Session};
+use crate::{editor::Edit, ir::MaskPrimitive};
 
 use super::{
     mat::Mat2x2,
@@ -346,21 +346,57 @@ pub fn get_crop_rect_upscale_bounds(
     bounds
 }
 
+pub fn get_max_crop_rect_with_aspect_ratio(
+    rotation_degrees: f32,
+    original_crop_rect: Rectangle,
+    image_aspect_ratio: f32,
+    new_crop_rect_aspect_ratio: f32,
+) -> Rectangle {
+    let full_image_edge_segments =
+        get_full_image_edge_segments(rotation_degrees, original_crop_rect, image_aspect_ratio);
+
+    let mut crop_rect_center = original_crop_rect.center;
+    crop_rect_center.x /= image_aspect_ratio;
+
+    let mut new_crop_rect = Rectangle {
+        center: original_crop_rect.center,
+        size: vec2((f32::INFINITY, f32::INFINITY)),
+    };
+    let mut ray_dirs = [
+        vec2((1.0, new_crop_rect_aspect_ratio)),
+        vec2((-1.0, new_crop_rect_aspect_ratio)),
+        vec2((1.0, -new_crop_rect_aspect_ratio)),
+        vec2((-1.0, -new_crop_rect_aspect_ratio)),
+    ];
+    for dir in ray_dirs.iter_mut() {
+        *dir = dir.normalized();
+    }
+
+    for dir in ray_dirs.iter() {
+        for seg in full_image_edge_segments.iter() {
+            let t = ray_segment_intersect(crop_rect_center, *dir, seg.0, seg.1);
+            if let Some(t) = t {
+                if t >= 0.0 {
+                    let to_corner = *dir * t - crop_rect_center;
+                    new_crop_rect.size.x =
+                        new_crop_rect.size.x.min(to_corner.x.abs()) * image_aspect_ratio;
+                    new_crop_rect.size.y = new_crop_rect.size.y.min(to_corner.y.abs());
+                }
+            }
+        }
+    }
+    new_crop_rect
+}
+
 pub fn handle_new_crop_rect(
-    session: &mut Session,
-    mut transient_edit: Edit,
+    original_image_aspect_ratio: f32,
+    transient_edit: &mut Edit,
     new_crop_rect: Rectangle,
 ) {
     if transient_edit.crop_rect != Some(new_crop_rect) {
         if transient_edit.crop_rect.is_none() && new_crop_rect == Rectangle::regular() {
             return;
         }
-        let original_image_aspect_ratio = session
-            .editor
-            .current_edit_context_ref()
-            .unwrap()
-            .input_image()
-            .aspect_ratio();
         let old_crop_rect = transient_edit
             .crop_rect
             .clone()
@@ -411,12 +447,11 @@ pub fn handle_new_crop_rect(
         } else {
             transient_edit.crop_rect = None;
         }
-        session.editor.update_transient_edit(transient_edit, false);
     }
 }
 
 pub fn handle_new_rotation(
-    session: &mut Session,
+    original_image_aspect_ratio: f32,
     transient_edit: &mut Edit,
     new_rotation_degrees: f32,
 ) {
@@ -424,12 +459,6 @@ pub fn handle_new_rotation(
         if transient_edit.rotation_degrees.is_none() && new_rotation_degrees == 0.0 {
             return;
         }
-        let original_image_aspect_ratio = session
-            .editor
-            .current_edit_context_ref()
-            .unwrap()
-            .input_image()
-            .aspect_ratio();
         let old_crop_rect = transient_edit
             .crop_rect
             .clone()
