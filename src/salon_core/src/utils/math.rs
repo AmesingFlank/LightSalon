@@ -355,9 +355,6 @@ pub fn get_max_crop_rect_with_aspect_ratio(
     let full_image_edge_segments =
         get_full_image_edge_segments(rotation_degrees, original_crop_rect, image_aspect_ratio);
 
-    let mut crop_rect_center = original_crop_rect.center;
-    crop_rect_center.x /= image_aspect_ratio;
-
     let mut new_crop_rect = Rectangle {
         center: original_crop_rect.center,
         size: vec2((f32::INFINITY, f32::INFINITY)),
@@ -374,13 +371,16 @@ pub fn get_max_crop_rect_with_aspect_ratio(
 
     for dir in ray_dirs.iter() {
         for seg in full_image_edge_segments.iter() {
-            let t = ray_segment_intersect(crop_rect_center, *dir, seg.0, seg.1);
+            let ray_start = vec2((0.0, 0.0)); // crop rect center, we're working in a coord system centered around crop rect
+            let t = ray_segment_intersect(ray_start, *dir, seg.0, seg.1);
             if let Some(t) = t {
                 if t >= 0.0 {
-                    let to_corner = *dir * t - crop_rect_center;
-                    new_crop_rect.size.x =
-                        new_crop_rect.size.x.min(to_corner.x.abs()) * image_aspect_ratio;
-                    new_crop_rect.size.y = new_crop_rect.size.y.min(to_corner.y.abs());
+                    let to_corner = *dir * t;
+                    new_crop_rect.size.x = new_crop_rect
+                        .size
+                        .x
+                        .min(to_corner.x.abs() * 2.0 * image_aspect_ratio);
+                    new_crop_rect.size.y = new_crop_rect.size.y.min(to_corner.y.abs() * 2.0);
                 }
             }
         }

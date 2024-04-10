@@ -41,10 +41,11 @@ pub fn rotate_and_crop(
         let rotation_degrees = edit.rotation_degrees.clone().unwrap_or(0.0);
         ui.label("Aspect Ratio: ");
         ui.label("Width ");
-        ui.add(egui::DragValue::new(&mut new_aspect_ratio.0).clamp_range(0..=21));
+        let clamp_range = 0..=10000;
+        ui.add(egui::DragValue::new(&mut new_aspect_ratio.0).clamp_range(clamp_range.clone()));
         ui.label(" x ");
         ui.label("Height ");
-        ui.add(egui::DragValue::new(&mut new_aspect_ratio.1).clamp_range(0..=21));
+        ui.add(egui::DragValue::new(&mut new_aspect_ratio.1).clamp_range(clamp_range.clone()));
         if new_aspect_ratio != old_aspect_ratio {
             let new_crop_rect = get_max_crop_rect_with_aspect_ratio(
                 rotation_degrees,
@@ -53,7 +54,7 @@ pub fn rotate_and_crop(
                 new_aspect_ratio.1 as f32 / new_aspect_ratio.0 as f32,
             );
             if new_crop_rect != crop_rect {
-                //handle_new_crop_rect(input_image.aspect_ratio(), edit, new_crop_rect);
+                handle_new_crop_rect(input_image.aspect_ratio(), edit, new_crop_rect);
             }
         }
     });
