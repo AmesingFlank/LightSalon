@@ -8,9 +8,7 @@ use salon_core::{
     session::Session,
     utils::{
         math::{
-            get_cropped_image_dimensions, get_max_crop_rect_with_aspect_ratio,
-            handle_new_crop_rect, handle_new_rotation, maybe_shrink_crop_rect_due_to_rotation,
-            reduced_aspect_ratio,
+            approximate_aspect_ratio, get_cropped_image_dimensions, get_max_crop_rect_with_aspect_ratio, handle_new_crop_rect, handle_new_rotation, maybe_shrink_crop_rect_due_to_rotation, reduced_aspect_ratio
         },
         rectangle::Rectangle,
     },
@@ -36,7 +34,7 @@ pub fn rotate_and_crop(
         let crop_rect = edit.crop_rect.clone().unwrap_or(Rectangle::regular());
         let output_dimensions =
             get_cropped_image_dimensions(input_image.properties.dimensions, crop_rect);
-        let old_aspect_ratio = approximate_aspect_ratio(output_dimensions);
+        let old_aspect_ratio = approximate_aspect_ratio(output_dimensions, 21);
 
         if reduced_aspect_ratio(old_aspect_ratio)
             != reduced_aspect_ratio(ui_state.crop_rect_aspect_ratio)
@@ -86,42 +84,4 @@ pub fn rotate_and_crop(
             .text("Rotation"),
     );
     handle_new_rotation(input_image.aspect_ratio(), edit, rotation_degrees);
-}
-
-const fn foo() -> i32 {
-    let mut i = 100;
-    while i % 2 == 0 {
-        i /= 2;
-    }
-    i
-}
-
-fn approximate_aspect_ratio(true_ratio: (u32, u32)) -> (u32, u32) {
-    let (x, y) = true_ratio;
-    if x == y {
-        return (1, 1);
-    }
-    if x > y {
-        let (y, x) = approximate_aspect_ratio((y, x));
-        return (x, y);
-    }
-    let ratio_f = y as f32 / x as f32;
-    if ratio_f > 21.0 {
-        return (1, ratio_f.round() as u32);
-    }
-
-    // find y/x that is closest to ratio_f, where y and x are both between 1 and 21
-    let mut min_diff = ratio_f;
-    let mut best_y = 1;
-    let mut best_x = 1;
-    for x in 1..=21 {
-        let y = (ratio_f * x as f32).round() as u32;
-        let diff = (y as f32 / x as f32 - ratio_f).abs();
-        if diff < min_diff {
-            min_diff = diff;
-            best_x = x;
-            best_y = y;
-        }
-    }
-    (best_x, best_y)
 }

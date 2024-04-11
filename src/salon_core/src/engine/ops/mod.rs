@@ -19,3 +19,4 @@ pub mod add_mask;
 pub mod subtract_mask;
 pub mod invert_mask;
 pub mod apply_masked_edits;
+pub mod framing;

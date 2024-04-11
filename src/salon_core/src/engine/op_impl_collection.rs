@@ -1,14 +1,5 @@
 use super::ops::{
-    add_mask::AddMaskImpl, apply_masked_edits::ApplyMaskedEditsImpl,
-    basic_statistics::ComputeBasicStatisticsImpl, color_mix::ColorMixImpl,
-    contrast::AdjustContrastImpl, rotate_and_crop::RotateAndCropImpl, curve::ApplyCurveImpl,
-    dehaze_apply::ApplyDehazeImpl, dehaze_prepare::PrepareDehazeImpl, exposure::AdjustExposureImpl,
-    global_mask::ComputeGlobalMaskImpl, highlights_shadows::AdjustHighlightsAndShadowsImpl,
-    histogram::ComputeHistogramImpl, invert_mask::InvertMaskImpl,
-    linear_gradient_mask::ComputeLinearGradientMaskImpl,
-    radial_gradient_mask::ComputeRadialGradientMaskImpl, subtract_mask::SubtractMaskImpl,
-    temperature_tint::AdjustTemperatureAndTintImpl,
-    vibrance_saturation::AdjustVibranceAndSaturationImpl, vignette::AdjustVignetteImpl, resize::ResizeImpl,
+    add_mask::AddMaskImpl, apply_masked_edits::ApplyMaskedEditsImpl, basic_statistics::ComputeBasicStatisticsImpl, color_mix::ColorMixImpl, contrast::AdjustContrastImpl, curve::ApplyCurveImpl, dehaze_apply::ApplyDehazeImpl, dehaze_prepare::PrepareDehazeImpl, exposure::AdjustExposureImpl, framing::ApplyFramingImpl, global_mask::ComputeGlobalMaskImpl, highlights_shadows::AdjustHighlightsAndShadowsImpl, histogram::ComputeHistogramImpl, invert_mask::InvertMaskImpl, linear_gradient_mask::ComputeLinearGradientMaskImpl, radial_gradient_mask::ComputeRadialGradientMaskImpl, resize::ResizeImpl, rotate_and_crop::RotateAndCropImpl, subtract_mask::SubtractMaskImpl, temperature_tint::AdjustTemperatureAndTintImpl, vibrance_saturation::AdjustVibranceAndSaturationImpl, vignette::AdjustVignetteImpl
 };
 
 #[derive(Default)]
@@ -34,6 +25,7 @@ pub struct OpImplCollection {
     pub subtract_mask: Option<SubtractMaskImpl>,
     pub invert_mask: Option<InvertMaskImpl>,
     pub apply_masked_edits: Option<ApplyMaskedEditsImpl>,
+    pub framing: Option<ApplyFramingImpl>,
 }
 
 impl OpImplCollection {

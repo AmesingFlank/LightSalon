@@ -15,11 +15,11 @@ use super::{
         basic_statistics::ComputeBasicStatisticsImpl,
         color_mix::ColorMixImpl,
         contrast::AdjustContrastImpl,
-        rotate_and_crop::RotateAndCropImpl,
         curve::ApplyCurveImpl,
         dehaze_apply::ApplyDehazeImpl,
         dehaze_prepare::PrepareDehazeImpl,
         exposure::AdjustExposureImpl,
+        framing::ApplyFramingImpl,
         global_mask::ComputeGlobalMaskImpl,
         highlights_shadows::AdjustHighlightsAndShadowsImpl,
         histogram::{self, ComputeHistogramImpl},
@@ -27,6 +27,7 @@ use super::{
         linear_gradient_mask::ComputeLinearGradientMaskImpl,
         radial_gradient_mask::ComputeRadialGradientMaskImpl,
         resize::ResizeImpl,
+        rotate_and_crop::RotateAndCropImpl,
         subtract_mask::{self, SubtractMaskImpl},
         temperature_tint::AdjustTemperatureAndTintImpl,
         vibrance_saturation::AdjustVibranceAndSaturationImpl,
@@ -211,12 +212,16 @@ impl Engine {
                     );
                 }
                 Op::RotateAndCrop(ref op) => {
-                    self.op_impls.rotate_and_crop.as_mut().unwrap().encode_commands(
-                        &mut encoder,
-                        op,
-                        &mut execution_context.value_store,
-                        &mut self.toolbox,
-                    );
+                    self.op_impls
+                        .rotate_and_crop
+                        .as_mut()
+                        .unwrap()
+                        .encode_commands(
+                            &mut encoder,
+                            op,
+                            &mut execution_context.value_store,
+                            &mut self.toolbox,
+                        );
                 }
                 Op::Resize(ref op) => {
                     self.op_impls.resize.as_mut().unwrap().encode_commands(
@@ -297,6 +302,14 @@ impl Engine {
                             &mut execution_context.value_store,
                             &mut self.toolbox,
                         );
+                }
+                Op::ApplyFraming(ref op) => {
+                    self.op_impls.framing.as_mut().unwrap().encode_commands(
+                        &mut encoder,
+                        op,
+                        &mut execution_context.value_store,
+                        &mut self.toolbox,
+                    );
                 }
             }
         }
@@ -392,7 +405,8 @@ impl Engine {
                 }
                 Op::RotateAndCrop(_) => {
                     if self.op_impls.rotate_and_crop.is_none() {
-                        self.op_impls.rotate_and_crop = Some(RotateAndCropImpl::new(self.runtime.clone()))
+                        self.op_impls.rotate_and_crop =
+                            Some(RotateAndCropImpl::new(self.runtime.clone()))
                     }
                     self.op_impls.rotate_and_crop.as_mut().unwrap().reset();
                 }
@@ -448,6 +462,12 @@ impl Engine {
                             Some(ApplyMaskedEditsImpl::new(self.runtime.clone()))
                     }
                     self.op_impls.apply_masked_edits.as_mut().unwrap().reset();
+                }
+                Op::ApplyFraming(_) => {
+                    if self.op_impls.framing.is_none() {
+                        self.op_impls.framing = Some(ApplyFramingImpl::new(self.runtime.clone()))
+                    }
+                    self.op_impls.framing.as_mut().unwrap().reset();
                 }
             }
         }

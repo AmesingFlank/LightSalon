@@ -16,6 +16,7 @@ mod menu_bar;
 mod edit_menu;
 mod keyboard_response;
 mod rotate_and_crop;
+mod framing;
 
 mod utils;
 
@@ -39,3 +40,4 @@ pub use menu_bar::*;
 pub use edit_menu::*;
 pub use keyboard_response::*;
 pub use rotate_and_crop::*;
+pub use framing::*;

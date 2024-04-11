@@ -6,8 +6,7 @@ use egui_plot::{Line, MarkerShape, Plot, Points};
 use salon_core::{editor::GlobalEdit, session::Session};
 
 use super::{
-    color_adjust, color_mixer, curve, effects, histogram, light_adjust, masking, rotate_and_crop,
-    AppUiState, EditorPanel,
+    color_adjust, color_mixer, curve, effects, framing, histogram, light_adjust, masking, rotate_and_crop, AppUiState, EditorPanel
 };
 
 pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
@@ -28,6 +27,12 @@ pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
             &mut ui_state.editor_panel,
             EditorPanel::CropAndRotate,
             "Crop and Rotate",
+        );
+        ui.separator();
+        ui.selectable_value(
+            &mut ui_state.editor_panel,
+            EditorPanel::Framing,
+            "Framing",
         );
     });
 
@@ -66,6 +71,10 @@ pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
         }
         EditorPanel::CropAndRotate => {
             rotate_and_crop(ui, session, ui_state, &mut transient_edit);
+            session.editor.update_transient_edit(transient_edit, false);
+        }
+        EditorPanel::Framing => {
+            framing(ui, session, ui_state, &mut transient_edit);
             session.editor.update_transient_edit(transient_edit, false);
         }
     }

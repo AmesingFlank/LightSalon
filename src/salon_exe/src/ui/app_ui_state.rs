@@ -32,6 +32,7 @@ pub struct AppUiState {
     pub import_image_dialog: ImageImportDialog,
 
     pub crop_rect_aspect_ratio: (u32, u32),
+    pub framing_aspect_ratio: (u32, u32),
 }
 
 impl AppUiState {
@@ -55,6 +56,7 @@ impl AppUiState {
                 context.clone(),
             ),
             crop_rect_aspect_ratio: (0, 0),
+            framing_aspect_ratio: (0, 0),
         }
     }
 
@@ -103,6 +105,7 @@ impl fmt::Display for CurveScope {
 pub enum EditorPanel {
     LightAndColor,
     CropAndRotate,
+    Framing,
 }
 
 pub struct CropDragState {

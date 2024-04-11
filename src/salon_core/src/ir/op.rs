@@ -26,6 +26,7 @@ pub enum Op {
     SubtractMask(SubtractMaskOp),
     InvertMask(InvertMaskOp),
     ApplyMaskedEdits(ApplyMaskedEditsOp),
+    ApplyFraming(ApplyFramingOp),
 }
 
 impl Op {
@@ -53,6 +54,7 @@ impl Op {
             Op::SubtractMask(ref o) => vec![o.mask_0, o.mask_1],
             Op::InvertMask(ref o) => vec![o.mask_0],
             Op::ApplyMaskedEdits(ref o) => vec![o.original_target, o.edited, o.mask],
+            Op::ApplyFraming(ref o) => vec![o.arg],
         }
     }
 
@@ -80,6 +82,7 @@ impl Op {
             Op::SubtractMask(ref o) => o.result,
             Op::InvertMask(ref o) => o.result,
             Op::ApplyMaskedEdits(ref o) => o.result,
+            Op::ApplyFraming(ref o) => o.result,
         }
     }
 }
@@ -258,4 +261,26 @@ pub struct ApplyMaskedEditsOp {
     pub mask: Id,
     pub original_target: Id,
     pub edited: Id,
+}
+
+#[derive(Clone, PartialEq, Debug, serde::Deserialize, serde::Serialize)]
+pub struct Frame {
+    pub aspect_ratio: (u32, u32),
+    pub gap: f32,
+}
+
+impl Frame {
+    pub fn defualt() -> Self {
+        Self {
+            aspect_ratio: (1, 1),
+            gap: 0.1
+        }
+    }
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct ApplyFramingOp {
+    pub result: Id,
+    pub arg: Id,
+    pub frame: Frame,
 }

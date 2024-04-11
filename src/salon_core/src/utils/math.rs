@@ -97,6 +97,36 @@ pub fn reduced_aspect_ratio(dimensions: (u32, u32)) -> (u32, u32) {
     (dimensions.0 / d, dimensions.1 / d)
 }
 
+// find (x, y) whose ratio is closest to true_ratio, where y and x are both between 1 and max_dimension
+pub fn approximate_aspect_ratio(true_ratio: (u32, u32), max_dimension: u32) -> (u32, u32) {
+    let (x, y) = true_ratio;
+    if x == y {
+        return (1, 1);
+    }
+    if x > y {
+        let (y, x) = approximate_aspect_ratio((y, x), max_dimension);
+        return (x, y);
+    }
+    let ratio_f = y as f32 / x as f32;
+    if ratio_f > max_dimension as f32 {
+        return (1, ratio_f.round() as u32);
+    }
+
+    let mut min_diff = ratio_f;
+    let mut best_y = 1;
+    let mut best_x = 1;
+    for x in 1..=max_dimension {
+        let y = (ratio_f * x as f32).round() as u32;
+        let diff = (y as f32 / x as f32 - ratio_f).abs();
+        if diff < min_diff {
+            min_diff = diff;
+            best_x = x;
+            best_y = y;
+        }
+    }
+    (best_x, best_y)
+}
+
 pub fn get_cropped_image_dimensions(
     input_dimensions: (u32, u32),
     crop_rect: Rectangle,

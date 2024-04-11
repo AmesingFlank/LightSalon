@@ -1,4 +1,4 @@
-use crate::ir::{ColorMixGroup, GlobalMask, Mask, MaskPrimitive, MaskTerm};
+use crate::ir::{ColorMixGroup, Frame, GlobalMask, Mask, MaskPrimitive, MaskTerm};
 
 use crate::utils::rectangle::Rectangle;
 
@@ -10,6 +10,7 @@ pub struct Edit {
     pub rotation_degrees: Option<f32>,
     pub crop_rect: Option<Rectangle>,
     pub masked_edits: Vec<MaskedEdit>,
+    pub framing: Option<Frame>,
 }
 
 impl Edit {
@@ -29,6 +30,7 @@ impl Edit {
                 GlobalEdit::new(),
                 "Global".to_string(),
             )],
+            framing: None,
         }
     }
 }

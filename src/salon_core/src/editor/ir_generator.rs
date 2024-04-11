@@ -1,11 +1,15 @@
 use super::{Edit, GlobalEdit, MaskedEdit};
 
-use crate::{ir::{
-    AdjustContrastOp, AdjustExposureOp, AdjustHighlightsAndShadowsOp, AdjustTemperatureAndTintOp,
-    AdjustVibranceAndSaturationOp, AdjustVignetteOp, ApplyCurveOp, ApplyDehazeOp,
-    ApplyMaskedEditsOp, ColorMixGroup, ColorMixOp, ComputeBasicStatisticsOp, ComputeHistogramOp,
-    Id, InputOp, Module, Op, PrepareDehazeOp, ResizeOp, RotateAndCropOp,
-}, utils::rectangle::Rectangle};
+use crate::{
+    ir::{
+        AdjustContrastOp, AdjustExposureOp, AdjustHighlightsAndShadowsOp,
+        AdjustTemperatureAndTintOp, AdjustVibranceAndSaturationOp, AdjustVignetteOp, ApplyCurveOp,
+        ApplyDehazeOp, ApplyFramingOp, ApplyMaskedEditsOp, ColorMixGroup, ColorMixOp,
+        ComputeBasicStatisticsOp, ComputeHistogramOp, Id, InputOp, Module, Op, PrepareDehazeOp,
+        ResizeOp, RotateAndCropOp,
+    },
+    utils::rectangle::Rectangle,
+};
 
 pub struct IdStore {
     pub final_image: Id,
@@ -41,6 +45,9 @@ pub fn to_ir_module(edit: &Edit) -> (Module, IdStore) {
     }
 
     let final_histogram_id = add_final_histogram(&mut module, &current_output_id);
+
+    maybe_add_framing(edit, &mut module, &mut current_output_id);
+
     let id_store = IdStore {
         final_image: current_output_id,
         geometry_only,
@@ -75,6 +82,18 @@ fn maybe_add_rotate_and_crop(edit: &Edit, module: &mut Module, current_output_id
             crop_rect: edit.crop_rect.clone().unwrap_or(Rectangle::regular()),
         }));
         *current_output_id = cropped_image_id;
+    }
+}
+
+fn maybe_add_framing(edit: &Edit, module: &mut Module, current_output_id: &mut Id) {
+    if edit.framing.is_some() {
+        let framed_image_id = module.alloc_id();
+        module.push_op(Op::ApplyFraming(ApplyFramingOp {
+            result: framed_image_id,
+            arg: *current_output_id,
+            frame: edit.framing.clone().unwrap(),
+        }));
+        *current_output_id = framed_image_id;
     }
 }
 
