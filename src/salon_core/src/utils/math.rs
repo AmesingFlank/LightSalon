@@ -89,7 +89,10 @@ pub fn greatest_common_denominator(a: u32, b: u32) -> u32 {
     bigger
 }
 
-pub fn integer_aspect_ratio(dimensions: (u32, u32)) -> (u32, u32) {
+pub fn reduced_aspect_ratio(dimensions: (u32, u32)) -> (u32, u32) {
+    if dimensions.0 == 0 || dimensions.1 == 0 {
+        return dimensions;
+    }
     let d = greatest_common_denominator(dimensions.0, dimensions.1);
     (dimensions.0 / d, dimensions.1 / d)
 }

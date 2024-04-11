@@ -30,6 +30,8 @@ pub struct AppUiState {
     pub mask_edit_state: MaskEditState,
 
     pub import_image_dialog: ImageImportDialog,
+
+    pub crop_rect_aspect_ratio: (u32, u32),
 }
 
 impl AppUiState {
@@ -52,6 +54,7 @@ impl AppUiState {
                 toolbox.clone(),
                 context.clone(),
             ),
+            crop_rect_aspect_ratio: (0, 0),
         }
     }
 
@@ -138,7 +141,7 @@ impl CropDragEdgeOrCorner {
             _ => false,
         }
     }
-    
+
     pub fn has_left(&self) -> bool {
         match *self {
             CropDragEdgeOrCorner::Left
