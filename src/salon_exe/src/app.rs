@@ -1,4 +1,4 @@
-use crate::ui::widgets::ImageGeometryEditRenderResources;
+use crate::ui::widgets::{ImageFramingRenderResources, ImageGeometryEditRenderResources};
 use crate::ui::AddedImage;
 use crate::ui::{
     self, file_menu,
@@ -125,6 +125,10 @@ impl App {
         renderer.callback_resources.insert(resources);
 
         let resources =
+            ImageFramingRenderResources::new(runtime.clone(), wgpu_render_state.target_format);
+        renderer.callback_resources.insert(resources);
+
+        let resources =
             ThumbnailRenderResources::new(runtime.clone(), wgpu_render_state.target_format);
         renderer.callback_resources.insert(resources);
 
@@ -145,6 +149,10 @@ impl App {
         resources.reset();
 
         let resources: &mut ImageGeometryEditRenderResources =
+            renderer.callback_resources.get_mut().unwrap();
+        resources.reset();
+
+        let resources: &mut ImageFramingRenderResources =
             renderer.callback_resources.get_mut().unwrap();
         resources.reset();
 

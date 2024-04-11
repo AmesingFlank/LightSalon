@@ -25,7 +25,7 @@ use salon_core::utils::rectangle::Rectangle;
 use salon_core::utils::vec::{vec2, Vec2};
 
 use super::utils::{get_abs_x_in_rect, get_abs_y_in_rect, get_max_image_size, pos2_to_vec2};
-use super::widgets::{ImageGeometryEditCallback, MainImageCallback};
+use super::widgets::{ImageFramingCallback, ImageGeometryEditCallback, MainImageCallback};
 use super::{AppUiState, CropDragEdgeOrCorner, EditorPanel, MaskEditState};
 
 pub fn main_image(
@@ -71,10 +71,16 @@ fn show_main_image(
     session: &mut Session,
     ui_state: &mut AppUiState,
 ) {
-    if ui_state.editor_panel == EditorPanel::CropAndRotate {
-        image_crop_and_rotate(ctx, ui, session, ui_state);
-    } else {
-        show_edited_image(ctx, ui, session, ui_state);
+    match ui_state.editor_panel {
+        EditorPanel::CropAndRotate => {
+            image_crop_and_rotate(ctx, ui, session, ui_state);
+        }
+        EditorPanel::Framing => {
+            image_framing(ctx, ui, session, ui_state);
+        }
+        EditorPanel::LightAndColor => {
+            show_edited_image(ctx, ui, session, ui_state);
+        }
     }
 }
 
@@ -160,6 +166,44 @@ fn show_edited_image(
                 if should_commit {
                     session.editor.commit_transient_edit(false);
                 }
+            }
+        }
+    });
+}
+
+fn image_framing(
+    ctx: &egui::Context,
+    ui: &mut Ui,
+    session: &mut Session,
+    ui_state: &mut AppUiState,
+) {
+    let context = session.editor.current_edit_context_mut().unwrap();
+    let framing = context.transient_edit_ref().framing.clone();
+
+    if framing.is_none() {
+        show_edited_image(ctx, ui, session, ui_state);
+        return;
+    }
+    let framing = framing.unwrap();
+
+    ui.centered_and_justified(|ui| {
+        if let Some(ref result) = context.current_result {
+            let image_before_framing = result.before_framing.clone();
+            let main_image_callback = ImageFramingCallback {
+                image: image_before_framing,
+                framing,
+                ui_max_rect: ui.max_rect(),
+            };
+
+            let main_image_rect = main_image_callback.image_ui_rect();
+            let response = ui.allocate_rect(main_image_rect, egui::Sense::drag());
+            ui.painter().add(egui_wgpu::Callback::new_paint_callback(
+                main_image_rect,
+                main_image_callback,
+            ));
+
+            if ui_state.show_grid {
+                draw_grid_impl(ui, main_image_rect, ui_state);
             }
         }
     });

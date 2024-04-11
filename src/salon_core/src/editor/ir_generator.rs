@@ -14,6 +14,7 @@ use crate::{
 pub struct IdStore {
     pub final_image: Id,
     pub geometry_only: Id,
+    pub before_framing: Id,
     pub final_histogram: Id,
     pub masked_edit_id_stores: Vec<MaskedEditIdStore>,
 }
@@ -44,6 +45,8 @@ pub fn to_ir_module(edit: &Edit) -> (Module, IdStore) {
         masked_edit_id_stores.push(masked_id_store);
     }
 
+    let before_framing = current_output_id;
+
     let final_histogram_id = add_final_histogram(&mut module, &current_output_id);
 
     maybe_add_framing(edit, &mut module, &mut current_output_id);
@@ -51,6 +54,7 @@ pub fn to_ir_module(edit: &Edit) -> (Module, IdStore) {
     let id_store = IdStore {
         final_image: current_output_id,
         geometry_only,
+        before_framing,
         final_histogram: final_histogram_id,
         masked_edit_id_stores,
     };

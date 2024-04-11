@@ -50,7 +50,7 @@ impl ApplyFramingImpl {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
 
         let input_dimensions = input_img.properties.dimensions;
-        let output_aspect_ratio = op.frame.aspect_ratio.1 as f32 / op.frame.aspect_ratio.0 as f32;
+        let output_aspect_ratio = op.frame.aspect_ratio_float();
         let output_dimensions = if input_img.aspect_ratio() >= output_aspect_ratio {
             let output_y = ((1.0 + op.frame.gap) * input_dimensions.1 as f32) as u32;
             let output_x = (output_y as f32 / output_aspect_ratio) as u32;
