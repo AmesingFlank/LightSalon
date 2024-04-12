@@ -177,33 +177,47 @@ fn image_framing(
     session: &mut Session,
     ui_state: &mut AppUiState,
 ) {
-    let context = session.editor.current_edit_context_mut().unwrap();
-    let framing = context.transient_edit_ref().framing.clone();
-
-    if framing.is_none() {
-        show_edited_image(ctx, ui, session, ui_state);
-        return;
-    }
-    let framing = framing.unwrap();
-
     ui.centered_and_justified(|ui| {
+        let context = session.editor.current_edit_context_mut().unwrap();
+        let framing = context.transient_edit_ref().framing.clone();
         if let Some(ref result) = context.current_result {
-            let image_before_framing = result.before_framing.clone();
-            let main_image_callback = ImageFramingCallback {
-                image: image_before_framing,
-                framing,
-                ui_max_rect: ui.max_rect(),
-            };
+            if framing.is_none() {
+                let main_image_callback = MainImageCallback {
+                    image: result.final_image.clone(),
+                    mask: None,
+                    ui_max_rect: ui.max_rect(),
+                };
 
-            let main_image_rect = main_image_callback.image_ui_rect();
-            let response = ui.allocate_rect(main_image_rect, egui::Sense::drag());
-            ui.painter().add(egui_wgpu::Callback::new_paint_callback(
-                main_image_rect,
-                main_image_callback,
-            ));
+                let main_image_rect = main_image_callback.image_ui_rect();
+                let response = ui.allocate_rect(main_image_rect, egui::Sense::drag());
+                ui.painter().add(egui_wgpu::Callback::new_paint_callback(
+                    main_image_rect,
+                    main_image_callback,
+                ));
 
-            if ui_state.show_grid {
-                draw_grid_impl(ui, main_image_rect, ui_state);
+                if ui_state.show_grid {
+                    draw_grid_impl(ui, main_image_rect, ui_state);
+                }
+            } else {
+                let framing = framing.unwrap();
+
+                let image_before_framing = result.before_framing.clone();
+                let main_image_callback = ImageFramingCallback {
+                    image: image_before_framing,
+                    framing,
+                    ui_max_rect: ui.max_rect(),
+                };
+
+                let main_image_rect = main_image_callback.image_ui_rect();
+                let response = ui.allocate_rect(main_image_rect, egui::Sense::drag());
+                ui.painter().add(egui_wgpu::Callback::new_paint_callback(
+                    main_image_rect,
+                    main_image_callback,
+                ));
+
+                if ui_state.show_grid {
+                    draw_grid_impl(ui, main_image_rect, ui_state);
+                }
             }
         }
     });

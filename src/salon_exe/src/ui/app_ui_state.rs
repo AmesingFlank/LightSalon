@@ -33,6 +33,8 @@ pub struct AppUiState {
 
     pub crop_rect_aspect_ratio: (u32, u32),
     pub framing_aspect_ratio: (u32, u32),
+
+    pub main_image_zoom: Option<MainImageZoom>,
 }
 
 impl AppUiState {
@@ -57,6 +59,7 @@ impl AppUiState {
             ),
             crop_rect_aspect_ratio: (0, 0),
             framing_aspect_ratio: (0, 0),
+            main_image_zoom: None,
         }
     }
 
@@ -197,4 +200,18 @@ impl MaskEditState {
 pub enum AddedImage {
     Image(Arc<Image>),
     ImagesFromPaths(Vec<PathBuf>),
+}
+
+pub struct MainImageZoom {
+    pub zoom: f32,
+    pub translation: egui::Vec2,
+}
+
+impl MainImageZoom {
+    pub fn default() -> Self {
+        Self {
+            zoom: 1.0,
+            translation: egui::Vec2 { x: 0.0, y: 0.0 },
+        }
+    }
 }
