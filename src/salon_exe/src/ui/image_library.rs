@@ -8,9 +8,13 @@ use salon_core::session::Session;
 use super::{widgets::ThumbnailCallback, AppUiState};
 
 pub fn image_library(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
-    let mut table = TableBuilder::new(ui).column(Column::auto()).cell_layout(
-        egui::Layout::centered_and_justified(egui::Direction::TopDown),
-    );
+    let max_height = ui.available_height();
+    let mut table = TableBuilder::new(ui)
+        .column(Column::auto())
+        .cell_layout(egui::Layout::centered_and_justified(
+            egui::Direction::TopDown,
+        ))
+        .max_scroll_height(max_height);
     let row_height = ui_state.last_frame_size.unwrap().1 * 0.1;
     let image_height = row_height * 0.8;
     table.body(|mut body| {
