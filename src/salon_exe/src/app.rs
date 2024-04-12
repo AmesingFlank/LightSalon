@@ -179,10 +179,14 @@ impl App {
     fn maybe_handled_imported_image(&mut self) {
         while let Some(added_image) = self.ui_state.import_image_dialog.get_added_image() {
             match added_image {
-                AddedImage::ImageFromPath(path) => {
-                    let identifier = self.session.library.add_item_from_path(path);
-                    self.session.set_current_image(identifier);
-                    self.ui_state.reset_for_different_image();
+                AddedImage::ImagesFromPaths(paths) => {
+                    for i in 0..paths.len() {
+                        let identifier = self.session.library.add_item_from_path(paths[i].clone());
+                        if i == paths.len() - 1 {
+                            self.session.set_current_image(identifier);
+                            self.ui_state.reset_for_different_image();
+                        }
+                    }
                 }
                 AddedImage::Image(image) => {
                     let identifier = self.session.library.add_image_temp(image);

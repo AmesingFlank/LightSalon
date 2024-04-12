@@ -294,14 +294,16 @@ impl ImageImportDialog {
         execute(async move {
             let files = task.await;
             if let Some(files) = files {
+                let mut paths = Vec::new();
                 for file in files {
                     let pathbuf = file.path().to_path_buf();
-                    let added_image = AddedImage::ImageFromPath(pathbuf);
-                    sender
-                        .send(added_image)
-                        .expect("failed to send added image");
-                    context.request_repaint();
+                    paths.push(pathbuf);
                 }
+                let added_image = AddedImage::ImagesFromPaths(paths);
+                sender
+                    .send(added_image)
+                    .expect("failed to send added image");
+                context.request_repaint();
             }
         });
     }
