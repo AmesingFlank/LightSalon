@@ -202,6 +202,8 @@ pub enum AddedImage {
     ImagesFromPaths(Vec<PathBuf>),
 }
 
+
+#[derive(Clone)]
 pub struct MainImageZoom {
     pub zoom: f32,
     pub translation: egui::Vec2,

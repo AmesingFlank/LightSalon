@@ -46,6 +46,7 @@ pub fn main_image(
                 let main_image_callback = MainImageCallback {
                     image: original_image.clone(),
                     mask: None,
+                    zoom: None,
                     ui_max_rect: ui.max_rect(),
                 };
 
@@ -136,6 +137,7 @@ fn show_edited_image(
             let main_image_callback = MainImageCallback {
                 image: result.final_image.clone(),
                 mask,
+                zoom: ui_state.main_image_zoom.clone(),
                 ui_max_rect: ui.max_rect(),
             };
 
@@ -167,6 +169,9 @@ fn show_edited_image(
                     session.editor.commit_transient_edit(false);
                 }
             }
+            else {
+
+            }
         }
     });
 }
@@ -185,6 +190,7 @@ fn image_framing(
                 let main_image_callback = MainImageCallback {
                     image: result.final_image.clone(),
                     mask: None,
+                    zoom: None,
                     ui_max_rect: ui.max_rect(),
                 };
 

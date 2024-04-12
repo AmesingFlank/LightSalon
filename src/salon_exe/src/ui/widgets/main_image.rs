@@ -15,12 +15,13 @@ use salon_core::runtime::{Buffer, BufferProperties, RingBuffer};
 use salon_core::shader::{Shader, ShaderLibraryModule};
 use salon_core::utils::rectangle::Rectangle;
 
-use crate::ui::get_ui_crop_rect;
+use crate::ui::{get_ui_crop_rect, MainImageZoom};
 use crate::ui::utils::get_max_image_size;
 
 pub struct MainImageCallback {
     pub image: Arc<Image>,
     pub mask: Option<Arc<Image>>,
+    pub zoom: Option<MainImageZoom>,
     pub ui_max_rect: egui::Rect,
 }
 
