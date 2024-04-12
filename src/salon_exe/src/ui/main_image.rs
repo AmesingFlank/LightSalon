@@ -168,9 +168,7 @@ fn show_edited_image(
                 if should_commit {
                     session.editor.commit_transient_edit(false);
                 }
-            }
-            else {
-
+            } else {
             }
         }
     });
@@ -188,7 +186,7 @@ fn image_framing(
         if let Some(ref result) = context.current_result {
             if framing.is_none() {
                 let main_image_callback = MainImageCallback {
-                    image: result.final_image.clone(),
+                    image: result.before_framing.clone(),
                     mask: None,
                     zoom: None,
                     ui_max_rect: ui.max_rect(),
@@ -207,9 +205,8 @@ fn image_framing(
             } else {
                 let framing = framing.unwrap();
 
-                let image_before_framing = result.before_framing.clone();
                 let main_image_callback = ImageFramingCallback {
-                    image: image_before_framing,
+                    image: result.before_framing.clone(),
                     framing,
                     ui_max_rect: ui.max_rect(),
                 };
