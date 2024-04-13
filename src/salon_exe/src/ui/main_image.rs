@@ -43,6 +43,7 @@ pub fn main_image(
         ui.columns(2, |columns| {
             columns[0].centered_and_justified(|ui| {
                 let context = session.editor.current_edit_context_ref().unwrap();
+                
                 let original_image = context.input_image();
 
                 let main_image_callback = MainImageCallback {
@@ -139,7 +140,7 @@ fn show_edited_image(
 
             let main_image_callback = MainImageCallback {
                 context: ctx.clone(),
-                image: result.final_image.clone(),
+                image: result.before_framing.clone(),
                 mask,
                 zoom: ui_state.main_image_zoom.clone(),
                 ui_max_rect: ui.max_rect(),
