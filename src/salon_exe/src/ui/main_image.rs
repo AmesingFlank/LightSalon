@@ -41,28 +41,7 @@ pub fn main_image(
     }
     if ui_state.show_comparison {
         ui.columns(2, |columns| {
-            columns[0].centered_and_justified(|ui| {
-                let context = session.editor.current_edit_context_ref().unwrap();
-                
-                let original_image = context.input_image();
-
-                let main_image_callback = MainImageCallback {
-                    context: ctx.clone(),
-                    image: original_image.clone(),
-                    mask: None,
-                    zoom: None,
-                    ui_max_rect: ui.max_rect(),
-                };
-
-                let main_image_rect = main_image_callback.image_ui_rect();
-
-                let _response = ui.allocate_rect(main_image_rect, egui::Sense::drag());
-
-                ui.painter().add(egui_wgpu::Callback::new_paint_callback(
-                    main_image_rect,
-                    main_image_callback,
-                ));
-            });
+            show_comparison_reference_image(ctx, &mut columns[0], session, ui_state);
             show_main_image(ctx, &mut columns[1], session, ui_state);
         });
     } else {
@@ -87,6 +66,41 @@ fn show_main_image(
             show_edited_image(ctx, ui, session, ui_state);
         }
     }
+}
+
+fn show_comparison_reference_image(
+    ctx: &egui::Context,
+    ui: &mut Ui,
+    session: &mut Session,
+    ui_state: &mut AppUiState,
+) {
+    ui.centered_and_justified(|ui| {
+        let context = session.editor.current_edit_context_ref().unwrap();
+        if let Some(ref result) = context.current_result {
+            let original_image = match ui_state.editor_panel {
+                EditorPanel::CropAndRotate => context.input_image().clone(),
+                EditorPanel::Framing => result.before_framing.clone(),
+                EditorPanel::LightAndColor => result.geometry_only.clone(),
+            };
+
+            let main_image_callback = MainImageCallback {
+                context: ctx.clone(),
+                image: original_image.clone(),
+                mask: None,
+                zoom: None,
+                ui_max_rect: ui.max_rect(),
+            };
+
+            let main_image_rect = main_image_callback.image_ui_rect();
+
+            let _response = ui.allocate_rect(main_image_rect, egui::Sense::drag());
+
+            ui.painter().add(egui_wgpu::Callback::new_paint_callback(
+                main_image_rect,
+                main_image_callback,
+            ));
+        }
+    });
 }
 
 fn show_edited_image(

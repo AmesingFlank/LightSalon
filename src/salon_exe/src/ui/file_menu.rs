@@ -45,6 +45,7 @@ fn file_dialogue_export_image(
     let runtime = session.runtime.clone();
 
     if let Some(context) = session.editor.current_edit_context_mut() {
+        session.editor.commit_transient_edit(false);
         let result = session.editor.execute_current_edit_original_size();
         let final_image = result.final_image.clone();
         let final_image = session
@@ -74,6 +75,7 @@ fn file_dialogue_export_image(
     let runtime = session.runtime.clone();
 
     if let Some(context) = session.editor.current_edit_context_mut() {
+        session.editor.commit_transient_edit(false);
         let result = session.editor.execute_current_edit_original_size();
         let final_image = result.final_image.clone();
         let final_image = session

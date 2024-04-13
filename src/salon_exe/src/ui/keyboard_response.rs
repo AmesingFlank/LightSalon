@@ -10,9 +10,7 @@ use super::{redo_action, undo_action, utils::legalize_ui_state, AppUiState, Edit
 pub fn keyboard_response(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
     ui.input(|i| {
         if i.key_pressed(egui::Key::Enter) {
-            if ui_state.editor_panel == EditorPanel::CropAndRotate
-                || ui_state.editor_panel == EditorPanel::Framing
-            {
+            if ui_state.editor_panel == EditorPanel::CropAndRotate {
                 ui_state.editor_panel = EditorPanel::LightAndColor;
                 session.editor.commit_transient_edit(true);
             }
