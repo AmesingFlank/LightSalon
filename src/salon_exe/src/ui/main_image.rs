@@ -314,8 +314,7 @@ fn maybe_zoom_image(
     if !main_image_rect.contains(cursor_pos) {
         return;
     }
-    let zoom_delta = ui.ctx().input(|i| i.zoom_delta());
-    let pan_delta = ui.ctx().input(|i| i.smooth_scroll_delta);
+
     if let Some(ref zoom) = ui_state.main_image_zoom.clone() {
         if zoom.zoom.to == 1.0 && zoom.zoom.completed() {
             // a zoom-reset animation has completed, so the image is back to non-zoomed
@@ -352,6 +351,30 @@ fn maybe_zoom_image(
                 ),
             });
             ctx.request_repaint();
+        }
+    }
+
+    let zoom_delta = ui.ctx().input(|i| i.zoom_delta());
+    let pan_delta = ui.ctx().input(|i| i.smooth_scroll_delta);
+
+    if zoom_delta != 1.0 || pan_delta != egui::Vec2::new(0.0, 0.0) {
+        if ui_state.main_image_zoom.is_none() {
+            ui_state.main_image_zoom = Some(MainImageZoom {
+                zoom: AnimatedValue::from_constant(1.0),
+                translation: AnimatedValue::from_constant(egui::Vec2::new(0.0, 0.0)),
+            })
+        }
+        let zoom = ui_state.main_image_zoom.as_mut().unwrap();
+        // do nothing if there's an animation going on
+        if zoom.zoom.completed() && zoom.translation.completed() {
+            let old_zoom = zoom.zoom.get();
+            let new_zoom = old_zoom * zoom_delta;
+            let old_translation = zoom.translation.get();
+            let translation = old_translation
+                + pan_delta
+                + (1.0 - zoom_delta) * (cursor_pos - (main_image_rect.center() + old_translation));
+            zoom.zoom = AnimatedValue::from_constant(new_zoom);
+            zoom.translation = AnimatedValue::from_constant(translation);
         }
     }
 }

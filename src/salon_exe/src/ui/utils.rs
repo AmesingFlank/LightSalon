@@ -79,7 +79,11 @@ impl<T: Add<Output = T> + Sub<Output = T> + Mul<f32, Output = T> + Copy> Animate
             start_time: instant::Instant::now(),
         }
     }
-    
+
+    pub fn from_constant(val: T) -> Self {
+        Self::new(val, val, instant::Duration::from_secs_f32(0.0))
+    }
+
     pub fn get(&self) -> T {
         let now = instant::Instant::now();
         let time_delta = (now - self.start_time).as_secs_f32();
