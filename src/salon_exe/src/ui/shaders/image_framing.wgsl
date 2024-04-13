@@ -62,9 +62,12 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
     let offset = (output_size - image_size) / 2;
     let pos_in_input = pos_in_output - offset;
     var color = vec4(1.0);
-    if (pos_in_input.x >= 0 && pos_in_input.y >= 0 && pos_in_input.x < image_size.x && pos_in_input.y < image_size.y){
-        let uv_in_input = vec2<f32>(pos_in_input) / vec2<f32>(image_size - 1u);
-        color = textureSample(tex, tex_sampler, uv_in_input);
+    
+    let uv_in_input = vec2<f32>(pos_in_input) / vec2<f32>(image_size - 1u);
+    let color_in_input = textureSample(tex, tex_sampler, uv_in_input);
+    
+    if (uv_in_input.x >= 0.0 && uv_in_input.y >= 0.0 && uv_in_input.x < 1.0 && uv_in_input.y < 1.0){
+        color = color_in_input;
         if (params.image_color_space == COLOR_SPACE_LINEAR_RGB) {
             color = vec4(linear_to_srgb(color.rgb), 1.0);
         }
