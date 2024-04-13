@@ -1,3 +1,5 @@
+use std::ops::{Add, Mul, Sub};
+
 use eframe::{
     egui::{self, Ui},
     epaint::Pos2,
@@ -58,4 +60,37 @@ pub fn get_max_image_size(image_aspect_ratio: f32, max_width: f32, max_height: f
         }
     };
     size
+}
+
+#[derive(Clone)]
+pub struct AnimatedValue<T: Add<Output = T> + Sub<Output = T> + Mul<f32, Output = T> + Copy> {
+    pub from: T,
+    pub to: T,
+    pub duration: instant::Duration,
+    start_time: instant::Instant,
+}
+
+impl<T: Add<Output = T> + Sub<Output = T> + Mul<f32, Output = T> + Copy> AnimatedValue<T> {
+    pub fn new(from: T, to: T, duration: instant::Duration) -> Self {
+        Self {
+            from,
+            to,
+            duration,
+            start_time: instant::Instant::now(),
+        }
+    }
+    
+    pub fn get(&self) -> T {
+        let now = instant::Instant::now();
+        let time_delta = (now - self.start_time).as_secs_f32();
+        let ratio = time_delta / self.duration.as_secs_f32();
+        let ratio = ratio.min(1.0);
+        self.from + (self.to - self.from) * ratio
+    }
+
+    pub fn completed(&self) -> bool {
+        let now = instant::Instant::now();
+        let time_delta = (now - self.start_time).as_secs_f32();
+        time_delta >= self.duration.as_secs_f32()
+    }
 }

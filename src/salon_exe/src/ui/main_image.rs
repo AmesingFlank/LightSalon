@@ -24,7 +24,9 @@ use salon_core::utils::math::{
 use salon_core::utils::rectangle::Rectangle;
 use salon_core::utils::vec::{vec2, Vec2};
 
-use super::utils::{get_abs_x_in_rect, get_abs_y_in_rect, get_max_image_size, pos2_to_vec2};
+use super::utils::{
+    get_abs_x_in_rect, get_abs_y_in_rect, get_max_image_size, pos2_to_vec2, AnimatedValue,
+};
 use super::widgets::{ImageFramingCallback, ImageGeometryEditCallback, MainImageCallback};
 use super::{AppUiState, CropDragEdgeOrCorner, EditorPanel, MainImageZoom, MaskEditState};
 
@@ -44,6 +46,7 @@ pub fn main_image(
                 let original_image = context.input_image();
 
                 let main_image_callback = MainImageCallback {
+                    context: ctx.clone(),
                     image: original_image.clone(),
                     mask: None,
                     zoom: None,
@@ -135,6 +138,7 @@ fn show_edited_image(
             }
 
             let main_image_callback = MainImageCallback {
+                context: ctx.clone(),
                 image: result.final_image.clone(),
                 mask,
                 zoom: ui_state.main_image_zoom.clone(),
@@ -178,7 +182,7 @@ fn show_edited_image(
                     session.editor.commit_transient_edit(false);
                 }
             } else {
-                maybe_zoom_image(ui, ui_state, main_image_rect, response);
+                maybe_zoom_image(ctx, ui, ui_state, main_image_rect, response);
             }
         }
     });
@@ -196,6 +200,7 @@ fn image_framing(
         if let Some(ref result) = context.current_result {
             if framing.is_none() {
                 let main_image_callback = MainImageCallback {
+                    context: ctx.clone(),
                     image: result.before_framing.clone(),
                     mask: None,
                     zoom: None,
@@ -296,6 +301,7 @@ fn image_crop_and_rotate(
 }
 
 fn maybe_zoom_image(
+    ctx: &egui::Context,
     ui: &mut Ui,
     ui_state: &mut AppUiState,
     main_image_rect: egui::Rect,
@@ -310,19 +316,42 @@ fn maybe_zoom_image(
     }
     let zoom_delta = ui.ctx().input(|i| i.zoom_delta());
     let pan_delta = ui.ctx().input(|i| i.smooth_scroll_delta);
-    if let Some(zoom) = ui_state.main_image_zoom.clone() {
+    if let Some(ref zoom) = ui_state.main_image_zoom.clone() {
+        if zoom.zoom.to == 1.0 && zoom.zoom.completed() {
+            // a zoom-reset animation has completed, so the image is back to non-zoomed
+            ui_state.main_image_zoom = None
+        }
+    }
+
+    let animation_duration = instant::Duration::from_secs_f32(0.1);
+    if let Some(ref curr_zoom) = ui_state.main_image_zoom.clone() {
         ui.output_mut(|out| out.cursor_icon = CursorIcon::Grab);
-        if response.clicked() {}
+        if response.clicked() {
+            // zoom-reset
+            ui_state.main_image_zoom = Some(MainImageZoom {
+                zoom: AnimatedValue::new(curr_zoom.zoom.get(), 1.0, animation_duration),
+                translation: AnimatedValue::new(
+                    curr_zoom.translation.get(),
+                    egui::Vec2::new(0.0, 0.0),
+                    animation_duration,
+                ),
+            });
+            ctx.request_repaint();
+        }
     } else {
         ui.output_mut(|out| out.cursor_icon = CursorIcon::ZoomIn);
         if response.clicked() {
-            let default_zoom = 2.0 as f32;
+            let default_zoom = 3.0 as f32;
             let translation = (1.0 - default_zoom) * (cursor_pos - main_image_rect.center());
             ui_state.main_image_zoom = Some(MainImageZoom {
-                zoom: 2.0,
-                zoom_animation_weight: 0.0,
-                translation: translation,
-            })
+                zoom: AnimatedValue::new(1.0, default_zoom, animation_duration),
+                translation: AnimatedValue::new(
+                    egui::Vec2::new(0.0, 0.0),
+                    translation,
+                    animation_duration,
+                ),
+            });
+            ctx.request_repaint();
         }
     }
 }

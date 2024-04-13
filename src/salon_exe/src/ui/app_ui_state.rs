@@ -7,6 +7,7 @@ use eframe::egui;
 use salon_core::library::LibraryImageIdentifier;
 use salon_core::runtime::{Image, Runtime, Toolbox};
 
+use super::utils::AnimatedValue;
 use super::ImageImportDialog;
 
 pub struct AppUiState {
@@ -206,7 +207,6 @@ pub enum AddedImage {
 
 #[derive(Clone)]
 pub struct MainImageZoom {
-    pub zoom: f32,
-    pub zoom_animation_weight: f32,
-    pub translation: egui::Vec2,
+    pub zoom: AnimatedValue<f32>,
+    pub translation: AnimatedValue<egui::Vec2>,
 }
