@@ -323,7 +323,7 @@ fn maybe_zoom_image(
     }
 
     let animation_duration = instant::Duration::from_secs_f32(0.1);
-    if let Some(ref curr_zoom) = ui_state.main_image_zoom.clone() {
+    if let Some(curr_zoom) = ui_state.main_image_zoom.clone() {
         ui.output_mut(|out| out.cursor_icon = CursorIcon::Grab);
         if response.clicked() {
             // zoom-reset
@@ -336,6 +336,17 @@ fn maybe_zoom_image(
                 ),
             });
             ctx.request_repaint();
+        }
+        if response.dragged() {
+            ui.output_mut(|out| out.cursor_icon = CursorIcon::Grabbing);
+            // do nothing if there's an animation going on
+            if curr_zoom.zoom.completed() && curr_zoom.translation.completed() {
+                let zoom = AnimatedValue::from_constant(curr_zoom.zoom.get());
+                let translation = AnimatedValue::from_constant(
+                    curr_zoom.translation.get() + response.drag_delta(),
+                );
+                ui_state.main_image_zoom = Some(MainImageZoom { zoom, translation });
+            }
         }
     } else {
         ui.output_mut(|out| out.cursor_icon = CursorIcon::ZoomIn);
