@@ -389,6 +389,10 @@ fn maybe_select_term(ui_state: &mut AppUiState, term_index: usize) {
         ui_state.selected_mask_term_index = None;
     } else {
         ui_state.selected_mask_term_index = Some(term_index);
+
+        // this enters the term-edit mode, which requires mask primitive control points to be drawn
+        // at the moment, the mask primitive drawing and editting logic in main_image assumes the image is not zoomed
+        ui_state.main_image_zoom = None;
     }
 }
 
