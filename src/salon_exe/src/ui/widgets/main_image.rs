@@ -15,8 +15,8 @@ use salon_core::runtime::{Buffer, BufferProperties, RingBuffer};
 use salon_core::shader::{Shader, ShaderLibraryModule};
 use salon_core::utils::rectangle::Rectangle;
 
-use crate::ui::{get_ui_crop_rect, MainImageZoom};
 use crate::ui::utils::get_max_image_size;
+use crate::ui::{get_ui_crop_rect, MainImageZoom};
 
 pub struct MainImageCallback {
     pub image: Arc<Image>,
@@ -26,15 +26,27 @@ pub struct MainImageCallback {
 }
 
 impl MainImageCallback {
-    pub fn image_ui_rect(&self) -> egui::Rect {
+    fn full_image_ui_rect(&self) -> egui::Rect {
+        let mut zoom_ratio = 1.0;
+        let mut translation = egui::Vec2 { x: 0.0, y: 0.0 };
+
+        if let Some(ref zoom) = self.zoom {
+            zoom_ratio = zoom.zoom;
+            translation = zoom.translation;
+        }
         let full_image_ui_rect_size = get_max_image_size(
             self.image.aspect_ratio(),
-            self.ui_max_rect.width(),
-            self.ui_max_rect.height(),
+            self.ui_max_rect.width() * zoom_ratio,
+            self.ui_max_rect.height() * zoom_ratio,
         );
-        let full_image_ui_rect =
-            egui::Rect::from_center_size(self.ui_max_rect.center(), full_image_ui_rect_size);
+        let full_image_ui_rect = egui::Rect::from_center_size(
+            self.ui_max_rect.center() + translation,
+            full_image_ui_rect_size,
+        );
         full_image_ui_rect
+    }
+    pub fn image_ui_rect(&self) -> egui::Rect {
+        self.full_image_ui_rect().intersect(self.ui_max_rect)
     }
 }
 
@@ -86,7 +98,7 @@ impl MainImageRenderResources {
         let ring_buffer = RingBuffer::new(
             runtime.clone(),
             BufferProperties {
-                size: size_of::<u32>() * 2,
+                size: size_of::<u32>() * 2 + size_of::<f32>() * 4,
                 host_readable: false,
             },
         );
@@ -128,6 +140,19 @@ impl MainImageRenderResources {
                 render_call.image.properties.color_space as u32,
                 render_call.mask.is_some() as u32,
             ]),
+        );
+
+        let full_image_rect = render_call.full_image_ui_rect();
+        let allocated_rect = render_call.image_ui_rect();
+        let min_uv = (allocated_rect.min - full_image_rect.center()) / full_image_rect.size()
+            + egui::Vec2::new(0.5, 0.5);
+        let max_uv = (allocated_rect.max - full_image_rect.center()) / full_image_rect.size()
+            + egui::Vec2::new(0.5, 0.5);
+
+        queue.write_buffer(
+            &buffer.buffer,
+            (size_of::<u32>() * 2) as u64,
+            bytemuck::cast_slice(&[min_uv.x as f32, min_uv.y, max_uv.x, max_uv.y]),
         );
 
         let bind_group_desc = BindGroupDescriptor {

@@ -69,6 +69,7 @@ impl AppUiState {
         self.selected_mask_index = 0;
         self.selected_mask_term_index = None;
         self.mask_edit_state.dragged_control_point_index = None;
+        self.main_image_zoom = None;
     }
 }
 
@@ -206,14 +207,6 @@ pub enum AddedImage {
 #[derive(Clone)]
 pub struct MainImageZoom {
     pub zoom: f32,
+    pub zoom_animation_weight: f32,
     pub translation: egui::Vec2,
-}
-
-impl MainImageZoom {
-    pub fn default() -> Self {
-        Self {
-            zoom: 1.0,
-            translation: egui::Vec2 { x: 0.0, y: 0.0 },
-        }
-    }
 }

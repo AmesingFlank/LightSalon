@@ -6,6 +6,11 @@ struct VertexOut {
 struct Params {
     image_color_space: u32,
     indicate_mask: u32,
+
+    min_u: f32,
+    min_v: f32,
+    max_u: f32,
+    max_v: f32,
 };
 
 @group(0) @binding(0)
@@ -44,7 +49,10 @@ fn vs_main(@builtin(vertex_index) vertex_idx: u32) -> VertexOut {
 
 @fragment
 fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
-    let uv = in.uv;
+    let min_uv = vec2(params.min_u, params.min_v);
+    let max_uv = vec2(params.max_u, params.max_v);
+    var uv = in.uv;
+    uv = min_uv + uv * (max_uv - min_uv);
     var color = textureSample(tex, tex_sampler, uv).rgb;
 
     let image_size = textureDimensions(tex);

@@ -26,7 +26,7 @@ use salon_core::utils::vec::{vec2, Vec2};
 
 use super::utils::{get_abs_x_in_rect, get_abs_y_in_rect, get_max_image_size, pos2_to_vec2};
 use super::widgets::{ImageFramingCallback, ImageGeometryEditCallback, MainImageCallback};
-use super::{AppUiState, CropDragEdgeOrCorner, EditorPanel, MaskEditState};
+use super::{AppUiState, CropDragEdgeOrCorner, EditorPanel, MainImageZoom, MaskEditState};
 
 pub fn main_image(
     ctx: &egui::Context,
@@ -141,17 +141,26 @@ fn show_edited_image(
                 ui_max_rect: ui.max_rect(),
             };
 
+            let is_editing_mask_term = ui_state.selected_mask_term_index.is_some();
+            let sense = if is_editing_mask_term {
+                egui::Sense::drag()
+            } else {
+                egui::Sense::click_and_drag()
+            };
+
             let main_image_rect = main_image_callback.image_ui_rect();
-            let response = ui.allocate_rect(main_image_rect, egui::Sense::drag());
-            ui.painter().add(egui_wgpu::Callback::new_paint_callback(
-                main_image_rect,
-                main_image_callback,
-            ));
+            let response = ui.allocate_rect(main_image_rect, sense);
+            ui.painter_at(ui.max_rect())
+                .add(egui_wgpu::Callback::new_paint_callback(
+                    main_image_rect,
+                    main_image_callback,
+                ));
 
             if ui_state.show_grid {
                 draw_grid_impl(ui, main_image_rect, ui_state);
             }
-            if let Some(term_index) = ui_state.selected_mask_term_index {
+            if is_editing_mask_term {
+                let term_index = ui_state.selected_mask_term_index.unwrap();
                 let mut transient_edit = context.transient_edit_ref().clone();
                 let primitive = &mut transient_edit.masked_edits[ui_state.selected_mask_index]
                     .mask
@@ -169,6 +178,7 @@ fn show_edited_image(
                     session.editor.commit_transient_edit(false);
                 }
             } else {
+                maybe_zoom_image(ui, ui_state, main_image_rect, response);
             }
         }
     });
@@ -283,6 +293,38 @@ fn image_crop_and_rotate(
             session.editor.update_transient_edit(transient_edit, false);
         }
     });
+}
+
+fn maybe_zoom_image(
+    ui: &mut Ui,
+    ui_state: &mut AppUiState,
+    main_image_rect: egui::Rect,
+    response: egui::Response,
+) {
+    if response.hover_pos().is_none() {
+        return;
+    }
+    let cursor_pos = response.hover_pos().unwrap();
+    if !main_image_rect.contains(cursor_pos) {
+        return;
+    }
+    let zoom_delta = ui.ctx().input(|i| i.zoom_delta());
+    let pan_delta = ui.ctx().input(|i| i.smooth_scroll_delta);
+    if let Some(zoom) = ui_state.main_image_zoom.clone() {
+        ui.output_mut(|out| out.cursor_icon = CursorIcon::Grab);
+        if response.clicked() {}
+    } else {
+        ui.output_mut(|out| out.cursor_icon = CursorIcon::ZoomIn);
+        if response.clicked() {
+            let default_zoom = 2.0 as f32;
+            let translation = (1.0 - default_zoom) * (cursor_pos - main_image_rect.center());
+            ui_state.main_image_zoom = Some(MainImageZoom {
+                zoom: 2.0,
+                zoom_animation_weight: 0.0,
+                translation: translation,
+            })
+        }
+    }
 }
 
 // returns whether pending changes to control points should be committed
