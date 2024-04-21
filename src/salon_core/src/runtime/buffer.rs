@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
-use crate::{ir::Op, runtime::Runtime};
+use crate::{ir::Op, runtime::Runtime, utils::uuid::Uuid};
 
 pub struct Buffer {
     pub properties: BufferProperties,
     pub buffer: wgpu::Buffer,
     pub buffer_host_readable: Option<wgpu::Buffer>,
-    pub uuid: u32,
+    pub uuid: Uuid,
 }
 
 #[derive(Clone, PartialEq, Eq)]

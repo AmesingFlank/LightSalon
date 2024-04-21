@@ -7,10 +7,11 @@ use sha256::TrySha256Digest;
 use crate::runtime::{ColorSpace, Image, ImageReaderJpeg, Toolbox};
 use crate::runtime::{ImageFormat, Runtime};
 use crate::session::Session;
+use crate::utils::uuid::{get_next_uuid, Uuid};
 
 #[derive(PartialEq, Eq, Hash, Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub enum LibraryImageIdentifier {
-    Temp(usize), // images that we no longer have access to after the application closes
+    Temp(Uuid), // images that we no longer have access to after the application closes
     Path(PathBuf),
 }
 
@@ -24,7 +25,6 @@ pub struct Library {
     items: HashMap<LibraryImageIdentifier, LibraryItem>,
     item_indices: HashMap<LibraryImageIdentifier, usize>,
     items_ordered: Vec<LibraryImageIdentifier>,
-    num_temp_images: usize,
     runtime: Arc<Runtime>,
     toolbox: Arc<Toolbox>,
 }
@@ -52,7 +52,6 @@ impl Library {
             items: HashMap::new(),
             item_indices: HashMap::new(),
             items_ordered: Vec::new(),
-            num_temp_images: 0,
             runtime,
             toolbox,
         }
@@ -60,10 +59,6 @@ impl Library {
 
     pub fn num_images_total(&self) -> usize {
         self.items.len() as usize
-    }
-
-    pub fn num_temp_images(&self) -> usize {
-        self.num_temp_images
     }
 
     fn add_item(&mut self, item: LibraryItem, identifier: LibraryImageIdentifier) {
@@ -76,8 +71,7 @@ impl Library {
     }
 
     pub fn add_image_temp(&mut self, image: Arc<Image>) -> LibraryImageIdentifier {
-        let temp_image_id = LibraryImageIdentifier::Temp(self.num_temp_images);
-        self.num_temp_images += 1;
+        let temp_image_id = LibraryImageIdentifier::Temp(get_next_uuid());
 
         let thumbnail = self.compute_thumbnail(image.clone());
         let image = self

@@ -1,4 +1,4 @@
-use crate::runtime::BufferProperties;
+use crate::{runtime::BufferProperties, utils::uuid::Uuid};
 use std::sync::Arc;
 
 use super::{Buffer, Runtime, Toolbox};
@@ -8,7 +8,7 @@ pub struct Image {
     pub texture: wgpu::Texture,
     pub texture_view: wgpu::TextureView,
     pub texture_view_single_mip: Vec<wgpu::TextureView>,
-    pub uuid: u32,
+    pub uuid: Uuid,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]

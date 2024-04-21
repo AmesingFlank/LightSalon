@@ -1,4 +1,6 @@
+use crate::utils::uuid::Uuid;
+
 pub struct Sampler {
     pub sampler: wgpu::Sampler,
-    pub uuid: u32
+    pub uuid: Uuid
 }
