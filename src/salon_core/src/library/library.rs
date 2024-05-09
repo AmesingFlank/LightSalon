@@ -9,6 +9,8 @@ use crate::runtime::{ImageFormat, Runtime};
 use crate::session::Session;
 use crate::utils::uuid::{get_next_uuid, Uuid};
 
+use super::Album;
+
 #[derive(PartialEq, Eq, Hash, Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub enum LibraryImageIdentifier {
     Temp(Uuid), // images that we no longer have access to after the application closes
@@ -19,6 +21,7 @@ struct LibraryItem {
     image: Option<Arc<Image>>,
     thumbnail: Option<Arc<Image>>,
     thumbnail_path: Option<PathBuf>,
+    album: Option<u32>,
 }
 
 pub struct Library {
@@ -27,6 +30,7 @@ pub struct Library {
     items_ordered: Vec<LibraryImageIdentifier>,
     runtime: Arc<Runtime>,
     toolbox: Arc<Toolbox>,
+    albums: Vec<Album>,
 }
 
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
@@ -52,6 +56,7 @@ impl Library {
             items: HashMap::new(),
             item_indices: HashMap::new(),
             items_ordered: Vec::new(),
+            albums: Vec::new(),
             runtime,
             toolbox,
         }
@@ -84,6 +89,7 @@ impl Library {
             image: Some(image),
             thumbnail: Some(thumbnail),
             thumbnail_path: None,
+            album: None,
         };
         self.add_item(library_item, temp_image_id.clone());
         temp_image_id
@@ -95,6 +101,7 @@ impl Library {
             image: None,
             thumbnail: None,
             thumbnail_path: None,
+            album: None,
         };
         self.add_item(item, id.clone());
         id
