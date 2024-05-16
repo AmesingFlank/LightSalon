@@ -9,7 +9,7 @@ use crate::runtime::{ImageFormat, Runtime};
 use crate::session::Session;
 use crate::utils::uuid::{get_next_uuid, Uuid};
 
-use super::Album;
+use super::{album, Album, AlbumPersistentState};
 
 #[derive(PartialEq, Eq, Hash, Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub enum LibraryImageIdentifier {
@@ -21,7 +21,7 @@ struct LibraryItem {
     image: Option<Arc<Image>>,
     thumbnail: Option<Arc<Image>>,
     thumbnail_path: Option<PathBuf>,
-    album: Option<u32>,
+    album: Option<usize>,
 }
 
 pub struct Library {
@@ -36,6 +36,7 @@ pub struct Library {
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
 pub struct LibraryPersistentState {
     items: Vec<LibraryPersistentStateItem>,
+    albums: Vec<AlbumPersistentState>,
 }
 
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
@@ -46,7 +47,10 @@ struct LibraryPersistentStateItem {
 
 impl LibraryPersistentState {
     pub fn new() -> Self {
-        Self { items: Vec::new() }
+        Self {
+            items: Vec::new(),
+            albums: Vec::new(),
+        }
     }
 }
 
@@ -105,6 +109,39 @@ impl Library {
         };
         self.add_item(item, id.clone());
         id
+    }
+
+    pub fn add_directory_as_album(&mut self, dir_path: PathBuf) {}
+
+    fn refresh_album(&mut self, album: &mut Album) {
+        if let Some(ref path) = album.directory {
+            let mut images = Vec::new();
+            Self::enumerate_images_in_directory(path, &mut images);
+        }
+    }
+
+    fn enumerate_images_in_directory(dir: &PathBuf, images: &mut Vec<PathBuf>) {
+        if dir.is_dir() {
+            if let Ok(read) = std::fs::read_dir(dir) {
+                for entry in read {
+                    if let Ok(entry) = entry {
+                        let path = entry.path();
+                        if path.is_file() {
+                            if let Some(ext) = path.extension() {
+                                if let Some(ext) = ext.to_str() {
+                                    let ext = ext.to_lowercase();
+                                    if ext == "jpg" || ext == "jpeg" || ext == "png" {
+                                        images.push(path);
+                                    }
+                                }
+                            }
+                        } else if path.is_dir() {
+                            Self::enumerate_images_in_directory(&path, images);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     pub fn get_identifier_at_index(&self, index: usize) -> &LibraryImageIdentifier {
@@ -227,8 +264,13 @@ impl Library {
                 persistent_items.push(item);
             }
         }
+        let mut persistent_albums = Vec::new();
+        for album in self.albums.iter() {
+            persistent_albums.push(album.get_persistent_state());
+        }
         LibraryPersistentState {
             items: persistent_items,
+            albums: persistent_albums,
         }
     }
 
@@ -236,6 +278,9 @@ impl Library {
         for item in state.items {
             let identifier = self.add_item_from_path(item.path);
             self.items.get_mut(&identifier).unwrap().thumbnail_path = item.thumbnail_path;
+        }
+        for album in state.albums {
+            self.albums.push(Album::from_persistent_state(album))
         }
     }
 
