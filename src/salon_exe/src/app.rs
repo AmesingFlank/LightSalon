@@ -1,5 +1,4 @@
 use crate::ui::widgets::{ImageFramingRenderResources, ImageGeometryEditRenderResources};
-use crate::ui::AddedImageOrAlbum;
 use crate::ui::{
     self, file_menu,
     widgets::{
@@ -8,6 +7,7 @@ use crate::ui::{
     },
     AppUiState,
 };
+use crate::ui::{ui_set_current_image, AddedImageOrAlbum};
 use eframe::{
     egui::{self, Visuals},
     egui_wgpu,
@@ -176,7 +176,7 @@ impl App {
         }
     }
 
-    fn maybe_handled_imported_image(&mut self) {
+    fn maybe_handled_imported_image(&mut self, ctx: &egui::Context) {
         while let Some(added_image) = self.ui_state.import_image_dialog.get_added_image() {
             match added_image {
                 AddedImageOrAlbum::ImagesFromPaths(paths) => {
@@ -186,15 +186,18 @@ impl App {
                             .library
                             .add_item_from_path(paths[i].clone(), None);
                         if i == paths.len() - 1 {
-                            self.session.set_current_image(identifier);
-                            self.ui_state.reset_for_different_image();
+                            ui_set_current_image(
+                                ctx,
+                                &mut self.session,
+                                &mut self.ui_state,
+                                identifier,
+                            );
                         }
                     }
                 }
                 AddedImageOrAlbum::Image(image) => {
                     let identifier = self.session.library.add_image_temp(image, None);
-                    self.session.set_current_image(identifier);
-                    self.ui_state.reset_for_different_image();
+                    ui_set_current_image(ctx, &mut self.session, &mut self.ui_state, identifier);
                 }
                 AddedImageOrAlbum::AlbumFromPath(album_dir) => {
                     let album_index = self.session.library.add_album_from_directory(album_dir);
@@ -208,8 +211,7 @@ impl App {
         for dropped_file in raw_input.dropped_files {
             if let Some(pathbuf) = dropped_file.path {
                 let identifier = self.session.library.add_item_from_path(pathbuf, None);
-                self.session.set_current_image(identifier);
-                self.ui_state.reset_for_different_image();
+                ui_set_current_image(ctx, &mut self.session, &mut self.ui_state, identifier);
             } else {
                 if let Some(bytes) = dropped_file.bytes {
                     let file_name = dropped_file.name;
@@ -222,9 +224,14 @@ impl App {
                         .create_image_from_bytes_and_extension(bytes.as_ref(), ext);
                     match image {
                         Ok(img) => {
-                            let image_id = self.session.library.add_image_temp(Arc::new(img), None);
-                            self.session.set_current_image(image_id);
-                            self.ui_state.reset_for_different_image();
+                            let identifier =
+                                self.session.library.add_image_temp(Arc::new(img), None);
+                            ui_set_current_image(
+                                ctx,
+                                &mut self.session,
+                                &mut self.ui_state,
+                                identifier,
+                            );
                         }
                         Err(_) => {}
                     }
@@ -258,7 +265,7 @@ impl eframe::App for App {
         ui::app_ui(ctx, &mut self.session, &mut self.ui_state);
 
         self.maybe_handle_dropped_image(ctx);
-        self.maybe_handled_imported_image();
+        self.maybe_handled_imported_image(ctx);
         self.maybe_handle_app_exit(ctx);
     }
 }

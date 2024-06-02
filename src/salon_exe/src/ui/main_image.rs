@@ -37,6 +37,11 @@ pub fn main_image(
     ui_state: &mut AppUiState,
 ) {
     if session.editor.current_edit_context_ref().is_none() {
+        if let Some(ref err_msg) = ui_state.main_image_select_error_msg {
+            ui.centered_and_justified(|ui| {
+                ui.label(err_msg);
+            });
+        }
         return;
     }
     if ui_state.show_comparison {

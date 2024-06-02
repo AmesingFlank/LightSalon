@@ -32,6 +32,9 @@ pub struct Library {
     runtime: Arc<Runtime>,
     toolbox: Arc<Toolbox>,
     albums: Vec<Album>,
+
+    // items that cannot be found
+    unavailable_items: HashSet<LibraryImageIdentifier>,
 }
 
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
@@ -64,6 +67,7 @@ impl Library {
             albums: Vec::new(),
             runtime,
             toolbox,
+            unavailable_items: HashSet::new(),
         }
     }
 
@@ -137,7 +141,7 @@ impl Library {
         if let Some(directory_name) = dir_path.file_name() {
             if let Some(directory_name_str) = directory_name.to_str() {
                 name = directory_name_str.to_owned();
-            } 
+            }
         }
         let album = Album::new(name, Some(dir_path), Vec::new());
         let album_index = self.albums.len();
@@ -261,18 +265,11 @@ impl Library {
                         }
                         item.thumbnail_path = thumbnail_path;
                     }
+                    self.unavailable_items.remove(identifier);
+
                     return Some(&self.items[identifier]);
                 } else {
-                    // main image path couldn't be loaded, so delete it and its thumbnail
-                    let item = self.items.remove(identifier).unwrap();
-                    let index = self.item_indices.remove(identifier).unwrap();
-                    self.items_ordered.remove(index);
-                    if let Some(ref old_thumbnail_path) = item.thumbnail_path {
-                        let _ = std::fs::remove_file(old_thumbnail_path);
-                    }
-                    for album_index in item.albums.iter() {
-                        self.albums[*album_index].remove_image(identifier);
-                    }
+                    self.unavailable_items.insert(identifier.clone());
                     return None;
                 }
             } else {
@@ -303,6 +300,10 @@ impl Library {
         &mut self,
         identifier: &LibraryImageIdentifier,
     ) -> Option<Arc<Image>> {
+        if !self.items.contains_key(identifier) {
+            // the identifier could have been removed
+            return None;
+        }
         if let Some(ref thumbnail) = self.items[identifier].thumbnail {
             return Some(thumbnail.clone());
         }
@@ -318,7 +319,28 @@ impl Library {
         Some(item.thumbnail.as_ref().unwrap().clone())
     }
 
-    pub fn get_persistent_state(&self) -> LibraryPersistentState {
+    pub fn get_persistent_state(&mut self) -> LibraryPersistentState {
+        // these items are found to be unavailable, so remove them from the library
+        let mut unavailable_item_indices = Vec::new();
+        for unavailable_item_identifier in self.unavailable_items.iter() {
+            let item = self.items.remove(unavailable_item_identifier).unwrap();
+            let index = self
+                .item_indices
+                .remove(unavailable_item_identifier)
+                .unwrap();
+            unavailable_item_indices.push(index);
+            if let Some(ref old_thumbnail_path) = item.thumbnail_path {
+                let _ = std::fs::remove_file(old_thumbnail_path);
+            }
+            for album_index in item.albums.iter() {
+                self.albums[*album_index].remove_image(unavailable_item_identifier);
+            }
+        }
+        unavailable_item_indices.sort_by(|a, b| b.cmp(a)); // sort in decreasing order
+        for unavailable_item_index in unavailable_item_indices.iter() {
+            self.items_ordered.remove(*unavailable_item_index);
+        }
+
         let mut persistent_items = Vec::new();
         for identifier in self.items_ordered.iter() {
             if let LibraryImageIdentifier::Path(ref path) = identifier {

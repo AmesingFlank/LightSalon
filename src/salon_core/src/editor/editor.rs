@@ -175,6 +175,10 @@ impl Editor {
         self.execute_current_edit();
     }
 
+    pub fn clear_current_image(&mut self) {
+        self.current_image_identifier = None;
+    }
+
     pub fn current_edit_context_ref(&self) -> Option<&EditContext> {
         let identifier = self.current_image_identifier.as_ref()?;
         self.edit_contexts.get(identifier)

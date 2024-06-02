@@ -5,9 +5,14 @@ use eframe::{
 use egui_extras::{Column, TableBuilder};
 use salon_core::session::Session;
 
-use super::{widgets::ThumbnailCallback, AppUiState};
+use super::{ui_set_current_image, widgets::ThumbnailCallback, AppUiState};
 
-pub fn image_library(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
+pub fn image_library(
+    ctx: &egui::Context,
+    ui: &mut Ui,
+    session: &mut Session,
+    ui_state: &mut AppUiState,
+) {
     let max_height = ui.available_height();
     let mut table = TableBuilder::new(ui)
         .column(Column::auto())
@@ -40,8 +45,7 @@ pub fn image_library(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiSta
                         });
                         if response.clicked() {
                             let identifier = session.library.get_identifier_at_index(row_index);
-                            session.set_current_image(identifier.clone());
-                            ui_state.reset_for_different_image();
+                            ui_set_current_image(ctx, session, ui_state, identifier.clone());
                         }
                     }
                 });

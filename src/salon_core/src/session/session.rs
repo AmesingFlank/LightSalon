@@ -26,13 +26,23 @@ impl Session {
         session
     }
 
-    pub fn set_current_image(&mut self, identifier: LibraryImageIdentifier) {
+    pub fn set_current_image(&mut self, identifier: LibraryImageIdentifier) -> Result<(), String> {
         if let Some(new_image) = self.library.get_image_from_identifier(&identifier) {
             self.editor.set_current_image(identifier, new_image.clone());
+            Ok(())
+        } else {
+            self.editor.clear_current_image();
+            let mut err = "Image not found".to_owned();
+            if let LibraryImageIdentifier::Path(path) = identifier {
+                if let Some(path_str) = path.to_str() {
+                    err = err + ": " + path_str;
+                }
+            }
+            Err(err)
         }
     }
 
-    fn get_persistent_state(&self) -> SessionPersistentState {
+    fn get_persistent_state(&mut self) -> SessionPersistentState {
         let library_state = self.library.get_persistent_state();
         let editor_state = self.editor.get_persistent_state();
         SessionPersistentState {
@@ -69,7 +79,7 @@ impl Session {
         Ok(false)
     }
 
-    fn save_persistent_state(&self) -> Result<bool, String> {
+    fn save_persistent_state(&mut self) -> Result<bool, String> {
         if let Some(dir) = Session::get_persistent_storage_dir() {
             let path = dir.join(self.persistent_state_file_name());
             if !dir.exists() {

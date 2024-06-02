@@ -36,6 +36,7 @@ pub struct AppUiState {
     pub framing_aspect_ratio: (u32, u32),
 
     pub main_image_zoom: Option<MainImageZoom>,
+    pub main_image_select_error_msg: Option<String>,
 }
 
 impl AppUiState {
@@ -61,6 +62,7 @@ impl AppUiState {
             crop_rect_aspect_ratio: (0, 0),
             framing_aspect_ratio: (0, 0),
             main_image_zoom: None,
+            main_image_select_error_msg: None,
         }
     }
 
@@ -204,7 +206,6 @@ pub enum AddedImageOrAlbum {
     ImagesFromPaths(Vec<PathBuf>),
     AlbumFromPath(PathBuf),
 }
-
 
 #[derive(Clone)]
 pub struct MainImageZoom {
