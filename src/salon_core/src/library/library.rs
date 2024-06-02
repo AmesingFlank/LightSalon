@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::io::Write;
 use std::path::Path;
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
@@ -21,7 +22,7 @@ struct LibraryItem {
     image: Option<Arc<Image>>,
     thumbnail: Option<Arc<Image>>,
     thumbnail_path: Option<PathBuf>,
-    album: Option<usize>,
+    albums: HashSet<usize>,
 }
 
 pub struct Library {
@@ -79,7 +80,11 @@ impl Library {
         }
     }
 
-    pub fn add_image_temp(&mut self, image: Arc<Image>) -> LibraryImageIdentifier {
+    pub fn add_image_temp(
+        &mut self,
+        image: Arc<Image>,
+        album: Option<usize>,
+    ) -> LibraryImageIdentifier {
         let temp_image_id = LibraryImageIdentifier::Temp(get_next_uuid());
 
         let thumbnail = self.compute_thumbnail(image.clone());
@@ -89,34 +94,91 @@ impl Library {
         let image = self
             .toolbox
             .convert_color_space(image, ColorSpace::LinearRGB);
-        let library_item = LibraryItem {
+        let mut library_item = LibraryItem {
             image: Some(image),
             thumbnail: Some(thumbnail),
             thumbnail_path: None,
-            album: None,
+            albums: HashSet::new(),
         };
+        if let Some(album) = album {
+            library_item.albums.insert(album);
+        }
         self.add_item(library_item, temp_image_id.clone());
         temp_image_id
     }
 
-    pub fn add_item_from_path(&mut self, path: PathBuf) -> LibraryImageIdentifier {
+    pub fn add_item_from_path(
+        &mut self,
+        path: PathBuf,
+        album: Option<usize>,
+    ) -> LibraryImageIdentifier {
         let id = LibraryImageIdentifier::Path(path);
-        let item = LibraryItem {
+        let mut item = LibraryItem {
             image: None,
             thumbnail: None,
             thumbnail_path: None,
-            album: None,
+            albums: HashSet::new(),
         };
+        if let Some(album) = album {
+            item.albums.insert(album);
+        }
         self.add_item(item, id.clone());
         id
     }
 
-    pub fn add_directory_as_album(&mut self, dir_path: PathBuf) {}
+    pub fn add_album_from_directory(&mut self, dir_path: PathBuf) -> usize {
+        for i in 0..self.albums.len() {
+            if self.albums[i].directory == Some(dir_path.clone()) {
+                self.enumerate_album_images(i);
+                return i;
+            }
+        }
+        let mut name = "New Album".to_owned();
+        if let Some(directory_name) = dir_path.file_name() {
+            if let Some(directory_name_str) = directory_name.to_str() {
+                name = directory_name_str.to_owned();
+            } 
+        }
+        let album = Album::new(name, Some(dir_path), Vec::new());
+        let album_index = self.albums.len();
+        self.albums.push(album);
+        self.enumerate_album_images(album_index);
+        album_index
+    }
 
-    fn refresh_album(&mut self, album: &mut Album) {
-        if let Some(ref path) = album.directory {
-            let mut images = Vec::new();
-            Self::enumerate_images_in_directory(path, &mut images);
+    fn enumerate_album_images(&mut self, album_index: usize) {
+        let mut all_images = self.albums[album_index].additional_images.clone();
+        {
+            let album = &mut self.albums[album_index];
+
+            if let Some(ref path) = album.directory {
+                let mut images_in_dir = Vec::new();
+                Self::enumerate_images_in_directory(path, &mut images_in_dir);
+                for path in images_in_dir {
+                    all_images.push(LibraryImageIdentifier::Path(path));
+                }
+            }
+            album.all_images_ordered = all_images.clone();
+            album.all_images_indices.clear();
+            for i in 0..album.all_images_ordered.len() {
+                album
+                    .all_images_indices
+                    .insert(album.all_images_ordered[i].clone(), i);
+            }
+        }
+        for identifier in all_images.iter() {
+            if let Some(item) = self.items.get_mut(identifier) {
+                item.albums.insert(album_index);
+            } else {
+                match identifier {
+                    LibraryImageIdentifier::Path(path) => {
+                        self.add_item_from_path(path.clone(), Some(album_index));
+                    }
+                    _ => {
+                        panic!("expecting the identifier to be a LibraryImageIdentifier::Path")
+                    }
+                }
+            }
         }
     }
 
@@ -208,6 +270,9 @@ impl Library {
                     if let Some(ref old_thumbnail_path) = item.thumbnail_path {
                         let _ = std::fs::remove_file(old_thumbnail_path);
                     }
+                    for album_index in item.albums.iter() {
+                        self.albums[*album_index].remove_image(identifier);
+                    }
                     return None;
                 }
             } else {
@@ -276,11 +341,14 @@ impl Library {
 
     pub fn load_persistent_state(&mut self, state: LibraryPersistentState) {
         for item in state.items {
-            let identifier = self.add_item_from_path(item.path);
+            let identifier = self.add_item_from_path(item.path, None);
             self.items.get_mut(&identifier).unwrap().thumbnail_path = item.thumbnail_path;
         }
         for album in state.albums {
             self.albums.push(Album::from_persistent_state(album))
+        }
+        for album_index in 0..self.albums.len() {
+            self.enumerate_album_images(album_index);
         }
     }
 

@@ -1,4 +1,4 @@
-use super::{AddedImage, AppUiState};
+use super::{AddedImageOrAlbum, AppUiState};
 use eframe::{
     egui::{self, Ui},
     egui_wgpu,
@@ -18,7 +18,16 @@ pub fn file_menu(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) 
             .clicked()
         {
             ui.close_menu();
-            ui_state.import_image_dialog.open();
+            ui_state.import_image_dialog.open_pick_images();
+        }
+
+        #[cfg(not(target_arch = "wasm32"))]
+        if ui
+            .add_enabled(true, egui::Button::new("Import Folder"))
+            .clicked()
+        {
+            ui.close_menu();
+            ui_state.import_image_dialog.open_pick_folder();
         }
 
         let has_current_img = session.editor.current_edit_context_ref().is_some();
@@ -140,8 +149,8 @@ use web_sys::{window, Blob, File, FileReader, HtmlInputElement, Url};
 #[cfg(target_arch = "wasm32")]
 pub struct ImageImportDialog {
     channel: (
-        std::sync::mpsc::Sender<AddedImage>,
-        std::sync::mpsc::Receiver<AddedImage>,
+        std::sync::mpsc::Sender<AddedImageOrAlbum>,
+        std::sync::mpsc::Receiver<AddedImageOrAlbum>,
     ),
     runtime: Arc<Runtime>,
     toolbox: Arc<Toolbox>,
@@ -186,7 +195,7 @@ impl ImageImportDialog {
         }
     }
 
-    pub fn open(&mut self) {
+    pub fn open_pick_images(&mut self) {
         if let Some(closure) = &self.closure {
             self.input
                 .remove_event_listener_with_callback("change", closure.as_ref().unchecked_ref())
@@ -229,7 +238,7 @@ impl ImageImportDialog {
                         match image {
                             Ok(image) => {
                                 let image = Arc::new(image);
-                                let added_img = AddedImage::Image(image);
+                                let added_img = AddedImageOrAlbum::Image(image);
                                 sender.send(added_img).expect("failed to send added image");
                                 context.request_repaint();
                             }
@@ -251,7 +260,7 @@ impl ImageImportDialog {
         self.input.click();
     }
 
-    pub fn get_added_image(&mut self) -> Option<AddedImage> {
+    pub fn get_added_image(&mut self) -> Option<AddedImageOrAlbum> {
         if let Ok(added_image) = self.channel.1.try_recv() {
             Some(added_image)
         } else {
@@ -265,8 +274,8 @@ impl ImageImportDialog {
 #[cfg(not(target_arch = "wasm32"))]
 pub struct ImageImportDialog {
     channel: (
-        std::sync::mpsc::Sender<AddedImage>,
-        std::sync::mpsc::Receiver<AddedImage>,
+        std::sync::mpsc::Sender<AddedImageOrAlbum>,
+        std::sync::mpsc::Receiver<AddedImageOrAlbum>,
     ),
     runtime: Arc<Runtime>,
     toolbox: Arc<Toolbox>,
@@ -284,7 +293,7 @@ impl ImageImportDialog {
         }
     }
 
-    pub fn open(&mut self) {
+    pub fn open_pick_images(&mut self) {
         let task = rfd::AsyncFileDialog::new()
             .add_filter("extension", &["png", "jpg", "jpeg"])
             .pick_files();
@@ -301,7 +310,7 @@ impl ImageImportDialog {
                     let pathbuf = file.path().to_path_buf();
                     paths.push(pathbuf);
                 }
-                let added_image = AddedImage::ImagesFromPaths(paths);
+                let added_image = AddedImageOrAlbum::ImagesFromPaths(paths);
                 sender
                     .send(added_image)
                     .expect("failed to send added image");
@@ -310,7 +319,26 @@ impl ImageImportDialog {
         });
     }
 
-    pub fn get_added_image(&mut self) -> Option<AddedImage> {
+    pub fn open_pick_folder(&mut self) {
+        let task = rfd::AsyncFileDialog::new().pick_folder();
+
+        let sender = self.channel.0.clone();
+        let runtime = self.runtime.clone();
+        let context = self.context.clone();
+
+        execute(async move {
+            let file = task.await;
+            if let Some(file) = file {
+                let added_album = AddedImageOrAlbum::AlbumFromPath(file.path().to_path_buf());
+                sender
+                    .send(added_album)
+                    .expect("failed to send added image");
+                context.request_repaint();
+            }
+        });
+    }
+
+    pub fn get_added_image(&mut self) -> Option<AddedImageOrAlbum> {
         if let Ok(added_image) = self.channel.1.try_recv() {
             Some(added_image)
         } else {

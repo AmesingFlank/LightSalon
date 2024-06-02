@@ -1,5 +1,5 @@
 use crate::ui::widgets::{ImageFramingRenderResources, ImageGeometryEditRenderResources};
-use crate::ui::AddedImage;
+use crate::ui::AddedImageOrAlbum;
 use crate::ui::{
     self, file_menu,
     widgets::{
@@ -179,19 +179,25 @@ impl App {
     fn maybe_handled_imported_image(&mut self) {
         while let Some(added_image) = self.ui_state.import_image_dialog.get_added_image() {
             match added_image {
-                AddedImage::ImagesFromPaths(paths) => {
+                AddedImageOrAlbum::ImagesFromPaths(paths) => {
                     for i in 0..paths.len() {
-                        let identifier = self.session.library.add_item_from_path(paths[i].clone());
+                        let identifier = self
+                            .session
+                            .library
+                            .add_item_from_path(paths[i].clone(), None);
                         if i == paths.len() - 1 {
                             self.session.set_current_image(identifier);
                             self.ui_state.reset_for_different_image();
                         }
                     }
                 }
-                AddedImage::Image(image) => {
-                    let identifier = self.session.library.add_image_temp(image);
+                AddedImageOrAlbum::Image(image) => {
+                    let identifier = self.session.library.add_image_temp(image, None);
                     self.session.set_current_image(identifier);
                     self.ui_state.reset_for_different_image();
+                }
+                AddedImageOrAlbum::AlbumFromPath(album_dir) => {
+                    let album_index = self.session.library.add_album_from_directory(album_dir);
                 }
             }
         }
@@ -201,7 +207,7 @@ impl App {
         let raw_input = ctx.input(|i| i.raw.clone());
         for dropped_file in raw_input.dropped_files {
             if let Some(pathbuf) = dropped_file.path {
-                let identifier = self.session.library.add_item_from_path(pathbuf);
+                let identifier = self.session.library.add_item_from_path(pathbuf, None);
                 self.session.set_current_image(identifier);
                 self.ui_state.reset_for_different_image();
             } else {
@@ -216,7 +222,7 @@ impl App {
                         .create_image_from_bytes_and_extension(bytes.as_ref(), ext);
                     match image {
                         Ok(img) => {
-                            let image_id = self.session.library.add_image_temp(Arc::new(img));
+                            let image_id = self.session.library.add_image_temp(Arc::new(img), None);
                             self.session.set_current_image(image_id);
                             self.ui_state.reset_for_different_image();
                         }

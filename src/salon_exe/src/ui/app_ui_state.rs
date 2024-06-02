@@ -199,9 +199,10 @@ impl MaskEditState {
     }
 }
 
-pub enum AddedImage {
+pub enum AddedImageOrAlbum {
     Image(Arc<Image>),
     ImagesFromPaths(Vec<PathBuf>),
+    AlbumFromPath(PathBuf),
 }
 
 
