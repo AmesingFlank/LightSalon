@@ -3,6 +3,7 @@ use std::io::Write;
 use std::path::Path;
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
+use notify::{event, EventKind};
 use sha256::TrySha256Digest;
 
 use crate::runtime::{ColorSpace, Image, ImageReaderJpeg, Toolbox};
@@ -10,7 +11,7 @@ use crate::runtime::{ImageFormat, Runtime};
 use crate::session::Session;
 use crate::utils::uuid::{get_next_uuid, Uuid};
 
-use super::{album, Album, AlbumPersistentState};
+use super::{album, is_supported_image_file, Album, AlbumPersistentState};
 
 #[derive(PartialEq, Eq, Hash, Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub enum LibraryImageIdentifier {
@@ -150,6 +151,101 @@ impl Library {
         album_index
     }
 
+    pub fn poll_albums_events(&mut self) {
+        let mut removed_files = Vec::new();
+        let mut removed_dirs = Vec::new();
+        let mut modified_paths = Vec::new();
+        let mut modified_dirs = Vec::new();
+        let mut created_files = Vec::new();
+        let mut created_dirs = Vec::new();
+
+        for album in self.albums.iter_mut() {
+            if let Some(ref mut receiver) = album.file_events_receiver {
+                if let Ok(events_results) = receiver.try_recv() {
+                    if let Ok(events) = events_results {
+                        for event in events.iter() {
+                            let paths = event.paths.clone();
+                            match event.kind {
+                                EventKind::Remove(_) => {
+                                    for path in paths {
+                                        if path.is_file() {
+                                            removed_files.push(path)
+                                        } else {
+                                            removed_dirs.push(path)
+                                        }
+                                    }
+                                }
+                                EventKind::Modify(_) => {
+                                    for path in paths {
+                                        if path.is_file() {
+                                            modified_paths.push(path)
+                                        } else {
+                                            modified_dirs.push(path)
+                                        }
+                                    }
+                                }
+                                EventKind::Create(_) => {
+                                    for path in paths {
+                                        if path.is_file() {
+                                            created_files.push(path)
+                                        } else {
+                                            created_dirs.push(path)
+                                        }
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        self.remove_paths(&removed_files, &removed_dirs);
+    }
+
+    fn remove_paths(&mut self, removed_files: &Vec<PathBuf>, removed_dirs: &Vec<PathBuf>) {
+        let mut removed_items = HashSet::new();
+        for path in removed_files.iter() {
+            let identifier = LibraryImageIdentifier::Path(path.clone());
+            if self.items.contains_key(&identifier) {
+                removed_items.insert(identifier);
+            }
+        }
+        for identifier in self.items.keys() {
+            if let LibraryImageIdentifier::Path(item_path) = identifier {
+                for removed_dir_path in removed_dirs.iter() {
+                    if item_path.starts_with(removed_dir_path) {
+                        removed_items.insert(identifier.clone());
+                        break;
+                    }
+                }
+            }
+        }
+        self.remove_items(&removed_items);
+    }
+
+    fn remove_items(&mut self, items_to_remove: &HashSet<LibraryImageIdentifier>) {
+        let mut item_indices = Vec::new();
+        for item_identifier in items_to_remove.iter() {
+            let item = self.items.remove(item_identifier).unwrap();
+            let index = self
+                .item_indices
+                .remove(item_identifier)
+                .unwrap();
+            item_indices.push(index);
+            if let Some(ref old_thumbnail_path) = item.thumbnail_path {
+                let _ = std::fs::remove_file(old_thumbnail_path);
+            }
+            for album_index in item.albums.iter() {
+                self.albums[*album_index].remove_image(item_identifier);
+            }
+        }
+        item_indices.sort_by(|a, b| b.cmp(a)); // sort in decreasing order
+        for unavailable_item_index in item_indices.iter() {
+            self.items_ordered.remove(*unavailable_item_index);
+        }
+    }
+
     fn enumerate_album_images(&mut self, album_index: usize) {
         let mut all_images = self.albums[album_index].additional_images.clone();
         {
@@ -192,15 +288,8 @@ impl Library {
                 for entry in read {
                     if let Ok(entry) = entry {
                         let path = entry.path();
-                        if path.is_file() {
-                            if let Some(ext) = path.extension() {
-                                if let Some(ext) = ext.to_str() {
-                                    let ext = ext.to_lowercase();
-                                    if ext == "jpg" || ext == "jpeg" || ext == "png" {
-                                        images.push(path);
-                                    }
-                                }
-                            }
+                        if path.is_file() && is_supported_image_file(&path) {
+                            images.push(path);
                         } else if path.is_dir() {
                             Self::enumerate_images_in_directory(&path, images);
                         }
@@ -321,25 +410,7 @@ impl Library {
 
     pub fn get_persistent_state(&mut self) -> LibraryPersistentState {
         // these items are found to be unavailable, so remove them from the library
-        let mut unavailable_item_indices = Vec::new();
-        for unavailable_item_identifier in self.unavailable_items.iter() {
-            let item = self.items.remove(unavailable_item_identifier).unwrap();
-            let index = self
-                .item_indices
-                .remove(unavailable_item_identifier)
-                .unwrap();
-            unavailable_item_indices.push(index);
-            if let Some(ref old_thumbnail_path) = item.thumbnail_path {
-                let _ = std::fs::remove_file(old_thumbnail_path);
-            }
-            for album_index in item.albums.iter() {
-                self.albums[*album_index].remove_image(unavailable_item_identifier);
-            }
-        }
-        unavailable_item_indices.sort_by(|a, b| b.cmp(a)); // sort in decreasing order
-        for unavailable_item_index in unavailable_item_indices.iter() {
-            self.items_ordered.remove(*unavailable_item_index);
-        }
+        self.remove_items(&self.unavailable_items.clone());
 
         let mut persistent_items = Vec::new();
         for identifier in self.items_ordered.iter() {

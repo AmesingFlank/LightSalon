@@ -258,6 +258,7 @@ impl eframe::App for App {
         if is_first_frame {
             // if the screen is smaller than then window size we requested, then, on the first frame,
             // the frame size won't accurately reflection the actual frame size, so the sizing of side panels will be off
+            ctx.request_repaint();
             return;
         }
 
@@ -267,5 +268,9 @@ impl eframe::App for App {
         self.maybe_handle_dropped_image(ctx);
         self.maybe_handled_imported_image(ctx);
         self.maybe_handle_app_exit(ctx);
+
+        self.session.library.poll_albums_events();
+
+        ctx.request_repaint();
     }
 }

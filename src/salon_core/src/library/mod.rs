@@ -1,6 +1,7 @@
-mod library;
 mod album;
+mod library;
+mod utils;
 
-pub use library::*;
 pub use album::*;
-
+pub use library::*;
+pub use utils::*;
