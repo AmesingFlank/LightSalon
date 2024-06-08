@@ -152,58 +152,84 @@ impl Library {
     }
 
     pub fn poll_albums_events(&mut self) {
+        for i in 0..self.albums.len() {
+            if self.albums[i].file_events_receiver.is_none() {
+                continue;
+            }
+            if let Ok(events_results) = self.albums[i]
+                .file_events_receiver
+                .as_mut()
+                .unwrap()
+                .try_recv()
+            {
+                let mut modified_paths = Vec::new();
+                if let Ok(events) = events_results {
+                    for event in events.iter() {
+                        let mut paths = event.paths.clone();
+                        modified_paths.append(&mut paths);
+                    }
+                }
+                self.handle_modified_paths(modified_paths, Some(i));
+            }
+        }
+    }
+
+    fn handle_modified_paths(
+        &mut self,
+        modified_paths: Vec<PathBuf>,
+        associatd_album: Option<usize>,
+    ) {
         let mut removed_files = Vec::new();
         let mut removed_dirs = Vec::new();
-        let mut modified_paths = Vec::new();
-        let mut modified_dirs = Vec::new();
-        let mut created_files = Vec::new();
-        let mut created_dirs = Vec::new();
 
-        for album in self.albums.iter_mut() {
-            if let Some(ref mut receiver) = album.file_events_receiver {
-                if let Ok(events_results) = receiver.try_recv() {
-                    if let Ok(events) = events_results {
-                        for event in events.iter() {
-                            let paths = event.paths.clone();
-                            match event.kind {
-                                EventKind::Remove(_) => {
-                                    for path in paths {
-                                        if path.is_file() {
-                                            removed_files.push(path)
-                                        } else {
-                                            removed_dirs.push(path)
-                                        }
-                                    }
-                                }
-                                EventKind::Modify(_) => {
-                                    for path in paths {
-                                        if path.is_file() {
-                                            modified_paths.push(path)
-                                        } else {
-                                            modified_dirs.push(path)
-                                        }
-                                    }
-                                }
-                                EventKind::Create(_) => {
-                                    for path in paths {
-                                        if path.is_file() {
-                                            created_files.push(path)
-                                        } else {
-                                            created_dirs.push(path)
-                                        }
-                                    }
-                                }
-                                _ => {}
-                            }
-                        }
+        let mut added_or_modified_images = Vec::new();
+
+        for path in modified_paths {
+            if path.exists() {
+                if path.is_file() {
+                    if is_supported_image_file(&path) {
+                        added_or_modified_images.push(path);
                     }
+                } else {
+                    let mut all_images_in_path = Vec::new();
+                    Self::enumerate_images_in_directory(&path, &mut all_images_in_path);
+                    added_or_modified_images.append(&mut all_images_in_path);
+                }
+            } else {
+                if path.is_file() {
+                    removed_files.push(path);
+                } else {
+                    removed_dirs.push(path);
                 }
             }
         }
-        self.remove_paths(&removed_files, &removed_dirs);
+
+        self.handle_added_or_modified_images(&added_or_modified_images, associatd_album);
+        self.handle_removed_paths(&removed_files, &removed_dirs);
     }
 
-    fn remove_paths(&mut self, removed_files: &Vec<PathBuf>, removed_dirs: &Vec<PathBuf>) {
+    fn handle_added_or_modified_images(
+        &mut self,
+        images: &Vec<PathBuf>,
+        associatd_album: Option<usize>,
+    ) {
+        for image_path in images {
+            let item_identifier = LibraryImageIdentifier::Path(image_path.clone());
+            if self.items.contains_key(&item_identifier) {
+                let item = self.items.get_mut(&item_identifier).unwrap();
+                item.image = None;
+                item.thumbnail = None;
+                if let Some(ref thumbnail_path) = item.thumbnail_path {
+                    let _ = std::fs::remove_file(&thumbnail_path);
+                }
+                item.thumbnail_path = None;
+            } else {
+                self.add_item_from_path(image_path.clone(), associatd_album);
+            }
+        }
+    }
+
+    fn handle_removed_paths(&mut self, removed_files: &Vec<PathBuf>, removed_dirs: &Vec<PathBuf>) {
         let mut removed_items = HashSet::new();
         for path in removed_files.iter() {
             let identifier = LibraryImageIdentifier::Path(path.clone());
@@ -228,10 +254,7 @@ impl Library {
         let mut item_indices = Vec::new();
         for item_identifier in items_to_remove.iter() {
             let item = self.items.remove(item_identifier).unwrap();
-            let index = self
-                .item_indices
-                .remove(item_identifier)
-                .unwrap();
+            let index = self.item_indices.remove(item_identifier).unwrap();
             item_indices.push(index);
             if let Some(ref old_thumbnail_path) = item.thumbnail_path {
                 let _ = std::fs::remove_file(old_thumbnail_path);
