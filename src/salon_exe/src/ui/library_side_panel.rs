@@ -5,9 +5,9 @@ use eframe::{
 use egui_extras::{Column, TableBuilder};
 use salon_core::session::Session;
 
-use super::{ui_set_current_image, widgets::ThumbnailCallback, AppUiState};
+use super::{ui_set_current_editor_image, widgets::ThumbnailCallback, AppUiState};
 
-pub fn image_library(
+pub fn library_side_panel(
     ctx: &egui::Context,
     ui: &mut Ui,
     session: &mut Session,
@@ -45,7 +45,7 @@ pub fn image_library(
                         });
                         if response.clicked() {
                             let identifier = session.library.get_identifier_at_index(row_index);
-                            ui_set_current_image(ctx, session, ui_state, identifier.clone());
+                            ui_set_current_editor_image(ctx, session, ui_state, identifier.clone());
                         }
                     }
                 });

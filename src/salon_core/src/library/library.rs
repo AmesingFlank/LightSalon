@@ -76,6 +76,10 @@ impl Library {
         self.items.len() as usize
     }
 
+    pub fn num_images_in_album(&self, album_index: usize) -> usize {
+        self.albums[album_index].all_images_ordered.len()
+    }
+
     fn add_item(&mut self, item: LibraryItem, identifier: LibraryImageIdentifier) {
         let old_item = self.items.insert(identifier.clone(), item);
         if old_item.is_none() {

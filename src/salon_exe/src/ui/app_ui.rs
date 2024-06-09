@@ -5,7 +5,7 @@ use eframe::{
 use salon_core::{library::LibraryImageIdentifier, session::Session};
 
 use super::{
-    bottom_bar, editor, image_library, keyboard_response, main_image, menu_bar, AppUiState,
+    bottom_bar, editor, keyboard_response, library_albums_browser, library_images_browser, library_side_panel, main_image, menu_bar, AppPage, AppUiState
 };
 
 pub fn app_ui(ctx: &egui::Context, session: &mut Session, ui_state: &mut AppUiState) {
@@ -19,33 +19,51 @@ pub fn app_ui(ctx: &egui::Context, session: &mut Session, ui_state: &mut AppUiSt
     let last_frame_size = ui_state
         .last_frame_size
         .expect("expecting a last frame size");
-    egui::SidePanel::left("library_panel")
-        .default_width(last_frame_size.0 * 0.2)
-        .resizable(true)
-        .show(ctx, |ui| {
-            // ui.set_width(ui.available_width());
-            image_library(ctx, ui, session, ui_state);
-        });
-    egui::SidePanel::right("editor_panel")
-        .default_width(last_frame_size.0 * 0.2)
-        .max_width(last_frame_size.0 * 0.2)
-        .resizable(true)
-        .show(ctx, |ui| {
-            ui.set_width(ui.available_width());
-            editor(ui, session, ui_state);
-        });
-    egui::CentralPanel::default().show(ctx, |ui| {
-        main_image(ctx, ui, session, ui_state);
-        keyboard_response(ui, session, ui_state);
-    });
+
+    match ui_state.app_page {
+        AppPage::Library => {
+            egui::SidePanel::left("albums_browser_panel")
+                .default_width(last_frame_size.0 * 0.2)
+                .resizable(false)
+                .show(ctx, |ui| {
+                    // ui.set_width(ui.available_width());
+                    library_albums_browser(ctx, ui, session, ui_state);
+                });
+            egui::CentralPanel::default().show(ctx, |ui| {
+                library_images_browser(ctx, ui, session, ui_state);
+            });
+        }
+        AppPage::Editor => {
+            egui::SidePanel::left("library_panel")
+                .default_width(last_frame_size.0 * 0.2)
+                .resizable(true)
+                .show(ctx, |ui| {
+                    // ui.set_width(ui.available_width());
+                    library_side_panel(ctx, ui, session, ui_state);
+                });
+            egui::SidePanel::right("editor_panel")
+                .default_width(last_frame_size.0 * 0.2)
+                .max_width(last_frame_size.0 * 0.2)
+                .resizable(true)
+                .show(ctx, |ui| {
+                    ui.set_width(ui.available_width());
+                    editor(ui, session, ui_state);
+                });
+            egui::CentralPanel::default().show(ctx, |ui| {
+                main_image(ctx, ui, session, ui_state);
+                keyboard_response(ui, session, ui_state);
+            });
+        }
+    }
 }
 
-pub fn ui_set_current_image(
+pub fn ui_set_current_editor_image(
     ctx: &egui::Context,
     session: &mut Session,
     ui_state: &mut AppUiState,
     identifier: LibraryImageIdentifier,
 ) {
+    ui_state.app_page = AppPage::Editor;
     ui_state.main_image_select_error_msg = session.set_current_image(identifier).err();
     ctx.request_repaint();
     ui_state.reset_for_different_image();

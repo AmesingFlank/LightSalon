@@ -1,5 +1,7 @@
 mod main_image;
-mod image_library;
+mod library_side_panel;
+mod library_albums_browser;
+mod library_images_browser;
 mod app_ui_state;
 mod file_menu;
 mod histogram;
@@ -23,7 +25,9 @@ mod utils;
 pub mod widgets;
 
 pub use main_image::*;
-pub use image_library::*;
+pub use library_side_panel::*;
+pub use library_albums_browser::*;
+pub use library_images_browser::*;
 pub use app_ui_state::*;
 pub use file_menu::*;
 pub use histogram::*;

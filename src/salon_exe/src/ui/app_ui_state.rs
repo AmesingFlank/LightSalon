@@ -14,6 +14,10 @@ pub struct AppUiState {
     pub last_frame_size: Option<(f32, f32)>,
     pub fps_counter: FpsCounterState,
 
+    pub app_page: AppPage,
+    
+    pub selected_album: Option<usize>,
+
     pub show_grid: bool,
     pub show_comparison: bool,
 
@@ -44,6 +48,8 @@ impl AppUiState {
         AppUiState {
             last_frame_size: None,
             fps_counter: FpsCounterState::new(),
+            app_page: AppPage::Library,
+            selected_album: None,
             show_grid: false,
             show_comparison: false,
             editor_panel: EditorPanel::LightAndColor,
@@ -90,6 +96,11 @@ impl FpsCounterState {
             frames_since_last_fps_record: 0u32,
         }
     }
+}
+
+pub enum AppPage {
+    Library,
+    Editor,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
