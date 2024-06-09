@@ -59,12 +59,6 @@ impl ExecutionContext {
                 }
             }
         }
-        for i in 0..new_module.ops().len() {
-            if i < last_module.ops().len() && last_module.ops()[i] == new_module.ops()[i] {
-                let arg_ids = new_module.ops()[i].get_arg_ids();
-                for arg in arg_ids {}
-            }
-        }
         resuable
     }
 }
