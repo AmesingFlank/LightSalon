@@ -3,7 +3,6 @@ use std::io::Write;
 use std::path::Path;
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
-use notify::{event, EventKind};
 use sha256::TrySha256Digest;
 
 use crate::runtime::{ColorSpace, Image, ImageReaderJpeg, Toolbox};
@@ -159,7 +158,9 @@ impl Library {
         album_index
     }
 
-    pub fn poll_albums_events(&mut self) {
+    pub fn poll_updates(&mut self) {
+        // album events
+        #[cfg(not(target_arch = "wasm32"))]
         for i in 0..self.albums.len() {
             if self.albums[i].file_events_receiver.is_none() {
                 continue;

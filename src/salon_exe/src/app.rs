@@ -269,7 +269,7 @@ impl eframe::App for App {
         self.maybe_handled_imported_image(ctx);
         self.maybe_handle_app_exit(ctx);
 
-        self.session.library.poll_albums_events();
+        self.session.library.poll_updates();
 
         ctx.request_repaint();
     }
