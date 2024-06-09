@@ -76,6 +76,10 @@ impl Library {
         self.items.len() as usize
     }
 
+    pub fn albums(&self) -> &Vec<Album> {
+        &self.albums
+    }
+
     pub fn num_images_in_album(&self, album_index: usize) -> usize {
         self.albums[album_index].all_images_ordered.len()
     }
@@ -328,30 +332,8 @@ impl Library {
 
     pub fn get_identifier_at_index(&self, index: usize) -> &LibraryImageIdentifier {
         &self.items_ordered[index]
-    }
-
-    pub fn get_image_at_index(&mut self, index: usize) -> Option<Arc<Image>> {
-        while index < self.items_ordered.len() {
-            let identifier = self.items_ordered[index].clone();
-            if let Some(image) = self.get_image_from_identifier(&identifier) {
-                return Some(image);
-            }
-            // otherwise this index and the identifier is removed, so try again
-        }
-        None
-    }
-
-    pub fn get_thumbnail_at_index(&mut self, index: usize) -> Option<Arc<Image>> {
-        while index < self.items_ordered.len() {
-            let identifier = self.items_ordered[index].clone();
-            if let Some(thumbnail) = self.get_thumbnail_from_identifier(&identifier) {
-                return Some(thumbnail);
-            }
-            // otherwise this index and the identifier is removed, so try again
-        }
-        None
-    }
-
+    } 
+    
     // return the item or delete the identifier
     fn get_fully_loaded_item(
         &mut self,
