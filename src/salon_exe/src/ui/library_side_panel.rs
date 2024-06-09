@@ -1,5 +1,5 @@
 use eframe::{
-    egui::{self, Ui},
+    egui::{self, CollapsingHeader, Ui},
     egui_wgpu,
 };
 use egui_extras::{Column, TableBuilder};

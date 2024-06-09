@@ -23,7 +23,7 @@ pub fn file_menu(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) 
 
         #[cfg(not(target_arch = "wasm32"))]
         if ui
-            .add_enabled(true, egui::Button::new("Import Folder"))
+            .add_enabled(true, egui::Button::new("Import Folder as Album"))
             .clicked()
         {
             ui.close_menu();

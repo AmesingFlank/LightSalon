@@ -15,6 +15,19 @@ pub fn library_albums_browser(
 ) {
     ui.with_layout(egui::Layout::top_down_justified(egui::Align::LEFT), |ui| {
         ui.separator();
+        if ui.selectable_label(false, "➕ Import Image").clicked() {
+            ui_state.import_image_dialog.open_pick_images();
+        }
+
+        #[cfg(not(target_arch = "wasm32"))]
+        if ui
+            .selectable_label(false, "➕ Import Folder as Album")
+            .clicked()
+        {
+            ui_state.import_image_dialog.open_pick_folder();
+        }
+        
+        ui.separator();
         let all_photos_text = "🖼 All Photos".to_owned()
             + " ("
             + session.library.num_images_total().to_string().as_str()

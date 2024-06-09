@@ -5,7 +5,7 @@ use eframe::{
 use egui_extras::{Column, TableBuilder};
 use salon_core::session::Session;
 
-use super::{redo_action, undo_action, utils::legalize_ui_state, AppUiState, EditorPanel};
+use super::{redo_action, undo_action, utils::legalize_ui_state, AppPage, AppUiState, EditorPanel};
 
 pub fn keyboard_response(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
     ui.input(|i| {
@@ -21,6 +21,11 @@ pub fn keyboard_response(ui: &mut Ui, session: &mut Session, ui_state: &mut AppU
                 redo_action(session, ui_state)
             } else {
                 undo_action(session, ui_state);
+            }
+        }
+        if i.key_pressed(egui::Key::Escape) {
+            if ui_state.app_page == AppPage::Editor {
+                ui_state.app_page = AppPage::Library;
             }
         }
     });

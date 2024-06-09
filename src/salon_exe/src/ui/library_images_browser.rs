@@ -6,7 +6,7 @@ use egui_extras::{Column, TableBuilder};
 use salon_core::session::Session;
 
 use super::{
-    ui_set_current_editor_image, utils::get_max_image_size, widgets::ThumbnailCallback, AppUiState,
+    ui_set_current_editor_image, utils::get_max_image_size, widgets::ThumbnailCallback, AppPage, AppUiState
 };
 
 pub fn library_images_browser(
@@ -72,6 +72,7 @@ pub fn library_images_browser(
                         });
                         if response.clicked() {
                             let identifier = session.library.get_identifier_at_index(image_index);
+                            ui_state.app_page = AppPage::Editor;
                             ui_set_current_editor_image(ctx, session, ui_state, identifier.clone());
                         }
                     }

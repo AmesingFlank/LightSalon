@@ -98,6 +98,7 @@ impl FpsCounterState {
     }
 }
 
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum AppPage {
     Library,
     Editor,

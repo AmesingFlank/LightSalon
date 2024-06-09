@@ -5,20 +5,21 @@ use eframe::{
 use salon_core::{library::LibraryImageIdentifier, session::Session};
 
 use super::{
-    bottom_bar, editor, keyboard_response, library_albums_browser, library_images_browser, library_side_panel, main_image, menu_bar, AppPage, AppUiState
+    bottom_bar, editor, keyboard_response, library_albums_browser, library_images_browser,
+    library_side_panel, main_image, menu_bar, AppPage, AppUiState,
 };
 
 pub fn app_ui(ctx: &egui::Context, session: &mut Session, ui_state: &mut AppUiState) {
+    let last_frame_size = ui_state
+        .last_frame_size
+        .expect("expecting a last frame size");
+
     egui::TopBottomPanel::top("menu_bar").show(ctx, |ui| {
         menu_bar(ui, session, ui_state);
     });
     egui::TopBottomPanel::bottom("bottom_bar").show(ctx, |ui| {
         bottom_bar(ui, session, ui_state);
     });
-
-    let last_frame_size = ui_state
-        .last_frame_size
-        .expect("expecting a last frame size");
 
     match ui_state.app_page {
         AppPage::Library => {
@@ -63,7 +64,6 @@ pub fn ui_set_current_editor_image(
     ui_state: &mut AppUiState,
     identifier: LibraryImageIdentifier,
 ) {
-    ui_state.app_page = AppPage::Editor;
     ui_state.main_image_select_error_msg = session.set_current_image(identifier).err();
     ctx.request_repaint();
     ui_state.reset_for_different_image();
