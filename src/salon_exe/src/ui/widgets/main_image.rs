@@ -128,6 +128,8 @@ impl MainImageRenderResources {
 
     pub fn reset(&mut self) {
         self.ring_buffer.mark_all_available();
+        self.bind_group_manager.clear_cache();
+        self.bind_group_key_cache.clear();
     }
 
     fn prepare(

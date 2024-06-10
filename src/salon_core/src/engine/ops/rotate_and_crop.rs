@@ -63,6 +63,7 @@ impl RotateAndCropImpl {
 impl RotateAndCropImpl {
     pub fn reset(&mut self) {
         self.ring_buffer.mark_all_available();
+        self.bind_group_manager.clear_cache();
     }
 
     pub fn encode_commands(

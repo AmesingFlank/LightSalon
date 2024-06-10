@@ -46,6 +46,8 @@ impl ImageFormatConverter {
 
         let (pipeline, bind_group_manager) = self.pipelines.get_mut(&dest_image_format).unwrap();
 
+        bind_group_manager.clear_cache();
+
         let mut properties = input_img.properties.clone();
         properties.format = dest_image_format;
 

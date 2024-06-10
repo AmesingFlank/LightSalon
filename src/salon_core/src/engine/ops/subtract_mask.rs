@@ -36,7 +36,9 @@ impl SubtractMaskImpl {
     }
 }
 impl SubtractMaskImpl {
-    pub fn reset(&mut self) {}
+    pub fn reset(&mut self) {
+        self.bind_group_manager.clear_cache();
+    }
 
     pub fn encode_commands(
         &mut self,

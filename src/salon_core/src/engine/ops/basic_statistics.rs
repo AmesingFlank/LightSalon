@@ -74,6 +74,9 @@ impl ComputeBasicStatisticsImpl {
 impl ComputeBasicStatisticsImpl {
     pub fn reset(&mut self) {
         self.ring_buffer.mark_all_available();
+        self.bind_group_manager_clear.clear_cache();
+        self.bind_group_manager_sum.clear_cache();
+        self.bind_group_manager_divide.clear_cache();
     }
 
     pub fn encode_commands(

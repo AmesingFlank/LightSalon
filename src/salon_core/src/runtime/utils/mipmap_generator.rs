@@ -53,6 +53,8 @@ impl MipmapGenerator {
         let (pipeline, bind_group_manager) = self.pipelines.get_mut(&img.properties.format).unwrap();
         let mip_count = Image::mip_level_count(&img.properties.dimensions);
 
+        bind_group_manager.clear_cache();
+
         for target_mip in 1..mip_count as usize {
             let bind_group = bind_group_manager.get_or_create(BindGroupDescriptor {
                 entries: vec![

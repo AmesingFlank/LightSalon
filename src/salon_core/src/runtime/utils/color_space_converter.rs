@@ -58,6 +58,8 @@ impl ColorSpaceConverter {
             .get_mut(&input_img.properties.format)
             .unwrap();
 
+        bind_group_manager.clear_cache();
+
         let mut properties = input_img.properties.clone();
         properties.color_space = dest_color_space;
 

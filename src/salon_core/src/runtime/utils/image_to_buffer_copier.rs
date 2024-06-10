@@ -62,6 +62,8 @@ impl ImageToBufferCopier {
             bytemuck::cast_slice(&[w, h]),
         );
 
+        self.bind_group_manager.clear_cache();
+
         let bind_group = self.bind_group_manager.get_or_create(BindGroupDescriptor {
             entries: vec![
                 BindGroupEntry {

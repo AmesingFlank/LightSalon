@@ -68,6 +68,8 @@ impl ImageResizer {
             .get_mut(&input_img.properties.format)
             .unwrap();
 
+        bind_group_manager.clear_cache();
+
         let input_dimensions = input_img.properties.dimensions;
         let output_dimensions = (
             (input_dimensions.0 as f32 * factor) as u32,

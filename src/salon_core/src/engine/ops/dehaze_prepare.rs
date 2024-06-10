@@ -94,6 +94,10 @@ impl PrepareDehazeImpl {
 impl PrepareDehazeImpl {
     pub fn reset(&mut self) {
         self.ring_buffer.mark_all_available();
+        self.bind_group_manager_prepare.clear_cache();
+        self.bind_group_manager_clear_histogram.clear_cache();
+        self.bind_group_manager_compute_histogram.clear_cache();
+        self.bind_group_manager_estimate_airlight.clear_cache();
     }
 
     pub fn encode_commands(

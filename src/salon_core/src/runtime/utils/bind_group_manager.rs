@@ -36,6 +36,11 @@ impl BindGroupManager {
             None => None,
         };
 
+        assert!(
+            self.cache.len() < 100,
+            "BindGroupManager cache size over 100! Please clear the cache regularly. BindGroups kept in memory may stop wgpu from freeing GPU memory of textures/buffers that are destroyed."
+        );
+
         self.cache
             .entry(key)
             .or_insert_with(|| descriptor.make_bind_group(runtime, layout, label))
@@ -52,6 +57,12 @@ impl BindGroupManager {
         self.cache
             .get(key)
             .expect("A bind group corresponding to this descriptor does not exist")
+    }
+
+    pub fn clear_cache(&mut self) {
+        // In wgpu, BindGroups stored in memory may stop textures/buffer GPU memory from being freed,
+        // so we need to clear the cache regularly to prevent memory leaks.
+        self.cache.clear();
     }
 }
 

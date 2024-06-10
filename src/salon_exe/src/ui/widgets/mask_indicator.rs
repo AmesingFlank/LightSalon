@@ -82,7 +82,10 @@ impl MaskIndicatorRenderResources {
         }
     }
 
-    pub fn reset(&mut self) {}
+    pub fn reset(&mut self) {
+        self.bind_group_manager.clear_cache();
+        self.bind_group_key_cache.clear();
+    }
 
     fn prepare(
         &mut self,
