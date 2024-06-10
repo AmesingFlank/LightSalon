@@ -36,11 +36,6 @@ impl BindGroupManager {
             None => None,
         };
 
-        assert!(
-            self.cache.len() < 100,
-            "BindGroupManager cache size over 100! Please clear the cache regularly. BindGroups kept in memory may stop wgpu from freeing GPU memory of textures/buffers that are destroyed."
-        );
-
         self.cache
             .entry(key)
             .or_insert_with(|| descriptor.make_bind_group(runtime, layout, label))
