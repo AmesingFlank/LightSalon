@@ -130,21 +130,27 @@ fn show_edited_image(
         let num_pixels_in_ui = size_in_ui * ctx.pixels_per_point();
         let x_factor = num_pixels_in_ui.x / original_size.x;
         let y_factor = num_pixels_in_ui.y / original_size.y;
-        let factor = x_factor.max(y_factor); // possible for these two to be slightly different..?
-        if factor < 1.0 {
-            let mut should_override_factor = false;
-            if let Some(curr_factor) = context.current_edit_ref().resize_factor {
-                if (curr_factor - factor).abs() > 0.01 {
-                    // overwrite only when factor changes noticeably, to avoid constant-rescaling due to egui size jitters.
-                    should_override_factor = true;
-                }
-            } else {
+        let mut factor = x_factor.max(y_factor); // possible for these two to be slightly different..?
+        if let Some(ref zoom) = ui_state.main_image_zoom {
+            if zoom.zoom.get() > 1.0 {
+                // we're zoomed-in, so avoid shrinking the image.
+                factor = 1.0;
+            }
+        }
+        factor = factor.min(1.0);
+
+        let mut should_override_factor = false;
+        if let Some(curr_factor) = context.current_edit_ref().resize_factor {
+            if (curr_factor - factor).abs() > 0.01 {
+                // overwrite only when factor changes noticeably, to avoid constant-rescaling due to egui size jitters.
                 should_override_factor = true;
             }
-            if should_override_factor {
-                context.override_resize_factor(factor);
-                session.editor.execute_current_edit();
-            }
+        } else {
+            should_override_factor = true;
+        }
+        if should_override_factor {
+            context.override_resize_factor(factor);
+            session.editor.execute_current_edit();
         }
 
         let context = session.editor.current_edit_context_mut().unwrap();
