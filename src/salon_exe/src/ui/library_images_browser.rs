@@ -15,6 +15,8 @@ pub fn library_images_browser(
     session: &mut Session,
     ui_state: &mut AppUiState,
 ) {
+    let bottom_y = ui.max_rect().max.y;
+    
     let max_height = ui.available_height();
     let num_columns = 6;
     let column_width = (ui.available_width() / num_columns as f32) * 0.95;
@@ -62,8 +64,9 @@ pub fn library_images_browser(
                         let aspect_ratio = image.aspect_ratio();
                         let image_size =
                             get_max_image_size(aspect_ratio, max_image_width, max_image_height);
-                        let (rect, response) =
+                        let (mut rect, response) =
                             ui.allocate_exact_size(image_size, egui::Sense::click());
+                        rect.max.y = rect.max.y.min(bottom_y);
                         ui.centered_and_justified(|ui| {
                             ui.painter().add(egui_wgpu::Callback::new_paint_callback(
                                 rect,

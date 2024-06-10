@@ -13,6 +13,8 @@ pub fn library_side_panel(
     session: &mut Session,
     ui_state: &mut AppUiState,
 ) {
+    let bottom_y = ui.max_rect().max.y;
+
     let max_height = ui.available_height();
     let mut table = TableBuilder::new(ui)
         .column(Column::auto())
@@ -50,7 +52,8 @@ pub fn library_side_panel(
                         x: image_width,
                         y: image_height,
                     };
-                    let (rect, response) = ui.allocate_exact_size(size, egui::Sense::click());
+                    let (mut rect, response) = ui.allocate_exact_size(size, egui::Sense::click());
+                    rect.max.y = rect.max.y.min(bottom_y);
                     ui.centered_and_justified(|ui| {
                         ui.painter().add(egui_wgpu::Callback::new_paint_callback(
                             rect,
