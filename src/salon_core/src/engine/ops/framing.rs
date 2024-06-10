@@ -53,13 +53,13 @@ impl ApplyFramingImpl {
 
         let input_dimensions = input_img.properties.dimensions;
         let output_aspect_ratio = op.frame.aspect_ratio_float();
-        let output_dimensions = if input_img.aspect_ratio() >= output_aspect_ratio {
+        let output_dimensions = if output_aspect_ratio >= input_img.aspect_ratio() {
             let output_y = ((1.0 + op.frame.gap) * input_dimensions.1 as f32) as u32;
-            let output_x = (output_y as f32 / output_aspect_ratio) as u32;
+            let output_x = (output_y as f32 * output_aspect_ratio) as u32;
             (output_x, output_y)
         } else {
             let output_x = ((1.0 + op.frame.gap) * input_dimensions.0 as f32) as u32;
-            let output_y = (output_x as f32 * output_aspect_ratio) as u32;
+            let output_y = (output_x as f32 / output_aspect_ratio) as u32;
             (output_x, output_y)
         };
 

@@ -123,7 +123,7 @@ fn show_edited_image(
         if let Some(ref crop_rect) = context.current_edit_ref().crop_rect {
             original_size = original_size * crop_rect.size;
         }
-        let aspect_ratio = original_size.y / original_size.x;
+        let aspect_ratio = original_size.x / original_size.y;
 
         let size_in_ui = get_image_size_in_ui(ui, aspect_ratio);
         // HiDPI (aka Apple Retina) scaling factor;
@@ -772,10 +772,10 @@ fn handle_crop_and_rotate_response(
                     _ => {}
                 }
                 if should_keep {
-                    let cropped_aspect_ratio = new_crop_rect.size.y / new_crop_rect.size.x;
-                    let min_abs_x = delta.x.abs().min(delta.y.abs() / cropped_aspect_ratio);
+                    let cropped_aspect_ratio = new_crop_rect.size.x / new_crop_rect.size.y;
+                    let min_abs_x = delta.x.abs().min(delta.y.abs() * cropped_aspect_ratio);
                     delta.x = min_abs_x * delta.x.signum();
-                    delta.y = min_abs_x * delta.y.signum() * cropped_aspect_ratio;
+                    delta.y = min_abs_x * delta.y.signum() / cropped_aspect_ratio;
                 } else {
                     delta = vec2((0.0, 0.0));
                 }
@@ -811,16 +811,16 @@ fn handle_crop_and_rotate_response(
 
             if edge_or_corner.has_left() || edge_or_corner.has_right() {
                 let mut dir = vec2((1.0, 0.0));
-                dir.x /= original_image_aspect_ratio;
-                dir = rotation_mat * dir;
                 dir.x *= original_image_aspect_ratio;
+                dir = rotation_mat * dir;
+                dir.x /= original_image_aspect_ratio;
                 new_crop_rect.center = new_crop_rect.center + dir * 0.5 * delta.x;
             }
             if edge_or_corner.has_top() || edge_or_corner.has_bottom() {
                 let mut dir = vec2((0.0, 1.0));
-                dir.x /= original_image_aspect_ratio;
-                dir = rotation_mat * dir;
                 dir.x *= original_image_aspect_ratio;
+                dir = rotation_mat * dir;
+                dir.x /= original_image_aspect_ratio;
                 new_crop_rect.center = new_crop_rect.center + dir * 0.5 * delta.y;
             }
 
@@ -843,7 +843,7 @@ fn handle_crop_and_rotate_response(
                     original_ui_crop_rect.height() / original_crop_rect.size.y,
                 ));
 
-            delta.x /= original_image_aspect_ratio;
+            delta.x *= original_image_aspect_ratio;
 
             if delta.x != 0.0 || delta.y != 0.0 {
                 let delta_bounds = get_crop_rect_translation_bounds(
@@ -872,7 +872,7 @@ fn handle_crop_and_rotate_response(
             let rotation_mat = get_rotation_mat(-original_rotation_degrees.to_radians());
             delta = rotation_mat * delta;
 
-            delta.x *= original_image_aspect_ratio;
+            delta.x /= original_image_aspect_ratio;
 
             let mut new_crop_rect = original_crop_rect;
             new_crop_rect.center = new_crop_rect.center + delta;

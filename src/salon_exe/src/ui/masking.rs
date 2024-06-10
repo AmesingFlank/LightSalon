@@ -38,7 +38,7 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
 
     let mut mask_aspect_ratio = image_aspect_ratio;
     if let Some(crop_rect) = edit.crop_rect {
-        mask_aspect_ratio *= crop_rect.size.y / crop_rect.size.x
+        mask_aspect_ratio *= crop_rect.size.x / crop_rect.size.y
     }
 
     let mask_max_width = ui.available_width() * 0.2;
@@ -291,7 +291,7 @@ fn new_mask_menu_button(
                 .input_image()
                 .aspect_ratio();
             if let Some(crop_rect) = edit.crop_rect {
-                aspect_ratio *= crop_rect.size.y / crop_rect.size.x
+                aspect_ratio *= crop_rect.size.x / crop_rect.size.y
             }
             add_single_primitive_masked_edit(
                 edit,

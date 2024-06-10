@@ -63,7 +63,7 @@ pub struct ImageProperties {
 
 impl Image {
     pub fn aspect_ratio(&self) -> f32 {
-        self.properties.dimensions.1 as f32 / self.properties.dimensions.0 as f32
+        self.properties.dimensions.0 as f32 / self.properties.dimensions.1 as f32
     }
     pub fn mip_level_count(dimensions: &(u32, u32)) -> u32 {
         let max_dim = std::cmp::max(dimensions.0, dimensions.1);

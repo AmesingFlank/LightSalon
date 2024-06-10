@@ -60,7 +60,7 @@ pub fn rotate_and_crop(
         {
             let rotation_degrees = edit.rotation_degrees.clone().unwrap_or(0.0);
             let aspect_ratio =
-                ui_state.crop_rect_aspect_ratio.1 as f32 / ui_state.crop_rect_aspect_ratio.0 as f32;
+                ui_state.crop_rect_aspect_ratio.0 as f32 / ui_state.crop_rect_aspect_ratio.1 as f32;
             let new_crop_rect = get_max_crop_rect_with_aspect_ratio(
                 rotation_degrees,
                 crop_rect,

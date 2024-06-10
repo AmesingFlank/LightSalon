@@ -46,15 +46,15 @@ fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
     let uv_in_output = in.uv;
 
     let image_size = textureDimensions(tex);
-    let image_aspect_ratio = f32(image_size.y) / f32(image_size.x);
+    let image_aspect_ratio = f32(image_size.x) / f32(image_size.y);
     var output_size = vec2<u32>(0u, 0u);
-    if image_aspect_ratio >= params.frame_aspect_ratio {
+    if params.frame_aspect_ratio >= image_aspect_ratio {
         output_size.y = u32((1.0 + params.frame_gap) * f32(image_size.y));
-        output_size.x = u32(f32(output_size.y) / params.frame_aspect_ratio);
+        output_size.x = u32(f32(output_size.y) * params.frame_aspect_ratio);
     }
     else {
         output_size.x = u32((1.0 + params.frame_gap) * f32(image_size.x));
-        output_size.y = u32(f32(output_size.x) * params.frame_aspect_ratio);
+        output_size.y = u32(f32(output_size.x) / params.frame_aspect_ratio);
     }
     
     let pos_in_output = vec2<u32>(uv_in_output * vec2<f32>(output_size - 1u));

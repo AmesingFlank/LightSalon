@@ -29,12 +29,12 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
     var uv = vec2<f32>(global_id.xy) / vec2<f32>(input_size - 1u);
 
-    let input_image_aspect_ratio = f32(input_size.y) / f32(input_size.x);
+    let input_image_aspect_ratio = f32(input_size.x) / f32(input_size.y);
 
     // centered around (0, 0)
     uv = uv - 0.5 * size;
 
-    uv.x /= input_image_aspect_ratio;
+    uv.x *= input_image_aspect_ratio;
 
     let rotation_col0 = vec2 (
         cos(-params.rotation_radians),
@@ -48,7 +48,7 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
     uv = rotation * uv;
 
-    uv.x *= input_image_aspect_ratio;
+    uv.x /= input_image_aspect_ratio;
 
     uv = uv + vec2(params.center_x, params.center_y);
 

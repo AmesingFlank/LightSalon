@@ -155,7 +155,7 @@ impl ImageGeometryEditRenderResources {
         let crop_rect_width = width * render_call.crop_rect.size.x;
         let crop_rect_height = height * render_call.crop_rect.size.y;
 
-        let render_target_aspect_ratio = allocated_rect.height() / allocated_rect.width();
+        let render_target_aspect_ratio = allocated_rect.width() / allocated_rect.height();
         queue.write_buffer(
             &buffer.buffer,
             size_of::<u32>() as u64,

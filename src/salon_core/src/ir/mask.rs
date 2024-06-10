@@ -133,7 +133,7 @@ impl RadialGradientMask {
         Self {
             center_x: 0.5,
             center_y: 0.5,
-            radius_x: 0.1 * aspect_ratio,
+            radius_x: 0.1 / aspect_ratio,
             radius_y: 0.1,
             feather: 50.0,
             rotation: 0.0,

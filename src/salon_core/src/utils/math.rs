@@ -103,21 +103,21 @@ pub fn approximate_aspect_ratio(true_ratio: (u32, u32), max_dimension: u32) -> (
     if x == y {
         return (1, 1);
     }
-    if x > y {
+    if y > x {
         let (y, x) = approximate_aspect_ratio((y, x), max_dimension);
         return (x, y);
     }
-    let ratio_f = y as f32 / x as f32;
+    let ratio_f = x as f32 / y as f32;
     if ratio_f > max_dimension as f32 {
-        return (1, ratio_f.round() as u32);
+        return (ratio_f.round() as u32, 1);
     }
 
     let mut min_diff = ratio_f;
     let mut best_y = 1;
     let mut best_x = 1;
-    for x in 1..=max_dimension {
-        let y = (ratio_f * x as f32).round() as u32;
-        let diff = (y as f32 / x as f32 - ratio_f).abs();
+    for y in 1..=max_dimension {
+        let x = (ratio_f * y as f32).round() as u32;
+        let diff = (x as f32 / y as f32 - ratio_f).abs();
         if diff < min_diff {
             min_diff = diff;
             best_x = x;
@@ -168,9 +168,9 @@ fn get_full_image_corner_positions(
         vec2((1.0, 0.0)),
     ];
     let mut crop_rect_center = crop_rect.center;
-    crop_rect_center.x /= image_aspect_ratio;
+    crop_rect_center.x *= image_aspect_ratio;
     for corner in corners.iter_mut() {
-        corner.x /= image_aspect_ratio;
+        corner.x *= image_aspect_ratio;
         *corner = *corner - crop_rect_center;
         *corner = rotation_mat * *corner;
     }
@@ -193,7 +193,7 @@ fn get_full_image_edge_segments(
 
 fn get_crop_rect_corner_positions(crop_rect: Rectangle, image_aspect_ratio: f32) -> [Vec2<f32>; 4] {
     let mut crop_rect_center = crop_rect.center;
-    crop_rect_center.x /= image_aspect_ratio;
+    crop_rect_center.x *= image_aspect_ratio;
 
     let mut crop_rect_corners = [
         crop_rect.min(),
@@ -203,7 +203,7 @@ fn get_crop_rect_corner_positions(crop_rect: Rectangle, image_aspect_ratio: f32)
     ];
 
     for corner in crop_rect_corners.iter_mut() {
-        corner.x /= image_aspect_ratio;
+        corner.x *= image_aspect_ratio;
         *corner = *corner - crop_rect_center;
     }
 
@@ -230,7 +230,7 @@ pub fn maybe_shrink_crop_rect_due_to_rotation(
                 if t >= 0.0 && t < current_dist_to_corner {
                     if new_rect.is_none() {
                         new_rect = Some(crop_rect);
-                        new_rect.as_mut().unwrap().size.x /= image_aspect_ratio;
+                        new_rect.as_mut().unwrap().size.x *= image_aspect_ratio;
                     }
                     new_rect.as_mut().unwrap().size.x = new_rect
                         .as_mut()
@@ -250,7 +250,7 @@ pub fn maybe_shrink_crop_rect_due_to_rotation(
     }
 
     let mut new_rect = new_rect?;
-    new_rect.size.x *= image_aspect_ratio;
+    new_rect.size.x /= image_aspect_ratio;
     Some(new_rect)
 }
 
@@ -337,7 +337,7 @@ pub fn get_crop_rect_upscale_bounds(
         get_full_image_edge_segments(rotation_degrees, crop_rect, image_aspect_ratio);
 
     let mut crop_rect_center = crop_rect.center;
-    crop_rect_center.x /= image_aspect_ratio;
+    crop_rect_center.x *= image_aspect_ratio;
 
     let mut relevant_corners = Vec::new();
 
@@ -366,7 +366,7 @@ pub fn get_crop_rect_upscale_bounds(
     }
 
     for corner in relevant_corners.iter_mut() {
-        corner.x /= image_aspect_ratio;
+        corner.x *= image_aspect_ratio;
         *corner = *corner - crop_rect_center;
     }
 
@@ -393,10 +393,10 @@ pub fn get_max_crop_rect_with_aspect_ratio(
         size: vec2((f32::INFINITY, f32::INFINITY)),
     };
     let mut ray_dirs = [
-        vec2((1.0, new_crop_rect_aspect_ratio)),
-        vec2((-1.0, new_crop_rect_aspect_ratio)),
-        vec2((1.0, -new_crop_rect_aspect_ratio)),
-        vec2((-1.0, -new_crop_rect_aspect_ratio)),
+        vec2((new_crop_rect_aspect_ratio, 1.0)),
+        vec2((new_crop_rect_aspect_ratio, -1.0)),
+        vec2((-new_crop_rect_aspect_ratio, 1.0)),
+        vec2((-new_crop_rect_aspect_ratio, -1.0)),
     ];
     for dir in ray_dirs.iter_mut() {
         *dir = dir.normalized();
@@ -412,7 +412,7 @@ pub fn get_max_crop_rect_with_aspect_ratio(
                     new_crop_rect.size.x = new_crop_rect
                         .size
                         .x
-                        .min(to_corner.x.abs() * 2.0 * image_aspect_ratio);
+                        .min(to_corner.x.abs() * 2.0 / image_aspect_ratio);
                     new_crop_rect.size.y = new_crop_rect.size.y.min(to_corner.y.abs() * 2.0);
                 }
             }
@@ -441,13 +441,13 @@ pub fn handle_new_crop_rect(
             let mut xy = vec2((*x, *y));
             xy = xy - vec2((0.5, 0.5));
             xy = xy * old_crop_rect.size;
-            xy = xy * vec2((1.0 / original_image_aspect_ratio, 1.0));
-            xy = inverse_rotation_mat * xy;
-            xy = old_crop_rect.center * vec2((1.0 / original_image_aspect_ratio, 1.0)) + xy;
-
-            xy = xy - new_crop_rect.center * vec2((1.0 / original_image_aspect_ratio, 1.0));
-            xy = rotation_mat * xy;
             xy = xy * vec2((original_image_aspect_ratio, 1.0));
+            xy = inverse_rotation_mat * xy;
+            xy = old_crop_rect.center * vec2((original_image_aspect_ratio, 1.0)) + xy;
+
+            xy = xy - new_crop_rect.center * vec2((original_image_aspect_ratio, 1.0));
+            xy = rotation_mat * xy;
+            xy = xy * vec2((1.0 / original_image_aspect_ratio, 1.0));
             xy = xy / new_crop_rect.size;
             xy = xy + vec2((0.5, 0.5));
 
@@ -515,13 +515,13 @@ pub fn handle_new_rotation(
             let mut xy = vec2((*x, *y));
             xy = xy - vec2((0.5, 0.5));
             xy = xy * old_crop_rect.size;
-            xy = xy * vec2((1.0 / original_image_aspect_ratio, 1.0));
-            xy = old_inverse_rotation_mat * xy;
-            xy = old_crop_rect.center * vec2((1.0 / original_image_aspect_ratio, 1.0)) + xy;
-
-            xy = xy - new_crop_rect.center * vec2((1.0 / original_image_aspect_ratio, 1.0));
-            xy = new_rotation_mat * xy;
             xy = xy * vec2((original_image_aspect_ratio, 1.0));
+            xy = old_inverse_rotation_mat * xy;
+            xy = old_crop_rect.center * vec2((original_image_aspect_ratio, 1.0)) + xy;
+
+            xy = xy - new_crop_rect.center * vec2((original_image_aspect_ratio, 1.0));
+            xy = new_rotation_mat * xy;
+            xy = xy * vec2((1.0 / original_image_aspect_ratio, 1.0));
             xy = xy / new_crop_rect.size;
             xy = xy + vec2((0.5, 0.5));
 

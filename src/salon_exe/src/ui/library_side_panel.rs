@@ -45,7 +45,7 @@ pub fn library_side_panel(
                     .get_thumbnail_from_identifier(&image_identifier)
                 {
                     let aspect_ratio = image.aspect_ratio();
-                    let image_width = image_height / aspect_ratio;
+                    let image_width = image_height * aspect_ratio;
                     let size = egui::Vec2 {
                         x: image_width,
                         y: image_height,

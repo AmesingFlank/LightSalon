@@ -47,7 +47,7 @@ fn vs_main(@builtin(vertex_index) vertex_idx: u32) -> VertexOut {
 
     var pos = vec2(params.center_x, params.center_y) + coords * vec2(params.width, params.height) * 0.5;
 
-    pos.x /= params.render_target_aspect_ratio;
+    pos.x *= params.render_target_aspect_ratio;
 
     let rotation_col0 = vec2 (
         cos(-params.rotation_radians),
@@ -61,7 +61,7 @@ fn vs_main(@builtin(vertex_index) vertex_idx: u32) -> VertexOut {
 
     pos = rotation * pos;
 
-    pos.x *= params.render_target_aspect_ratio;
+    pos.x /= params.render_target_aspect_ratio;
 
     out.position = vec4(pos, 0.0, 1.0);
     out.position_interpolated = out.position;

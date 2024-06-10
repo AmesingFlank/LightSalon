@@ -278,7 +278,7 @@ impl Frame {
     }
 
     pub fn aspect_ratio_float(&self) -> f32 {
-        self.aspect_ratio.1 as f32 / self.aspect_ratio.0 as f32
+        self.aspect_ratio.0 as f32 / self.aspect_ratio.1 as f32
     }
 }
 
