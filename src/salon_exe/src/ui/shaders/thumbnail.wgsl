@@ -5,6 +5,8 @@ struct VertexOut {
 
 struct Params {
     image_color_space: u32,
+    max_u: f32,
+    max_v: f32,
 };
 
 @group(0) @binding(0)
@@ -37,7 +39,8 @@ fn vs_main(@builtin(vertex_index) v_idx: u32) -> VertexOut {
 
 @fragment
 fn fs_main(in: VertexOut) -> @location(0) vec4<f32> {
-    var color = textureSample(tex, tex_sampler, in.uv).rgb;
+    let uv = in.uv * vec2(params.max_u, params.max_v);
+    var color = textureSample(tex, tex_sampler, uv).rgb;
     if (params.image_color_space == COLOR_SPACE_LINEAR_RGB) {
         color = linear_to_srgb(color);
     } 

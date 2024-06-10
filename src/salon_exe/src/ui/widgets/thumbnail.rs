@@ -16,6 +16,7 @@ use wgpu::util::DeviceExt;
 
 pub struct ThumbnailCallback {
     pub image: Arc<Image>,
+    pub allocated_ui_rect: egui::Rect,
 }
 
 impl egui_wgpu::CallbackTrait for ThumbnailCallback {
@@ -28,7 +29,7 @@ impl egui_wgpu::CallbackTrait for ThumbnailCallback {
         resources: &mut egui_wgpu::CallbackResources,
     ) -> Vec<wgpu::CommandBuffer> {
         let mut resources: &mut ThumbnailRenderResources = resources.get_mut().unwrap();
-        resources.prepare(device, queue, self.image.as_ref());
+        resources.prepare(device, queue, self);
         Vec::new()
     }
 
@@ -65,7 +66,7 @@ impl ThumbnailRenderResources {
         let ring_buffer = RingBuffer::new(
             runtime.clone(),
             BufferProperties {
-                size: size_of::<u32>(),
+                size: size_of::<u32>() + size_of::<f32>() * 2,
                 host_readable: false,
             },
         );
@@ -97,13 +98,20 @@ impl ThumbnailRenderResources {
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        image: &salon_core::runtime::Image,
+        render_call: &ThumbnailCallback,
     ) {
         let buffer = self.ring_buffer.get();
         queue.write_buffer(
             &buffer.buffer,
             0,
-            bytemuck::cast_slice(&[image.properties.color_space as u32]),
+            bytemuck::cast_slice(&[render_call.image.properties.color_space as u32]),
+        );
+
+        let (mut max_u, mut max_v) = (1.0f32, 1.0f32);
+        queue.write_buffer(
+            &buffer.buffer,
+            size_of::<u32>() as u64,
+            bytemuck::cast_slice(&[max_u, max_v]),
         );
 
         let bind_group_desc = BindGroupDescriptor {
@@ -114,7 +122,7 @@ impl ThumbnailRenderResources {
                 },
                 BindGroupEntry {
                     binding: 1,
-                    resource: BindingResource::Texture(image),
+                    resource: BindingResource::Texture(&render_call.image),
                 },
                 BindGroupEntry {
                     binding: 2,
@@ -124,7 +132,8 @@ impl ThumbnailRenderResources {
         };
         let bind_group_key = bind_group_desc.to_key();
         self.bind_group_manager.ensure(bind_group_desc);
-        self.bind_group_key_cache.insert(image.uuid, bind_group_key);
+        self.bind_group_key_cache
+            .insert(render_call.image.uuid, bind_group_key);
     }
 
     fn paint<'rp>(&'rp self, render_pass: &mut wgpu::RenderPass<'rp>, image: &'rp Image) {

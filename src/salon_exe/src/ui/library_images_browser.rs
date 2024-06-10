@@ -67,7 +67,10 @@ pub fn library_images_browser(
                         ui.centered_and_justified(|ui| {
                             ui.painter().add(egui_wgpu::Callback::new_paint_callback(
                                 rect,
-                                ThumbnailCallback { image: image },
+                                ThumbnailCallback { 
+                                    image: image,
+                                    allocated_ui_rect: rect,
+                                },
                             ));
                         });
                         if response.clicked() {
