@@ -55,8 +55,7 @@ fn file_dialogue_export_image(
 
     if let Some(context) = session.editor.current_edit_context_mut() {
         session.editor.commit_transient_edit(false);
-        let result = session.editor.execute_current_edit_original_size();
-        let final_image = result.final_image.clone();
+        let final_image = session.editor.get_full_size_editted_image();
         let final_image = session
             .toolbox
             .convert_color_space(final_image, ColorSpace::sRGB);
@@ -85,8 +84,7 @@ fn file_dialogue_export_image(
 
     if let Some(context) = session.editor.current_edit_context_mut() {
         session.editor.commit_transient_edit(false);
-        let result = session.editor.execute_current_edit_original_size();
-        let final_image = result.final_image.clone();
+        let final_image = session.editor.get_full_size_editted_image();
         let final_image = session
             .toolbox
             .convert_color_space(final_image, ColorSpace::sRGB);

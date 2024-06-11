@@ -15,7 +15,7 @@ pub struct IdStore {
     pub final_image: Id,
     pub geometry_only: Id,
     pub before_framing: Id,
-    pub final_histogram: Id,
+    pub final_histogram: Option<Id>,
     pub masked_edit_id_stores: Vec<MaskedEditIdStore>,
 }
 
@@ -25,7 +25,11 @@ pub struct MaskedEditIdStore {
     pub result_image_id: Id,
 }
 
-pub fn to_ir_module(edit: &Edit) -> (Module, IdStore) {
+pub struct IrGenerationOptions {
+    pub compute_histogram: bool,
+}
+
+pub fn to_ir_module(edit: &Edit, options: &IrGenerationOptions) -> (Module, IdStore) {
     let mut module = Module::new_empty();
 
     let input_id = module.alloc_id();
@@ -47,7 +51,10 @@ pub fn to_ir_module(edit: &Edit) -> (Module, IdStore) {
 
     let before_framing = current_output_id;
 
-    let final_histogram_id = add_final_histogram(&mut module, &current_output_id);
+    let mut final_histogram_id = None;
+    if options.compute_histogram {
+        final_histogram_id = Some(add_final_histogram(&mut module, &current_output_id));
+    };
 
     maybe_add_framing(edit, &mut module, &mut current_output_id);
 

@@ -10,7 +10,7 @@ use crate::{
 };
 
 use super::{
-    ir_generator::{to_ir_module, IdStore},
+    ir_generator::{to_ir_module, IdStore, IrGenerationOptions},
     Edit, EditResult, MaskedEditResult,
 };
 
@@ -246,8 +246,12 @@ impl Editor {
     }
 
     pub fn execute_current_edit(&mut self) {
-        let (module, id_store) =
-            to_ir_module(self.current_edit_context_ref().unwrap().current_edit_ref());
+        let (module, id_store) = to_ir_module(
+            self.current_edit_context_ref().unwrap().current_edit_ref(),
+            &IrGenerationOptions {
+                compute_histogram: true,
+            },
+        );
         let image = self
             .current_edit_context_ref()
             .unwrap()
@@ -264,6 +268,9 @@ impl Editor {
             self.current_edit_context_ref()
                 .unwrap()
                 .transient_edit_ref(),
+            &IrGenerationOptions {
+                compute_histogram: true,
+            },
         );
         let image = self
             .current_edit_context_ref()
@@ -276,7 +283,7 @@ impl Editor {
             Some(self.collect_result(&id_store));
     }
 
-    pub fn execute_current_edit_original_size(&mut self) -> EditResult {
+    pub fn get_full_size_editted_image(&mut self) -> Arc<Image> {
         let mut edit = self
             .current_edit_context_ref()
             .unwrap()
@@ -288,19 +295,26 @@ impl Editor {
             .unwrap()
             .input_image()
             .clone();
-        let (module, id_store) = to_ir_module(&edit);
+        let (module, id_store) = to_ir_module(
+            &edit,
+            &IrGenerationOptions {
+                compute_histogram: false,
+            },
+        );
         self.engine
             .execute_module(&module, image, &mut self.engine_execution_context);
-        self.collect_result(&id_store)
+        let result = self.collect_result(&id_store);
+        result.final_image
     }
 
     fn collect_result(&mut self, id_store: &IdStore) -> EditResult {
         let mut histogram_initial_value = None;
         if let Some(context) = self.current_edit_context_mut() {
             if let Some(ref mut current_result) = context.current_result {
-                let current_histogram = &mut current_result.histogram_final;
-                current_histogram.poll_value();
-                histogram_initial_value = current_histogram.take_value();
+                if let Some(ref mut current_histogram) = current_result.histogram_final {
+                    current_histogram.poll_value();
+                    histogram_initial_value = current_histogram.take_value();
+                }
             }
         }
 
@@ -312,17 +326,21 @@ impl Editor {
         let final_image = final_image_value.as_image().clone();
         self.toolbox.generate_mipmap(&final_image);
 
-        let final_histogram_buffer = value_map
-            .get(&id_store.final_histogram)
-            .expect("cannot find data for editor")
-            .as_buffer();
+        let mut final_histogram = None;
+        if let Some(ref final_histogram_id) = id_store.final_histogram {
+            let final_histogram_buffer = value_map
+                .get(final_histogram_id)
+                .expect("cannot find data for editor")
+                .as_buffer()
+                .clone();
 
-        let final_histogram = BufferReader::new(
-            self.runtime.clone(),
-            final_histogram_buffer.clone(),
-            histogram_initial_value,
-            Box::new(|v| ImageHistogram::from_u32_slice(v.as_slice())),
-        );
+            final_histogram = Some(BufferReader::new(
+                self.runtime.clone(),
+                final_histogram_buffer,
+                histogram_initial_value,
+                Box::new(|v| ImageHistogram::from_u32_slice(v.as_slice())),
+            ));
+        }
 
         let mut masked_edit_results = Vec::new();
 

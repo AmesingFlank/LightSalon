@@ -7,7 +7,7 @@ pub struct EditResult {
     pub final_image: Arc<Image>,
     pub geometry_only: Arc<Image>,
     pub before_framing: Arc<Image>,
-    pub histogram_final: BufferReader<ImageHistogram>,
+    pub histogram_final: Option<BufferReader<ImageHistogram>>,
     pub masked_edit_results: Vec<MaskedEditResult>,
 }
 

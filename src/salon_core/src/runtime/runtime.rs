@@ -345,10 +345,6 @@ impl Runtime {
             buffer.buffer_host_readable.is_some(),
             "missing host readable buffer"
         );
-        assert!(
-            !self.buffer_is_being_mapped(buffer),
-            "buffer is already being mapped"
-        );
         let buffer_host_readable = buffer.buffer_host_readable.as_ref().unwrap();
         let mut encoder = self
             .device
