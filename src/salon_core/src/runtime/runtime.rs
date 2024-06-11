@@ -397,4 +397,13 @@ impl Runtime {
             .buffers_being_mapped
             .contains(&buffer.uuid)
     }
+
+    pub fn get_required_max_texture_dim_1d_2d() -> usize {
+        // 100MP medium format digital sensor file size: 11656 x 8742
+        11656
+    }
+
+    pub fn get_required_max_buffer_size() -> usize {
+        Self::get_required_max_texture_dim_1d_2d() * Self::get_required_max_texture_dim_1d_2d() * 4
+    }
 }

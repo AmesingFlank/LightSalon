@@ -78,8 +78,8 @@ impl App {
 
     fn get_required_wgpu_limits() -> wgpu::Limits {
         // 100MP medium format digital sensor file size: 11656 x 8742
-        let max_dim = 11656;
-        let max_buff_size = 11656 * 8742 * 4;
+        let max_dim = Runtime::get_required_max_texture_dim_1d_2d() as u32;
+        let max_buff_size = Runtime::get_required_max_buffer_size() as u64;
         wgpu::Limits {
             max_texture_dimension_1d: max_dim,
             max_texture_dimension_2d: max_dim,
@@ -197,7 +197,12 @@ impl App {
                 }
                 AddedImageOrAlbum::Image(image) => {
                     let identifier = self.session.library.add_image_temp(image, None);
-                    ui_set_current_editor_image(ctx, &mut self.session, &mut self.ui_state, identifier);
+                    ui_set_current_editor_image(
+                        ctx,
+                        &mut self.session,
+                        &mut self.ui_state,
+                        identifier,
+                    );
                 }
                 AddedImageOrAlbum::AlbumFromPath(album_dir) => {
                     let album_index = self.session.library.add_album_from_directory(album_dir);
