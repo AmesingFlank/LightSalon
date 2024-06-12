@@ -5,6 +5,7 @@ use std::sync::Arc;
 use crate::editor::{Edit, EditHistory, Editor, EditorPersistentState};
 use crate::library::{Library, LibraryImageIdentifier, LibraryPersistentState};
 use crate::runtime::{Runtime, Toolbox};
+use crate::versioning::Version;
 
 pub struct Session {
     pub library: Library,
@@ -46,6 +47,7 @@ impl Session {
         let library_state = self.library.get_persistent_state();
         let editor_state = self.editor.get_persistent_state();
         SessionPersistentState {
+            version: Version::current_build(),
             library_state,
             editor_state,
         }
@@ -66,9 +68,10 @@ impl Session {
                 let state_json_str = state_json_str.unwrap();
                 let state = serde_json::from_str::<SessionPersistentState>(state_json_str.as_str());
                 if let Err(e) = state {
-                    return Err(
-                        "failed to parse state json file: ".to_owned() + state_json_str.as_str()
-                    );
+                    return Err("failed to parse state json file: ".to_owned()
+                        + state_json_str.as_str()
+                        + "\n Error: "
+                        + e.to_string().as_str());
                 }
                 let state = state.unwrap();
                 self.library.load_persistent_state(state.library_state);
@@ -141,6 +144,7 @@ impl Session {
 
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
 pub struct SessionPersistentState {
+    version: Version,
     library_state: LibraryPersistentState,
     editor_state: EditorPersistentState,
 }
