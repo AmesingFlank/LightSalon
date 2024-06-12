@@ -15,7 +15,7 @@ pub struct AppUiState {
     pub fps_counter: FpsCounterState,
 
     pub app_page: AppPage,
-    
+
     pub selected_album: Option<usize>,
 
     pub show_grid: bool,
@@ -79,6 +79,8 @@ impl AppUiState {
         self.selected_mask_term_index = None;
         self.mask_edit_state.dragged_control_point_index = None;
         self.main_image_zoom = None;
+        self.framing_aspect_ratio = (0, 0);
+        self.crop_rect_aspect_ratio = (0, 0);
     }
 }
 
