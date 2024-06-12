@@ -20,6 +20,8 @@ pub struct ApplyFramingImpl {
     runtime: Arc<Runtime>,
     pipeline: wgpu::ComputePipeline,
     bind_group_manager: BindGroupManager,
+    ring_buffer: RingBuffer,
+    texture_sampler: Sampler,
 }
 impl ApplyFramingImpl {
     pub fn new(runtime: Arc<Runtime>) -> Self {
@@ -30,10 +32,30 @@ impl ApplyFramingImpl {
 
         let bind_group_manager = BindGroupManager::new(runtime.clone(), bind_group_layout);
 
+        let ring_buffer = RingBuffer::new(
+            runtime.clone(),
+            BufferProperties {
+                size: size_of::<f32>(),
+                host_readable: false,
+            },
+        );
+
+        let texture_sampler = runtime.create_sampler(&wgpu::SamplerDescriptor {
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
+            mag_filter: wgpu::FilterMode::Linear,
+            min_filter: wgpu::FilterMode::Linear,
+            mipmap_filter: wgpu::FilterMode::Linear,
+            ..Default::default()
+        });
+
         ApplyFramingImpl {
             runtime,
             pipeline,
             bind_group_manager,
+            ring_buffer,
+            texture_sampler,
         }
     }
 }
@@ -53,7 +75,7 @@ impl ApplyFramingImpl {
 
         let input_dimensions = input_img.properties.dimensions;
         let output_aspect_ratio = op.frame.aspect_ratio_float();
-        let output_dimensions = if output_aspect_ratio >= input_img.aspect_ratio() {
+        let mut output_dimensions = if output_aspect_ratio >= input_img.aspect_ratio() {
             let output_y = ((1.0 + op.frame.gap) * input_dimensions.1 as f32) as u32;
             let output_x = (output_y as f32 * output_aspect_ratio) as u32;
             (output_x, output_y)
@@ -62,6 +84,21 @@ impl ApplyFramingImpl {
             let output_y = (output_x as f32 / output_aspect_ratio) as u32;
             (output_x, output_y)
         };
+
+        let max_texture_dim = Runtime::get_required_max_texture_dim_1d_2d() as u32;
+        let mut factor = 1.0;
+        if output_dimensions.0 > max_texture_dim {
+            let this_factor = max_texture_dim as f32 / output_dimensions.0 as f32;
+            factor *= this_factor;
+            output_dimensions.0 = max_texture_dim;
+            output_dimensions.1 = (output_dimensions.1 as f32 * this_factor) as u32;
+        }
+        if output_dimensions.1 > max_texture_dim {
+            let this_factor = max_texture_dim as f32 / output_dimensions.1 as f32;
+            factor *= this_factor;
+            output_dimensions.1 = max_texture_dim;
+            output_dimensions.0 = (output_dimensions.0 as f32 * this_factor) as u32;
+        }
 
         let output_properties = ImageProperties {
             dimensions: output_dimensions,
@@ -74,6 +111,14 @@ impl ApplyFramingImpl {
             &output_properties,
         );
 
+        let buffer = self.ring_buffer.get();
+
+        let lod = -factor.log2();
+
+        self.runtime
+            .queue
+            .write_buffer(&buffer.buffer, 0, bytemuck::cast_slice(&[lod]));
+
         let bind_group = self.bind_group_manager.get_or_create(BindGroupDescriptor {
             entries: vec![
                 BindGroupEntry {
@@ -82,7 +127,15 @@ impl ApplyFramingImpl {
                 },
                 BindGroupEntry {
                     binding: 1,
+                    resource: BindingResource::Sampler(&self.texture_sampler),
+                },
+                BindGroupEntry {
+                    binding: 2,
                     resource: BindingResource::TextureStorage(&output_img, 0),
+                },
+                BindGroupEntry {
+                    binding: 3,
+                    resource: BindingResource::Buffer(buffer),
                 },
             ],
         });
