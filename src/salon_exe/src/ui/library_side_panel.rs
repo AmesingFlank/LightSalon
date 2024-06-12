@@ -5,7 +5,7 @@ use eframe::{
 use egui_extras::{Column, TableBuilder};
 use salon_core::session::Session;
 
-use super::{ui_set_current_editor_image, widgets::ThumbnailCallback, AppUiState};
+use super::{ui_set_current_editor_image, widgets::ThumbnailCallback, AppPage, AppUiState};
 
 pub fn library_side_panel(
     ctx: &egui::Context,
@@ -13,6 +13,25 @@ pub fn library_side_panel(
     session: &mut Session,
     ui_state: &mut AppUiState,
 ) {
+    ui.horizontal(|ui| {
+        let name = if let Some(album_index) = ui_state.selected_album {
+            session.library.albums()[album_index].name.clone()
+        } else {
+            "All Photos".to_owned()
+        };
+        ui.label(name);
+
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::RIGHT), |ui| {
+            if ui
+                .selectable_label(false, "🗖" /* emoji for "maximize", U+1F5D6 */)
+                .on_hover_text("Return to Gallery")
+                .clicked()
+            {
+                ui_state.app_page = AppPage::Library;
+            }
+        });
+    });
+
     let bottom_y = ui.max_rect().max.y;
 
     let max_height = ui.available_height();
