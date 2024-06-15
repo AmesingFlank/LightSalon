@@ -4,7 +4,7 @@ use std::sync::Arc;
 use std::{fmt, time::SystemTime};
 
 use eframe::egui;
-use salon_core::library::LibraryImageIdentifier;
+use salon_core::library::{LibraryImageIdentifier, LibraryImageMetaData};
 use salon_core::runtime::{Image, Runtime, Toolbox};
 
 use super::utils::AnimatedValue;
@@ -216,7 +216,7 @@ impl MaskEditState {
 }
 
 pub enum AddedImageOrAlbum {
-    Image(Arc<Image>),
+    Image(Arc<Image>, LibraryImageMetaData),
     ImagesFromPaths(Vec<PathBuf>),
     AlbumFromPath(PathBuf),
 }

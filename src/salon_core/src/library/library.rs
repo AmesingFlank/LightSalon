@@ -18,11 +18,16 @@ pub enum LibraryImageIdentifier {
     Path(PathBuf),
 }
 
+pub struct LibraryImageMetaData {
+    pub name: Option<String>,
+}
+
 struct LibraryItem {
     image: Option<Arc<Image>>,
     thumbnail: Option<Arc<Image>>,
     thumbnail_path: Option<PathBuf>,
     albums: HashSet<usize>,
+    metadata: LibraryImageMetaData,
 }
 
 pub struct Library {
@@ -96,6 +101,7 @@ impl Library {
         &mut self,
         image: Arc<Image>,
         album: Option<usize>,
+        metadata: LibraryImageMetaData,
     ) -> LibraryImageIdentifier {
         let temp_image_id = LibraryImageIdentifier::Temp(get_next_uuid());
 
@@ -111,6 +117,7 @@ impl Library {
             thumbnail: Some(thumbnail),
             thumbnail_path: None,
             albums: HashSet::new(),
+            metadata,
         };
         if let Some(album) = album {
             library_item.albums.insert(album);
@@ -124,12 +131,21 @@ impl Library {
         path: PathBuf,
         album: Option<usize>,
     ) -> LibraryImageIdentifier {
+        let mut metadata = LibraryImageMetaData { name: None };
+        if let Some(name) = path.file_name() {
+            if let Some(name) = name.to_str() {
+                metadata.name = Some(name.to_owned());
+            }
+        }
+
         let id = LibraryImageIdentifier::Path(path);
+
         let mut item = LibraryItem {
             image: None,
             thumbnail: None,
             thumbnail_path: None,
             albums: HashSet::new(),
+            metadata,
         };
         if let Some(album) = album {
             item.albums.insert(album);
@@ -333,8 +349,8 @@ impl Library {
 
     pub fn get_identifier_at_index(&self, index: usize) -> &LibraryImageIdentifier {
         &self.items_ordered[index]
-    } 
-    
+    }
+
     // return the item or delete the identifier
     fn get_fully_loaded_item(
         &mut self,

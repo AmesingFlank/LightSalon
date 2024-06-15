@@ -5,7 +5,7 @@ use eframe::{
 };
 use egui_extras::{Column, TableBuilder};
 use salon_core::{
-    library::LibraryImageIdentifier,
+    library::{LibraryImageIdentifier, LibraryImageMetaData},
     runtime::{ColorSpace, ImageFormat, ImageReaderJpeg, Runtime, Toolbox},
     session::Session,
 };
@@ -235,8 +235,11 @@ impl ImageImportDialog {
                         );
                         match image {
                             Ok(image) => {
+                                let metadata = LibraryImageMetaData {
+                                    name: Some(file_name),
+                                };
                                 let image = Arc::new(image);
-                                let added_img = AddedImageOrAlbum::Image(image);
+                                let added_img = AddedImageOrAlbum::Image(image, metadata);
                                 sender.send(added_img).expect("failed to send added image");
                                 context.request_repaint();
                             }

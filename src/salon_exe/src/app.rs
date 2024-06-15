@@ -13,6 +13,7 @@ use eframe::{
     egui_wgpu,
     epaint::Color32,
 };
+use salon_core::library::LibraryImageMetaData;
 use salon_core::{runtime::Runtime, session::Session};
 use std::sync::Arc;
 
@@ -195,8 +196,8 @@ impl App {
                         }
                     }
                 }
-                AddedImageOrAlbum::Image(image) => {
-                    let identifier = self.session.library.add_image_temp(image, None);
+                AddedImageOrAlbum::Image(image, metadata) => {
+                    let identifier = self.session.library.add_image_temp(image, None, metadata);
                     ui_set_current_editor_image(
                         ctx,
                         &mut self.session,
@@ -229,8 +230,13 @@ impl App {
                         .create_image_from_bytes_and_extension(bytes.as_ref(), ext);
                     match image {
                         Ok(img) => {
+                            let metadata = LibraryImageMetaData {
+                                name: Some(file_name),
+                            };
                             let identifier =
-                                self.session.library.add_image_temp(Arc::new(img), None);
+                                self.session
+                                    .library
+                                    .add_image_temp(Arc::new(img), None, metadata);
                             ui_set_current_editor_image(
                                 ctx,
                                 &mut self.session,
