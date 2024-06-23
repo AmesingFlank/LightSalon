@@ -83,8 +83,7 @@ pub fn library_side_panel(
                         ));
                     });
                     if response.clicked() {
-                        let identifier = session.library.get_identifier_at_index(row_index);
-                        ui_set_current_editor_image(ctx, session, ui_state, identifier.clone());
+                        ui_set_current_editor_image(ctx, session, ui_state, image_identifier);
                     }
                 }
             });

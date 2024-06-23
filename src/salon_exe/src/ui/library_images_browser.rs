@@ -77,9 +77,8 @@ pub fn library_images_browser(
                             ));
                         });
                         if response.clicked() {
-                            let identifier = session.library.get_identifier_at_index(image_index);
                             ui_state.app_page = AppPage::Editor;
-                            ui_set_current_editor_image(ctx, session, ui_state, identifier.clone());
+                            ui_set_current_editor_image(ctx, session, ui_state, image_identifier);
                         }
                     }
                 });

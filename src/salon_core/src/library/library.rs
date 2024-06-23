@@ -18,6 +18,7 @@ pub enum LibraryImageIdentifier {
     Path(PathBuf),
 }
 
+#[derive(Clone)]
 pub struct LibraryImageMetaData {
     pub name: Option<String>,
 }
@@ -34,6 +35,8 @@ pub struct Library {
     items: HashMap<LibraryImageIdentifier, LibraryItem>,
     item_indices: HashMap<LibraryImageIdentifier, usize>,
     items_ordered: Vec<LibraryImageIdentifier>,
+    items_order_dirty: bool,
+
     runtime: Arc<Runtime>,
     toolbox: Arc<Toolbox>,
     albums: Vec<Album>,
@@ -69,6 +72,7 @@ impl Library {
             items: HashMap::new(),
             item_indices: HashMap::new(),
             items_ordered: Vec::new(),
+            items_order_dirty: false,
             albums: Vec::new(),
             runtime,
             toolbox,
@@ -88,13 +92,68 @@ impl Library {
         self.albums[album_index].all_images_ordered.len()
     }
 
-    fn add_item(&mut self, item: LibraryItem, identifier: LibraryImageIdentifier) {
+    fn add_item(
+        &mut self,
+        item: LibraryItem,
+        identifier: LibraryImageIdentifier,
+        ensure_order: bool,
+    ) {
+        let item_metadata = item.metadata.clone();
         let old_item = self.items.insert(identifier.clone(), item);
         if old_item.is_none() {
-            self.item_indices
-                .insert(identifier.clone(), self.items_ordered.len());
-            self.items_ordered.push(identifier);
+            if ensure_order {
+                if self.items_order_dirty {
+                    self.ensure_items_order();
+                }
+                let mut inserted_index = None;
+                for i in 0..self.items_ordered.len() {
+                    if item_metadata.name
+                        < self
+                            .items
+                            .get(&self.items_ordered[i])
+                            .unwrap()
+                            .metadata
+                            .name
+                    {
+                        self.items_ordered.insert(i, identifier.clone());
+                        self.item_indices.insert(identifier.clone(), i);
+                        inserted_index = Some(i);
+                        break;
+                    }
+                }
+                if inserted_index.is_none() {
+                    self.item_indices
+                        .insert(identifier.clone(), self.items_ordered.len());
+                    self.items_ordered.push(identifier);
+                }
+                self.items_order_dirty = false;
+            } else {
+                self.item_indices
+                    .insert(identifier.clone(), self.items_ordered.len());
+                self.items_ordered.push(identifier);
+                self.items_order_dirty = true;
+            }
         }
+    }
+
+    fn ensure_items_order(&mut self) {
+        if !self.items_order_dirty {
+            return;
+        }
+        self.items_ordered.sort_by(|a, b| {
+            // TODO: too many HashMap accesses?
+            self.items
+                .get(a)
+                .unwrap()
+                .metadata
+                .name
+                .cmp(&self.items.get(b).unwrap().metadata.name)
+        });
+        self.item_indices.clear();
+        for i in 0..self.items_ordered.len() {
+            self.item_indices.insert(self.items_ordered[i].clone(), i);
+        }
+        self.items_order_dirty = false;
     }
 
     pub fn add_image_temp(
@@ -122,14 +181,19 @@ impl Library {
         if let Some(album) = album {
             library_item.albums.insert(album);
         }
-        self.add_item(library_item, temp_image_id.clone());
+        self.add_item(
+            library_item,
+            temp_image_id.clone(),
+            /* ensure_order */ true,
+        );
         temp_image_id
     }
 
-    pub fn add_item_from_path(
+    fn add_item_from_path_impl(
         &mut self,
         path: PathBuf,
         album: Option<usize>,
+        ensure_order: bool,
     ) -> LibraryImageIdentifier {
         let mut metadata = LibraryImageMetaData { name: None };
         if let Some(name) = path.file_name() {
@@ -150,8 +214,29 @@ impl Library {
         if let Some(album) = album {
             item.albums.insert(album);
         }
-        self.add_item(item, id.clone());
+        self.add_item(item, id.clone(), ensure_order);
         id
+    }
+
+    pub fn add_single_item_from_path(
+        &mut self,
+        path: PathBuf,
+        album: Option<usize>,
+    ) -> LibraryImageIdentifier {
+        self.add_item_from_path_impl(path, album, true)
+    }
+
+    pub fn add_items_from_paths(
+        &mut self,
+        paths: Vec<PathBuf>,
+        album: Option<usize>,
+    ) -> Vec<LibraryImageIdentifier> {
+        let mut identifiers = Vec::new();
+        for path in paths {
+            let identifier = self.add_item_from_path_impl(path, album, false);
+            identifiers.push(identifier);
+        }
+        identifiers
     }
 
     pub fn add_album_from_directory(&mut self, dir_path: PathBuf) -> usize {
@@ -238,6 +323,7 @@ impl Library {
         images: &Vec<PathBuf>,
         associatd_album: Option<usize>,
     ) {
+        let mut paths_to_add = Vec::new();
         for image_path in images {
             let item_identifier = LibraryImageIdentifier::Path(image_path.clone());
             if self.items.contains_key(&item_identifier) {
@@ -249,9 +335,10 @@ impl Library {
                 }
                 item.thumbnail_path = None;
             } else {
-                self.add_item_from_path(image_path.clone(), associatd_album);
+                paths_to_add.push(image_path.clone());
             }
         }
+        self.add_items_from_paths(paths_to_add, associatd_album);
     }
 
     fn handle_removed_paths(&mut self, removed_files: &Vec<PathBuf>, removed_dirs: &Vec<PathBuf>) {
@@ -314,20 +401,20 @@ impl Library {
                     .insert(album.all_images_ordered[i].clone(), i);
             }
         }
+        let mut paths_to_add = Vec::new();
         for identifier in all_images.iter() {
             if let Some(item) = self.items.get_mut(identifier) {
                 item.albums.insert(album_index);
             } else {
                 match identifier {
-                    LibraryImageIdentifier::Path(path) => {
-                        self.add_item_from_path(path.clone(), Some(album_index));
-                    }
+                    LibraryImageIdentifier::Path(path) => paths_to_add.push(path.clone()),
                     _ => {
                         panic!("expecting the identifier to be a LibraryImageIdentifier::Path")
                     }
                 }
             }
         }
+        self.add_items_from_paths(paths_to_add, Some(album_index));
     }
 
     fn enumerate_images_in_directory(dir: &PathBuf, images: &mut Vec<PathBuf>) {
@@ -347,7 +434,8 @@ impl Library {
         }
     }
 
-    pub fn get_identifier_at_index(&self, index: usize) -> &LibraryImageIdentifier {
+    pub fn get_identifier_at_index(&mut self, index: usize) -> &LibraryImageIdentifier {
+        self.ensure_items_order();
         &self.items_ordered[index]
     }
 
@@ -438,6 +526,8 @@ impl Library {
         // these items are found to be unavailable, so remove them from the library
         self.remove_items(&self.unavailable_items.clone());
 
+        self.ensure_items_order();
+
         let mut persistent_items = Vec::new();
         for identifier in self.items_ordered.iter() {
             if let LibraryImageIdentifier::Path(ref path) = identifier {
@@ -460,7 +550,7 @@ impl Library {
 
     pub fn load_persistent_state(&mut self, state: LibraryPersistentState) {
         for item in state.items {
-            let identifier = self.add_item_from_path(item.path, None);
+            let identifier = self.add_item_from_path_impl(item.path, None, false);
             self.items.get_mut(&identifier).unwrap().thumbnail_path = item.thumbnail_path;
         }
         for album in state.albums {
@@ -469,6 +559,7 @@ impl Library {
         for album_index in 0..self.albums.len() {
             self.enumerate_album_images(album_index);
         }
+        self.ensure_items_order();
     }
 
     fn compute_thumbnail(&self, image: Arc<Image>) -> Arc<Image> {

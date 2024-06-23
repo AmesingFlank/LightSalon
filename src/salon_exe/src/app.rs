@@ -181,19 +181,14 @@ impl App {
         while let Some(added_image) = self.ui_state.import_image_dialog.get_added_image() {
             match added_image {
                 AddedImageOrAlbum::ImagesFromPaths(paths) => {
-                    for i in 0..paths.len() {
-                        let identifier = self
-                            .session
-                            .library
-                            .add_item_from_path(paths[i].clone(), None);
-                        if i == paths.len() - 1 {
-                            ui_set_current_editor_image(
-                                ctx,
-                                &mut self.session,
-                                &mut self.ui_state,
-                                identifier,
-                            );
-                        }
+                    if !paths.is_empty() {
+                        let identifiers = self.session.library.add_items_from_paths(paths, None);
+                        ui_set_current_editor_image(
+                            ctx,
+                            &mut self.session,
+                            &mut self.ui_state,
+                            identifiers.last().unwrap().clone(),
+                        );
                     }
                 }
                 AddedImageOrAlbum::Image(image, metadata) => {
@@ -216,7 +211,10 @@ impl App {
         let raw_input = ctx.input(|i| i.raw.clone());
         for dropped_file in raw_input.dropped_files {
             if let Some(pathbuf) = dropped_file.path {
-                let identifier = self.session.library.add_item_from_path(pathbuf, None);
+                let identifier = self
+                    .session
+                    .library
+                    .add_single_item_from_path(pathbuf, None);
                 ui_set_current_editor_image(ctx, &mut self.session, &mut self.ui_state, identifier);
             } else {
                 if let Some(bytes) = dropped_file.bytes {
