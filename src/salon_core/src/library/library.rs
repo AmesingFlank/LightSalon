@@ -88,8 +88,12 @@ impl Library {
         &self.albums
     }
 
+    pub fn albums_mut(&mut self) -> &mut Vec<Album> {
+        &mut self.albums
+    }
+
     pub fn num_images_in_album(&self, album_index: usize) -> usize {
-        self.albums[album_index].all_images_ordered.len()
+        self.albums[album_index].num_images()
     }
 
     fn add_item(

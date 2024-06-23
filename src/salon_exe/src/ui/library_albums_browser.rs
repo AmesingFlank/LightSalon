@@ -48,7 +48,7 @@ pub fn library_albums_browser(
                         let text = "📷 ".to_owned()
                             + albums[i].name.as_str()
                             + " ("
-                            + albums[i].all_images_ordered.len().to_string().as_str()
+                            + albums[i].num_images().to_string().as_str()
                             + ")";
                         if ui
                             .selectable_label(ui_state.selected_album == Some(i), text)

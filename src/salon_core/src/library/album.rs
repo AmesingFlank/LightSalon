@@ -28,8 +28,8 @@ pub struct Album {
     pub directory: Option<PathBuf>,
     pub additional_images: Vec<LibraryImageIdentifier>,
 
-    pub all_images_ordered: Vec<LibraryImageIdentifier>,
-    pub all_images_indices: HashMap<LibraryImageIdentifier, usize>,
+    pub(super) all_images_ordered: Vec<LibraryImageIdentifier>,
+    pub(super) all_images_indices: HashMap<LibraryImageIdentifier, usize>,
 
     #[cfg(not(target_arch = "wasm32"))]
     notify_debouncer: Option<
@@ -116,5 +116,13 @@ impl Album {
 
     pub fn from_persistent_state(state: AlbumPersistentState) -> Self {
         Self::new(state.name, state.directory, state.additional_images)
+    }
+
+    pub fn num_images(&self) -> usize {
+        self.all_images_ordered.len()
+    }
+
+    pub fn get_identifier_at_index(&mut self, index: usize) -> &LibraryImageIdentifier {
+        &self.all_images_ordered[index]
     }
 }

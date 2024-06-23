@@ -45,9 +45,7 @@ pub fn library_side_panel(
     let image_height = row_height * 0.8;
 
     let num_images = if let Some(album_index) = ui_state.selected_album {
-        session.library.albums()[album_index]
-            .all_images_ordered
-            .len()
+        session.library.num_images_in_album(album_index)
     } else {
         session.library.num_images_total()
     };
@@ -57,7 +55,9 @@ pub fn library_side_panel(
             let row_index = row.index();
             row.col(|ui| {
                 let image_identifier = if let Some(album_index) = ui_state.selected_album {
-                    session.library.albums()[album_index].all_images_ordered[row_index].clone()
+                    session.library.albums_mut()[album_index]
+                        .get_identifier_at_index(row_index)
+                        .clone()
                 } else {
                     session.library.get_identifier_at_index(row_index).clone()
                 };
