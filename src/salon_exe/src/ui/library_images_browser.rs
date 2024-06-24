@@ -51,8 +51,9 @@ pub fn library_images_browser(
                         return;
                     }
                     let image_identifier = if let Some(album_index) = ui_state.selected_album {
-                        session.library.albums_mut()[album_index]
-                            .get_identifier_at_index(image_index)
+                        session
+                            .library
+                            .get_identifier_at_index_for_album(image_index, album_index)
                             .clone()
                     } else {
                         session.library.get_identifier_at_index(image_index).clone()

@@ -29,7 +29,8 @@ pub struct Album {
     pub additional_images: Vec<LibraryImageIdentifier>,
 
     pub(super) items_ordered: Vec<LibraryImageIdentifier>,
-    pub(super) items_indices: HashMap<LibraryImageIdentifier, usize>,
+    pub(super) item_indices: HashMap<LibraryImageIdentifier, usize>,
+    pub(super) items_order_dirty: bool,
 
     #[cfg(not(target_arch = "wasm32"))]
     notify_debouncer: Option<
@@ -74,7 +75,8 @@ impl Album {
             directory,
             additional_images,
             items_ordered: Vec::new(),
-            items_indices: HashMap::new(),
+            item_indices: HashMap::new(),
+            items_order_dirty: false,
 
             notify_debouncer,
             file_events_receiver,
@@ -93,16 +95,7 @@ impl Album {
             additional_images,
             all_images_ordered: Vec::new(),
             all_images_indices: HashMap::new(),
-        }
-    }
-
-    pub fn remove_image(&mut self, image: &LibraryImageIdentifier) {
-        if let Some(index) = self.additional_images.iter().position(|x| *x == *image) {
-            self.additional_images.remove(index);
-        }
-        if let Some(index) = self.items_indices.get(image) {
-            self.items_ordered.remove(*index);
-            self.items_indices.remove(image);
+            items_order_dirty: false,
         }
     }
 
@@ -120,9 +113,5 @@ impl Album {
 
     pub fn num_images(&self) -> usize {
         self.items_ordered.len()
-    }
-
-    pub fn get_identifier_at_index(&mut self, index: usize) -> &LibraryImageIdentifier {
-        &self.items_ordered[index]
     }
 }

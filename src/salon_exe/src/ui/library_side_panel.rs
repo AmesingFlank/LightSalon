@@ -55,8 +55,9 @@ pub fn library_side_panel(
             let row_index = row.index();
             row.col(|ui| {
                 let image_identifier = if let Some(album_index) = ui_state.selected_album {
-                    session.library.albums_mut()[album_index]
-                        .get_identifier_at_index(row_index)
+                    session
+                        .library
+                        .get_identifier_at_index_for_album(row_index, album_index)
                         .clone()
                 } else {
                     session.library.get_identifier_at_index(row_index).clone()

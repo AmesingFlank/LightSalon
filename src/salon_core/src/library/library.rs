@@ -96,6 +96,23 @@ impl Library {
         self.albums[album_index].num_images()
     }
 
+    // the item should already be present in all_items, this function adds it into a items_ordered vector (of either the entire library, or an album)
+    fn ordered_insert(
+        all_items: &HashMap<LibraryImageIdentifier, LibraryItem>,
+        items_ordered: &mut Vec<LibraryImageIdentifier>,
+        identifier: LibraryImageIdentifier,
+    ) -> usize {
+        let metadata = all_items.get(&identifier).unwrap().metadata.clone();
+        for i in 0..items_ordered.len() {
+            if metadata.name < all_items.get(&items_ordered[i]).unwrap().metadata.name {
+                items_ordered.insert(i, identifier.clone());
+                return i;
+            }
+        }
+        items_ordered.push(identifier);
+        items_ordered.len() - 1
+    }
+
     fn add_item(
         &mut self,
         mut item: LibraryItem,
@@ -106,41 +123,65 @@ impl Library {
         if let Some(album) = album {
             item.albums.insert(album);
         }
-        let item_metadata = item.metadata.clone();
         let old_item = self.items.insert(identifier.clone(), item);
         if old_item.is_none() {
             if ensure_order {
                 if self.items_order_dirty {
                     self.ensure_items_order();
                 }
-                let mut inserted_index = None;
-                for i in 0..self.items_ordered.len() {
-                    if item_metadata.name
-                        < self
-                            .items
-                            .get(&self.items_ordered[i])
-                            .unwrap()
-                            .metadata
-                            .name
-                    {
-                        self.items_ordered.insert(i, identifier.clone());
-                        self.item_indices.insert(identifier.clone(), i);
-                        inserted_index = Some(i);
-                        break;
-                    }
-                }
-                if inserted_index.is_none() {
-                    self.item_indices
-                        .insert(identifier.clone(), self.items_ordered.len());
-                    self.items_ordered.push(identifier);
-                }
+                let index =
+                    Self::ordered_insert(&self.items, &mut self.items_ordered, identifier.clone());
+                self.item_indices.insert(identifier.clone(), index);
                 self.items_order_dirty = false;
             } else {
                 self.item_indices
                     .insert(identifier.clone(), self.items_ordered.len());
-                self.items_ordered.push(identifier);
+                self.items_ordered.push(identifier.clone());
                 self.items_order_dirty = true;
             }
+        }
+
+        // insert item into album
+        if let Some(album) = album {
+            if !self.albums[album].item_indices.contains_key(&identifier) {
+                if ensure_order {
+                    if self.items_order_dirty {
+                        self.ensure_items_order();
+                    }
+                    let index = Self::ordered_insert(
+                        &self.items,
+                        &mut self.items_ordered,
+                        identifier.clone(),
+                    );
+                    self.item_indices.insert(identifier.clone(), index);
+                    self.items_order_dirty = false;
+                } else {
+                    self.item_indices
+                        .insert(identifier.clone(), self.items_ordered.len());
+                    self.items_ordered.push(identifier.clone());
+                    self.items_order_dirty = true;
+                }
+            }
+        }
+    }
+
+    fn ensure_items_order_impl(
+        all_items: &HashMap<LibraryImageIdentifier, LibraryItem>,
+        items_ordered: &mut Vec<LibraryImageIdentifier>,
+        item_indices: &mut HashMap<LibraryImageIdentifier, usize>,
+    ) {
+        items_ordered.sort_by(|a, b| {
+            // TODO: too many HashMap accesses?
+            all_items
+                .get(a)
+                .unwrap()
+                .metadata
+                .name
+                .cmp(&all_items.get(b).unwrap().metadata.name)
+        });
+        item_indices.clear();
+        for i in 0..items_ordered.len() {
+            item_indices.insert(items_ordered[i].clone(), i);
         }
     }
 
@@ -148,20 +189,21 @@ impl Library {
         if !self.items_order_dirty {
             return;
         }
-        self.items_ordered.sort_by(|a, b| {
-            // TODO: too many HashMap accesses?
-            self.items
-                .get(a)
-                .unwrap()
-                .metadata
-                .name
-                .cmp(&self.items.get(b).unwrap().metadata.name)
-        });
-        self.item_indices.clear();
-        for i in 0..self.items_ordered.len() {
-            self.item_indices.insert(self.items_ordered[i].clone(), i);
-        }
+        Self::ensure_items_order_impl(&self.items, &mut self.items_ordered, &mut self.item_indices);
         self.items_order_dirty = false;
+    }
+
+    fn ensure_items_order_for_album(&mut self, album: usize) {
+        let album = &mut self.albums[album];
+        if album.items_order_dirty {
+            return;
+        }
+        Self::ensure_items_order_impl(
+            &self.items,
+            &mut album.items_ordered,
+            &mut album.item_indices,
+        );
+        album.items_order_dirty = false;
     }
 
     pub fn add_image_temp(
@@ -365,6 +407,16 @@ impl Library {
         self.remove_items(&removed_items);
     }
 
+    fn remove_image_from_album(album: &mut Album, image: &LibraryImageIdentifier) {
+        if let Some(index) = album.additional_images.iter().position(|x| *x == *image) {
+            album.additional_images.remove(index);
+        }
+        if let Some(index) = album.item_indices.get(image) {
+            album.items_ordered.remove(*index);
+            album.item_indices.remove(image);
+        }
+    }
+
     fn remove_items(&mut self, items_to_remove: &HashSet<LibraryImageIdentifier>) {
         let mut item_indices = Vec::new();
         for item_identifier in items_to_remove.iter() {
@@ -375,7 +427,7 @@ impl Library {
                 let _ = std::fs::remove_file(old_thumbnail_path);
             }
             for album_index in item.albums.iter() {
-                self.albums[*album_index].remove_image(item_identifier);
+                Self::remove_image_from_album(&mut self.albums[*album_index], item_identifier);
             }
         }
         item_indices.sort_by(|a, b| b.cmp(a)); // sort in decreasing order
@@ -397,11 +449,9 @@ impl Library {
                 }
             }
             album.items_ordered = all_images.clone();
-            album.items_indices.clear();
+            album.item_indices.clear();
             for i in 0..album.items_ordered.len() {
-                album
-                    .items_indices
-                    .insert(album.items_ordered[i].clone(), i);
+                album.item_indices.insert(album.items_ordered[i].clone(), i);
             }
         }
         let mut paths_to_add = Vec::new();
@@ -418,6 +468,7 @@ impl Library {
             }
         }
         self.add_items_from_paths(paths_to_add, Some(album_index));
+        self.ensure_items_order_for_album(album_index);
     }
 
     fn enumerate_images_in_directory(dir: &PathBuf, images: &mut Vec<PathBuf>) {
@@ -440,6 +491,15 @@ impl Library {
     pub fn get_identifier_at_index(&mut self, index: usize) -> &LibraryImageIdentifier {
         self.ensure_items_order();
         &self.items_ordered[index]
+    }
+
+    pub fn get_identifier_at_index_for_album(
+        &mut self,
+        index: usize,
+        album: usize,
+    ) -> &LibraryImageIdentifier {
+        self.ensure_items_order_for_album(album);
+        &self.albums[album].items_ordered[index]
     }
 
     // return the item or delete the identifier
