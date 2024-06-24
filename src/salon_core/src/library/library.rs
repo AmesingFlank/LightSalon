@@ -98,10 +98,14 @@ impl Library {
 
     fn add_item(
         &mut self,
-        item: LibraryItem,
+        mut item: LibraryItem,
         identifier: LibraryImageIdentifier,
+        album: Option<usize>,
         ensure_order: bool,
     ) {
+        if let Some(album) = album {
+            item.albums.insert(album);
+        }
         let item_metadata = item.metadata.clone();
         let old_item = self.items.insert(identifier.clone(), item);
         if old_item.is_none() {
@@ -175,19 +179,17 @@ impl Library {
         let image = self
             .toolbox
             .convert_color_space(image, ColorSpace::LinearRGB);
-        let mut library_item = LibraryItem {
+        let library_item = LibraryItem {
             image: Some(image),
             thumbnail: Some(thumbnail),
             thumbnail_path: None,
             albums: HashSet::new(),
             metadata,
         };
-        if let Some(album) = album {
-            library_item.albums.insert(album);
-        }
         self.add_item(
             library_item,
             temp_image_id.clone(),
+            album,
             /* ensure_order */ true,
         );
         temp_image_id
@@ -208,17 +210,14 @@ impl Library {
 
         let id = LibraryImageIdentifier::Path(path);
 
-        let mut item = LibraryItem {
+        let item = LibraryItem {
             image: None,
             thumbnail: None,
             thumbnail_path: None,
             albums: HashSet::new(),
             metadata,
         };
-        if let Some(album) = album {
-            item.albums.insert(album);
-        }
-        self.add_item(item, id.clone(), ensure_order);
+        self.add_item(item, id.clone(), album, ensure_order);
         id
     }
 
@@ -397,12 +396,12 @@ impl Library {
                     all_images.push(LibraryImageIdentifier::Path(path));
                 }
             }
-            album.all_images_ordered = all_images.clone();
-            album.all_images_indices.clear();
-            for i in 0..album.all_images_ordered.len() {
+            album.items_ordered = all_images.clone();
+            album.items_indices.clear();
+            for i in 0..album.items_ordered.len() {
                 album
-                    .all_images_indices
-                    .insert(album.all_images_ordered[i].clone(), i);
+                    .items_indices
+                    .insert(album.items_ordered[i].clone(), i);
             }
         }
         let mut paths_to_add = Vec::new();
