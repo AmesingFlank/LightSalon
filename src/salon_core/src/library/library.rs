@@ -12,6 +12,8 @@ use crate::utils::uuid::{get_next_uuid, Uuid};
 
 use super::{album, is_supported_image_file, Album, AlbumPersistentState};
 
+use super::services::thumbnail_generator::ThumbnailGeneratorService;
+
 #[derive(PartialEq, Eq, Hash, Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub enum LibraryImageIdentifier {
     Temp(Uuid), // images that we no longer have access to after the application closes
@@ -43,6 +45,9 @@ pub struct Library {
 
     // items that cannot be found
     unavailable_items: HashSet<LibraryImageIdentifier>,
+
+    #[cfg(not(target_arch = "wasm32"))]
+    thumbnail_generator: ThumbnailGeneratorService,
 }
 
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
@@ -77,6 +82,8 @@ impl Library {
             runtime,
             toolbox,
             unavailable_items: HashSet::new(),
+            #[cfg(not(target_arch = "wasm32"))]
+            thumbnail_generator: ThumbnailGeneratorService::new(),
         }
     }
 
@@ -626,8 +633,7 @@ impl Library {
     }
 
     fn compute_thumbnail(&self, image: Arc<Image>) -> Arc<Image> {
-        let thumbnail_min_dimension_size = 400.0 as f32;
-        let factor = thumbnail_min_dimension_size
+        let factor = ThumbnailGeneratorService::THUMBNAIL_MIN_DIMENSION_SIZE
             / (image.properties.dimensions.0).min(image.properties.dimensions.1) as f32;
         if factor < 0.5 {
             self.toolbox.generate_mipmap(&image);
@@ -640,23 +646,14 @@ impl Library {
         }
     }
 
-    fn get_thumbnail_path_for_image_path(&self, image_path: &PathBuf) -> Option<PathBuf> {
-        if let Ok(digest_str) = image_path.digest() {
-            if let Some(storage_dir) = Session::get_persistent_storage_dir() {
-                let file_name = digest_str + ".jpg";
-                let full_path = storage_dir.join("thumbnails").join(file_name);
-                return Some(full_path);
-            }
-        }
-        None
-    }
-
     fn save_thumbnail(
         &self,
         thumbnail: Arc<Image>,
         original_image_path: &PathBuf,
     ) -> Option<PathBuf> {
-        if let Some(thumbnail_path) = self.get_thumbnail_path_for_image_path(original_image_path) {
+        if let Some(thumbnail_path) =
+            ThumbnailGeneratorService::get_thumbnail_path_for_image_path(original_image_path)
+        {
             let mut image_reader = ImageReaderJpeg::new(
                 self.runtime.clone(),
                 self.toolbox.clone(),

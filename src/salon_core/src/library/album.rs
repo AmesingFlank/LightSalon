@@ -93,8 +93,8 @@ impl Album {
             name,
             directory,
             additional_images,
-            all_images_ordered: Vec::new(),
-            all_images_indices: HashMap::new(),
+            items_ordered: Vec::new(),
+            item_indices: HashMap::new(),
             items_order_dirty: false,
         }
     }
