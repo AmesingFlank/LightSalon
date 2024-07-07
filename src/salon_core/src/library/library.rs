@@ -152,21 +152,21 @@ impl Library {
         if let Some(album) = album {
             if !self.albums[album].item_indices.contains_key(&identifier) {
                 if ensure_order {
-                    if self.items_order_dirty {
+                    if self.albums[album].items_order_dirty {
                         self.ensure_items_order();
                     }
                     let index = Self::ordered_insert(
                         &self.items,
-                        &mut self.items_ordered,
+                        &mut self.albums[album].items_ordered,
                         identifier.clone(),
                     );
-                    self.item_indices.insert(identifier.clone(), index);
-                    self.items_order_dirty = false;
+                    self.albums[album].item_indices.insert(identifier.clone(), index);
+                    self.albums[album].items_order_dirty = false;
                 } else {
-                    self.item_indices
+                    self.albums[album].item_indices
                         .insert(identifier.clone(), self.items_ordered.len());
-                    self.items_ordered.push(identifier.clone());
-                    self.items_order_dirty = true;
+                    self.albums[album].items_ordered.push(identifier.clone());
+                    self.albums[album].items_order_dirty = true;
                 }
             }
         }
