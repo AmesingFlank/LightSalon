@@ -41,6 +41,9 @@ pub struct AppUiState {
 
     pub main_image_zoom: Option<MainImageZoom>,
     pub main_image_select_error_msg: Option<String>,
+
+    pub library_images_browser_scroll_to_row: Option<usize>, 
+    pub library_side_panel_scroll_to_row: Option<usize>, 
 }
 
 impl AppUiState {
@@ -69,6 +72,8 @@ impl AppUiState {
             framing_aspect_ratio: (0, 0),
             main_image_zoom: None,
             main_image_select_error_msg: None,
+            library_images_browser_scroll_to_row: None,
+            library_side_panel_scroll_to_row: None,
         }
     }
 

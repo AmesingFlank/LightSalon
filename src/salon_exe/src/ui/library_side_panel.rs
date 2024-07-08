@@ -1,5 +1,5 @@
 use eframe::{
-    egui::{self, CollapsingHeader, Ui},
+    egui::{self, Align, CollapsingHeader, Ui},
     egui_wgpu,
 };
 use egui_extras::{Column, TableBuilder};
@@ -46,6 +46,10 @@ pub fn library_side_panel(
             egui::Direction::TopDown,
         ))
         .max_scroll_height(max_height);
+    if let Some(scroll_to_row) = ui_state.library_side_panel_scroll_to_row.take() {
+        table = table.scroll_to_row(scroll_to_row, Some(Align::Center));
+    }
+
     let row_height = ui_state.last_frame_size.unwrap().1 * 0.1;
     let image_height = row_height * 0.8;
 

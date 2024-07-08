@@ -24,12 +24,15 @@ pub fn library_images_browser(
     let max_height = ui.available_height();
     let num_columns = 6;
     let column_width = (ui.available_width() / num_columns as f32) * 0.95;
-    let table = TableBuilder::new(ui)
+    let mut table = TableBuilder::new(ui)
         .cell_layout(egui::Layout::centered_and_justified(
             egui::Direction::TopDown,
         ))
         .max_scroll_height(max_height)
         .columns(Column::exact(column_width), num_columns);
+    if let Some(scroll_to_row) = ui_state.library_images_browser_scroll_to_row.take() {
+        table = table.scroll_to_row(scroll_to_row, None);
+    }
 
     let row_height = column_width;
     let max_image_height = row_height * 0.9;
@@ -90,6 +93,8 @@ pub fn library_images_browser(
                         });
                         if response.clicked() {
                             ui_state.app_page = AppPage::Editor;
+                            ui_state.library_side_panel_scroll_to_row = Some(image_index);
+                            ui_state.library_images_browser_scroll_to_row = Some(row_index);
                             ui_set_current_editor_image(ctx, session, ui_state, image_identifier);
                         }
                     }
