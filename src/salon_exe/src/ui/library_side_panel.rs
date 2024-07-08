@@ -58,15 +58,22 @@ pub fn library_side_panel(
     table.body(|mut body| {
         body.rows(row_height, num_images, |mut row| {
             let row_index = row.index();
+            let image_identifier = if let Some(album_index) = ui_state.selected_album {
+                session
+                    .library
+                    .get_identifier_at_index_for_album(row_index, album_index)
+                    .clone()
+            } else {
+                session.library.get_identifier_at_index(row_index).clone()
+            };
+
+            if let Some(editor_image) = session.editor.current_image_identifier() {
+                if editor_image == image_identifier {
+                    row.set_selected(true);
+                }
+            }
+
             row.col(|ui| {
-                let image_identifier = if let Some(album_index) = ui_state.selected_album {
-                    session
-                        .library
-                        .get_identifier_at_index_for_album(row_index, album_index)
-                        .clone()
-                } else {
-                    session.library.get_identifier_at_index(row_index).clone()
-                };
                 if let Some(image) = session
                     .library
                     .get_thumbnail_from_identifier(&image_identifier)

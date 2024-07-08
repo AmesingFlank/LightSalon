@@ -175,6 +175,10 @@ impl Editor {
         self.execute_current_edit();
     }
 
+    pub fn current_image_identifier(&self) -> Option<LibraryImageIdentifier> {
+        self.current_image_identifier.clone()
+    }
+
     pub fn clear_current_image(&mut self) {
         self.current_image_identifier = None;
     }
