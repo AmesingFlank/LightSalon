@@ -57,6 +57,23 @@ pub fn library_albums_browser(
                             ui_state.selected_album = Some(i);
                         }
                     }
+                    let mut finished_name_input = false;
+                    if let Some(name) = ui_state.new_album_name.as_mut() {
+                        let response = ui.add(egui::TextEdit::singleline(name));
+                        if response.lost_focus() || ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+                            finished_name_input = true;
+                        }
+                    } else {
+                        if ui.selectable_label(false, "➕ Create new album").clicked() {
+                            ui_state.new_album_name = Some("".to_owned());
+                        }
+                    }
+                    if finished_name_input {
+                        session
+                            .library
+                            .create_new_album(ui_state.new_album_name.take().unwrap());
+                        ui_state.new_album_name = None;
+                    }
                 });
             });
     });

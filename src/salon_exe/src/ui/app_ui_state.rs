@@ -44,6 +44,8 @@ pub struct AppUiState {
 
     pub library_images_browser_scroll_to_row: Option<usize>, 
     pub library_side_panel_scroll_to_row: Option<usize>, 
+
+    pub new_album_name: Option<String>,
 }
 
 impl AppUiState {
@@ -74,6 +76,7 @@ impl AppUiState {
             main_image_select_error_msg: None,
             library_images_browser_scroll_to_row: None,
             library_side_panel_scroll_to_row: None,
+            new_album_name: None,
         }
     }
 
