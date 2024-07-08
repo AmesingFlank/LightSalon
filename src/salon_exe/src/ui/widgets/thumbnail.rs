@@ -17,6 +17,13 @@ use wgpu::util::DeviceExt;
 pub struct ThumbnailCallback {
     pub image: Arc<Image>,
     pub allocated_ui_rect: egui::Rect,
+    pub clip: ThumbnailClip,
+}
+
+pub enum ThumbnailClip {
+    None,
+    Top,
+    Bottom,
 }
 
 impl egui_wgpu::CallbackTrait for ThumbnailCallback {
@@ -107,16 +114,22 @@ impl ThumbnailRenderResources {
             bytemuck::cast_slice(&[render_call.image.properties.color_space as u32]),
         );
 
-        let (mut max_u, mut max_v) = (1.0f32, 1.0f32);
-        if render_call.allocated_ui_rect.aspect_ratio() > render_call.image.aspect_ratio() {
-            max_v = render_call.image.aspect_ratio() / render_call.allocated_ui_rect.aspect_ratio();
-        } else {
-            max_u = render_call.allocated_ui_rect.aspect_ratio() / render_call.image.aspect_ratio();
+        let (mut min_v, mut max_v) = (0.0f32, 1.0f32);
+        match render_call.clip {
+            ThumbnailClip::Bottom => {
+                max_v = render_call.image.aspect_ratio() / render_call.allocated_ui_rect.aspect_ratio();
+                assert!(max_v <= 1.0);
+            }
+            ThumbnailClip::Top => {
+                min_v = 1.0 - render_call.image.aspect_ratio() / render_call.allocated_ui_rect.aspect_ratio();
+                assert!(min_v >= 0.0);
+            }
+            ThumbnailClip::None => {}
         }
         queue.write_buffer(
             &buffer.buffer,
             size_of::<u32>() as u64,
-            bytemuck::cast_slice(&[max_u, max_v]),
+            bytemuck::cast_slice(&[min_v, max_v]),
         );
 
         let bind_group_desc = BindGroupDescriptor {
