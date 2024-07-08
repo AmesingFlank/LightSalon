@@ -175,12 +175,11 @@ impl Runtime {
     }
 
     pub fn create_image_from_bytes_jpg_png(&self, image_bytes: &[u8]) -> Result<Image, String> {
-        let img = self.create_dynamic_image_from_bytes_jpg_png(image_bytes)?;
+        let img = Self::create_dynamic_image_from_bytes_jpg_png(image_bytes)?;
         Ok(self.create_image_from_dynamic_image(img))
     }
 
     pub fn create_dynamic_image_from_bytes_jpg_png(
-        &self,
         image_bytes: &[u8],
     ) -> Result<DynamicImage, String> {
         let Ok(mut img) = image::load_from_memory(image_bytes) else {

@@ -3,7 +3,7 @@ use std::{io::Write, path::PathBuf, thread::JoinHandle};
 use image::{DynamicImage, GenericImageView};
 use sha256::TrySha256Digest;
 
-use crate::{library::is_supported_image_file, session::Session};
+use crate::{library::is_supported_image_file, runtime::Runtime, session::Session};
 
 pub struct ThumbnailGeneratorService {
     response_receiver: std::sync::mpsc::Receiver<ThumbnailGeneratorServiceResponse>,
@@ -113,7 +113,8 @@ impl ThumbnailGeneratorServiceWorker {
                 if let Some(thumbnail_path) =
                     ThumbnailGeneratorService::get_thumbnail_path_for_image_path(&path)
                 {
-                    if let Ok(img) = image::load_from_memory(&image_bytes) {
+                    if let Ok(img) = Runtime::create_dynamic_image_from_bytes_jpg_png(&image_bytes)
+                    {
                         if let Ok(mut file) = std::fs::File::create(&thumbnail_path) {
                             let aspect_ratio = img.width() as f32 / img.height() as f32;
                             let factor = if aspect_ratio >= 1.0 {
