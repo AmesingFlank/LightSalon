@@ -118,4 +118,8 @@ impl Album {
     pub fn contains_image(&self, image_identifier: &LibraryImageIdentifier) -> bool {
         self.item_indices.contains_key(image_identifier)
     }
+
+    pub fn contains_additional_image(&self, image_identifier: &LibraryImageIdentifier) -> bool {
+        self.additional_images.contains(image_identifier)
+    }
 }

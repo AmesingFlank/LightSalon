@@ -3,7 +3,7 @@ use eframe::{
     egui_wgpu,
 };
 use egui_extras::{Column, TableBuilder};
-use salon_core::session::Session;
+use salon_core::{library::LibraryImageIdentifier, session::Session};
 
 use super::{
     ui_set_current_editor_image,
@@ -124,10 +124,14 @@ pub fn library_images_browser(
                                 }
                             });
                             if let Some(album_index) = ui_state.selected_album {
-                                let remove_text = "Remove from album ".to_owned()
-                                    + session.library.albums()[album_index].name.as_str();
-                                if ui.button(remove_text).clicked() {
-                                    removed_image = Some(image_identifier.clone());
+                                if session.library.albums()[album_index]
+                                    .contains_additional_image(&image_identifier)
+                                {
+                                    let remove_text = "Remove from album ".to_owned()
+                                        + session.library.albums()[album_index].name.as_str();
+                                    if ui.button(remove_text).clicked() {
+                                        removed_image = Some(image_identifier.clone());
+                                    }
                                 }
                             }
                         });
