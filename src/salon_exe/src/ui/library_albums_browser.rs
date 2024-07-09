@@ -5,7 +5,10 @@ use eframe::{
 use egui_extras::{Column, TableBuilder};
 use salon_core::session::Session;
 
-use super::{ui_set_current_editor_image, widgets::ThumbnailCallback, AppUiState};
+use super::{
+    ui_set_current_editor_image, utils::get_album_name_text_with_emoji_and_count,
+    widgets::ThumbnailCallback, AppUiState,
+};
 
 pub fn library_albums_browser(
     ctx: &egui::Context,
@@ -45,11 +48,7 @@ pub fn library_albums_browser(
                 ui.with_layout(egui::Layout::top_down_justified(egui::Align::LEFT), |ui| {
                     let albums = session.library.albums();
                     for i in 0..albums.len() {
-                        let text = "📷 ".to_owned()
-                            + albums[i].name.as_str()
-                            + " ("
-                            + albums[i].num_images().to_string().as_str()
-                            + ")";
+                        let text = get_album_name_text_with_emoji_and_count(&albums[i]);
                         if ui
                             .selectable_label(ui_state.selected_album == Some(i), text)
                             .clicked()

@@ -7,7 +7,7 @@ use salon_core::session::Session;
 
 use super::{
     ui_set_current_editor_image,
-    utils::get_max_image_size,
+    utils::{get_album_name_text_with_emoji_and_count, get_max_image_size},
     widgets::{ThumbnailCallback, ThumbnailClip},
     AppPage, AppUiState,
 };
@@ -46,6 +46,8 @@ pub fn library_images_browser(
     if num_images % num_columns != 0 {
         num_rows = num_rows + 1;
     }
+
+    let mut removed_image = None;
 
     table.body(|body| {
         body.rows(row_height, num_rows, |mut row| {
@@ -95,11 +97,49 @@ pub fn library_images_browser(
                             ui_state.app_page = AppPage::Editor;
                             ui_state.library_side_panel_scroll_to_row = Some(image_index);
                             ui_state.library_images_browser_scroll_to_row = Some(row_index);
-                            ui_set_current_editor_image(ctx, session, ui_state, image_identifier);
+                            ui_set_current_editor_image(
+                                ctx,
+                                session,
+                                ui_state,
+                                image_identifier.clone(),
+                            );
                         }
+                        response.context_menu(|ui| {
+                            ui.menu_button("Add to album", |ui| {
+                                for i in 0..session.library.albums().len() {
+                                    let can_add = !session.library.albums()[i]
+                                        .contains_image(&image_identifier);
+                                    let album_name_text = get_album_name_text_with_emoji_and_count(
+                                        &session.library.albums()[i],
+                                    );
+                                    if ui
+                                        .add_enabled(can_add, egui::Button::new(album_name_text))
+                                        .clicked()
+                                    {
+                                        ui.close_menu();
+                                        session
+                                            .library
+                                            .add_existing_item_into_album(&image_identifier, i);
+                                    }
+                                }
+                            });
+                            if let Some(album_index) = ui_state.selected_album {
+                                let remove_text = "Remove from album ".to_owned()
+                                    + session.library.albums()[album_index].name.as_str();
+                                if ui.button(remove_text).clicked() {
+                                    removed_image = Some(image_identifier.clone());
+                                }
+                            }
+                        });
                     }
                 });
             }
         });
     });
+
+    if let Some(removed_image) = removed_image {
+        session
+            .library
+            .remove_image_from_album(ui_state.selected_album.clone().unwrap(), &removed_image);
+    }
 }

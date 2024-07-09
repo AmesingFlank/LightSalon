@@ -301,6 +301,28 @@ impl Library {
         identifiers
     }
 
+    pub fn add_existing_item_into_album(&mut self, image: &LibraryImageIdentifier, album: usize) {
+        if !self.albums[album].contains_image(image) {
+            self.albums[album].additional_images.push(image.clone());
+            if self.albums[album].items_order_dirty {
+                let item_index = self.albums[album].items_ordered.len();
+                self.albums[album].items_ordered.push(image.clone());
+                self.albums[album]
+                    .item_indices
+                    .insert(image.clone(), item_index);
+            } else {
+                let item_index = Self::ordered_insert(
+                    &self.items,
+                    &mut self.albums[album].items_ordered,
+                    image.clone(),
+                );
+                self.albums[album]
+                    .item_indices
+                    .insert(image.clone(), item_index);
+            }
+        }
+    }
+
     pub fn add_album_from_directory(&mut self, dir_path: PathBuf) -> usize {
         for i in 0..self.albums.len() {
             if self.albums[i].directory == Some(dir_path.clone()) {
@@ -442,13 +464,17 @@ impl Library {
         self.remove_items(&removed_items);
     }
 
-    fn remove_image_from_album(album: &mut Album, image: &LibraryImageIdentifier) {
-        if let Some(index) = album.additional_images.iter().position(|x| *x == *image) {
-            album.additional_images.remove(index);
+    pub fn remove_image_from_album(&mut self, album_index: usize, image: &LibraryImageIdentifier) {
+        if let Some(index) = self.albums[album_index]
+            .additional_images
+            .iter()
+            .position(|x| *x == *image)
+        {
+            self.albums[album_index].additional_images.remove(index);
         }
-        if let Some(index) = album.item_indices.get(image) {
-            album.items_ordered.remove(*index);
-            album.item_indices.remove(image);
+        if let Some(index) = self.albums[album_index].item_indices.get(image).cloned() {
+            self.albums[album_index].items_ordered.remove(index);
+            self.albums[album_index].item_indices.remove(image);
         }
     }
 
@@ -462,7 +488,7 @@ impl Library {
                 let _ = std::fs::remove_file(old_thumbnail_path);
             }
             for album_index in item.albums.iter() {
-                Self::remove_image_from_album(&mut self.albums[*album_index], item_identifier);
+                self.remove_image_from_album(*album_index, item_identifier);
             }
         }
         item_indices.sort_by(|a, b| b.cmp(a)); // sort in decreasing order

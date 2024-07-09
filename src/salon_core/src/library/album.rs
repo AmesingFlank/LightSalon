@@ -26,8 +26,8 @@ pub struct AlbumPersistentState {
 pub struct Album {
     pub name: String,
     pub directory: Option<PathBuf>,
-    pub additional_images: Vec<LibraryImageIdentifier>,
-
+    
+    pub(super) additional_images: Vec<LibraryImageIdentifier>,
     pub(super) items_ordered: Vec<LibraryImageIdentifier>,
     pub(super) item_indices: HashMap<LibraryImageIdentifier, usize>,
     pub(super) items_order_dirty: bool,
@@ -113,5 +113,9 @@ impl Album {
 
     pub fn num_images(&self) -> usize {
         self.items_ordered.len()
+    }
+
+    pub fn contains_image(&self, image_identifier: &LibraryImageIdentifier) -> bool {
+        self.item_indices.contains_key(image_identifier)
     }
 }

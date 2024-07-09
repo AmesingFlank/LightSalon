@@ -6,6 +6,7 @@ use eframe::{
 };
 use salon_core::{
     editor::Edit,
+    library::Album,
     runtime::Image,
     session::Session,
     utils::{
@@ -97,4 +98,8 @@ impl<T: Add<Output = T> + Sub<Output = T> + Mul<f32, Output = T> + Copy> Animate
         let time_delta = (now - self.start_time).as_secs_f32();
         time_delta >= self.duration.as_secs_f32()
     }
+}
+
+pub fn get_album_name_text_with_emoji_and_count(album: &Album) -> String {
+    "📷 ".to_owned() + album.name.as_str() + " (" + album.num_images().to_string().as_str() + ")"
 }
