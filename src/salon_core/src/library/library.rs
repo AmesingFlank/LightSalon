@@ -391,9 +391,7 @@ impl Library {
         modified_paths: Vec<PathBuf>,
         associatd_album: Option<usize>,
     ) {
-        let mut removed_files = Vec::new();
-        let mut removed_dirs = Vec::new();
-
+        let mut removed_paths = Vec::new();
         let mut added_or_modified_images = Vec::new();
 
         for path in modified_paths {
@@ -408,16 +406,12 @@ impl Library {
                     added_or_modified_images.append(&mut all_images_in_path);
                 }
             } else {
-                if path.is_file() {
-                    removed_files.push(path);
-                } else {
-                    removed_dirs.push(path);
-                }
+                removed_paths.push(path);
             }
         }
 
         self.handle_added_or_modified_images(&added_or_modified_images, associatd_album);
-        self.handle_removed_paths(&removed_files, &removed_dirs);
+        self.handle_removed_paths(removed_paths);
     }
 
     fn handle_added_or_modified_images(
@@ -443,17 +437,20 @@ impl Library {
         self.add_items_from_paths(paths_to_add, associatd_album);
     }
 
-    fn handle_removed_paths(&mut self, removed_files: &Vec<PathBuf>, removed_dirs: &Vec<PathBuf>) {
+    fn handle_removed_paths(&mut self, removed_paths: Vec<PathBuf>) {
         let mut removed_items = HashSet::new();
-        for path in removed_files.iter() {
+        let mut potential_removed_dir_paths = Vec::new();
+        for path in removed_paths {
             let identifier = LibraryImageIdentifier::Path(path.clone());
             if self.items.contains_key(&identifier) {
                 removed_items.insert(identifier);
+            } else {
+                potential_removed_dir_paths.push(path)
             }
         }
         for identifier in self.items.keys() {
             if let LibraryImageIdentifier::Path(item_path) = identifier {
-                for removed_dir_path in removed_dirs.iter() {
+                for removed_dir_path in potential_removed_dir_paths.iter() {
                     if item_path.starts_with(removed_dir_path) {
                         removed_items.insert(identifier.clone());
                         break;
