@@ -52,7 +52,7 @@ pub fn app_ui(ctx: &egui::Context, session: &mut Session, ui_state: &mut AppUiSt
                 });
             egui::CentralPanel::default().show(ctx, |ui| {
                 main_image(ctx, ui, session, ui_state);
-                keyboard_response(ui, session, ui_state);
+                keyboard_response(ctx, ui, session, ui_state);
             });
         }
     }
@@ -65,6 +65,5 @@ pub fn ui_set_current_editor_image(
     identifier: LibraryImageIdentifier,
 ) {
     ui_state.main_image_select_error_msg = session.set_current_image(identifier).err();
-    ctx.request_repaint();
     ui_state.reset_for_different_image();
 }

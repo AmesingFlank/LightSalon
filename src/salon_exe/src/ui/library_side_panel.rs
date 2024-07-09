@@ -46,8 +46,9 @@ pub fn library_side_panel(
             egui::Direction::TopDown,
         ))
         .max_scroll_height(max_height);
-    if let Some(scroll_to_row) = ui_state.library_side_panel_scroll_to_row.take() {
-        table = table.scroll_to_row(scroll_to_row, Some(Align::Center));
+
+    if let Some(ref requested_row) = ui_state.library_side_panel_requested_row.take() {
+        table = table.scroll_to_row(*requested_row, Some(Align::Center));
     }
 
     let row_height = ui_state.last_frame_size.unwrap().1 * 0.1;
@@ -74,6 +75,7 @@ pub fn library_side_panel(
             if let Some(editor_image) = session.editor.current_image_identifier() {
                 if editor_image == image_identifier {
                     row.set_selected(true);
+                    ui_state.library_side_panel_current_row = Some(row_index);
                 }
             }
 

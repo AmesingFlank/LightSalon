@@ -30,8 +30,8 @@ pub fn library_images_browser(
         ))
         .max_scroll_height(max_height)
         .columns(Column::exact(column_width), num_columns);
-    if let Some(scroll_to_row) = ui_state.library_images_browser_scroll_to_row.take() {
-        table = table.scroll_to_row(scroll_to_row, None);
+    if let Some(requested_row) = ui_state.library_images_browser_requested_row.take() {
+        table = table.scroll_to_row(requested_row, None);
     }
 
     let row_height = column_width;
@@ -95,8 +95,8 @@ pub fn library_images_browser(
                         });
                         if response.clicked() {
                             ui_state.app_page = AppPage::Editor;
-                            ui_state.library_side_panel_scroll_to_row = Some(image_index);
-                            ui_state.library_images_browser_scroll_to_row = Some(row_index);
+                            ui_state.library_side_panel_requested_row = Some(image_index);
+                            ui_state.library_images_browser_requested_row = Some(row_index);
                             ui_set_current_editor_image(
                                 ctx,
                                 session,
