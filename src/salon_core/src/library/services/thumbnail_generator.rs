@@ -48,8 +48,10 @@ impl ThumbnailGeneratorService {
     pub fn get_thumbnail_path_for_image_path(image_path: &PathBuf) -> Option<PathBuf> {
         if let Ok(digest_str) = image_path.digest() {
             if let Some(storage_dir) = Session::get_persistent_storage_dir() {
-                let file_name = digest_str + ".jpg";
-                let full_path = storage_dir.join("thumbnails").join(file_name);
+                let full_path = storage_dir
+                    .join("library")
+                    .join(digest_str)
+                    .join("thumbnail.jpg");
                 return Some(full_path);
             }
         }
