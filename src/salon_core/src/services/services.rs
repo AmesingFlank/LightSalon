@@ -1,15 +1,17 @@
+use std::sync::Arc;
+
+use crate::runtime::{Runtime, Toolbox};
+
 use super::thumbnail_generator::ThumbnailGeneratorService;
 
 pub struct Services {
-    #[cfg(not(target_arch = "wasm32"))]
     pub thumbnail_generator: ThumbnailGeneratorService,
 }
 
 impl Services {
-    pub fn new() -> Self {
+    pub fn new(runtime: Arc<Runtime>, toolbox: Arc<Toolbox>) -> Self {
         Self {
-            #[cfg(not(target_arch = "wasm32"))]
-            thumbnail_generator: ThumbnailGeneratorService::new(),
+            thumbnail_generator: ThumbnailGeneratorService::new(runtime, toolbox),
         }
     }
 }

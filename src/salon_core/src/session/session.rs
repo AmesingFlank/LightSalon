@@ -19,7 +19,7 @@ pub struct Session {
 impl Session {
     pub fn new(runtime: Arc<Runtime>) -> Self {
         let toolbox = Arc::new(Toolbox::new(runtime.clone()));
-        let services = Arc::new(Services::new());
+        let services = Arc::new(Services::new(runtime.clone(), toolbox.clone()));
         let mut session = Session {
             library: Library::new(runtime.clone(), toolbox.clone(), services.clone()),
             editor: Editor::new(runtime.clone(), toolbox.clone()),
