@@ -3,6 +3,7 @@ pub mod engine;
 pub mod ir;
 pub mod library;
 pub mod runtime;
+pub mod services;
 pub mod session;
 pub mod shader;
 pub mod utils;

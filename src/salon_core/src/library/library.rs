@@ -12,7 +12,7 @@ use crate::utils::uuid::{get_next_uuid, Uuid};
 
 use super::{album, is_supported_image_file, Album, AlbumPersistentState};
 
-use super::services::thumbnail_generator::ThumbnailGeneratorService;
+use crate::services::thumbnail_generator::ThumbnailGeneratorService;
 
 #[derive(PartialEq, Eq, Hash, Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub enum LibraryImageIdentifier {
