@@ -238,7 +238,6 @@ impl WriteWorker {
             self.toolbox.clone(),
             thumbnail_image.clone(),
         );
-        let result = Some(thumbnail_path.clone());
 
         if let Ok(_) = std::fs::create_dir_all(thumbnail_path.parent().unwrap()) {
             if let Ok(mut file) = std::fs::File::create(&thumbnail_path) {
@@ -304,57 +303,59 @@ impl GenerateFromPathWorker {
 
     fn generate(&mut self, path: PathBuf) -> ThumbnailGenerationResponse {
         if is_supported_image_file(&path) {
-            if let Ok(image_bytes) = std::fs::read(&path) {
-                if let Some(thumbnail_path) =
-                    ThumbnailGeneratorService::get_thumbnail_path_for_image_path(&path)
-                {
+            if let Some(thumbnail_path) =
+                ThumbnailGeneratorService::get_thumbnail_path_for_image_path(&path)
+            {
+                if thumbnail_path.exists() {
+                    // don't regenerate if the thumbnail already exists
+                    // (e.g. we might be generating an image from a large album, but one of the images has already been editted and has an updated thumbnail)
+                    return ThumbnailGenerationResponse::Generated(GeneratedThumbnail {
+                        original_image_path: path,
+                        thumbnail_path,
+                    });
+                }
+                if let Ok(image_bytes) = std::fs::read(&path) {
                     if let Ok(img) = Runtime::create_dynamic_image_from_bytes_jpg_png(&image_bytes)
                     {
-                        if thumbnail_path.exists() {
-                            // don't regenerate if the thumbnail already exists
-                            // (e.g. we might be generating an image from a large album, but one of the images has already been editted and has an updated thumbnail)
-                            return ThumbnailGenerationResponse::Generated(GeneratedThumbnail {
-                                original_image_path: path,
-                                thumbnail_path,
-                            });
-                        }
-                        if let Ok(mut file) = std::fs::File::create(&thumbnail_path) {
-                            let aspect_ratio = img.width() as f32 / img.height() as f32;
-                            let factor = if aspect_ratio >= 1.0 {
-                                ThumbnailGeneratorService::THUMBNAIL_MIN_DIMENSION_SIZE
-                                    / img.height() as f32
-                            } else {
-                                ThumbnailGeneratorService::THUMBNAIL_MIN_DIMENSION_SIZE
-                                    / img.width() as f32
-                            };
+                        if let Ok(_) = std::fs::create_dir_all(thumbnail_path.parent().unwrap()) {
+                            if let Ok(mut file) = std::fs::File::create(&thumbnail_path) {
+                                let aspect_ratio = img.width() as f32 / img.height() as f32;
+                                let factor = if aspect_ratio >= 1.0 {
+                                    ThumbnailGeneratorService::THUMBNAIL_MIN_DIMENSION_SIZE
+                                        / img.height() as f32
+                                } else {
+                                    ThumbnailGeneratorService::THUMBNAIL_MIN_DIMENSION_SIZE
+                                        / img.width() as f32
+                                };
 
-                            if factor >= 1.0 {
-                                // no need to resize;
-                                let jpeg_data = Self::encode_dynamic_image(&img);
-                                if let Ok(_) = file.write_all(&jpeg_data) {
-                                    return ThumbnailGenerationResponse::Generated(
-                                        GeneratedThumbnail {
-                                            original_image_path: path,
-                                            thumbnail_path,
-                                        },
+                                if factor >= 1.0 {
+                                    // no need to resize;
+                                    let jpeg_data = Self::encode_dynamic_image(&img);
+                                    if let Ok(_) = file.write_all(&jpeg_data) {
+                                        return ThumbnailGenerationResponse::Generated(
+                                            GeneratedThumbnail {
+                                                original_image_path: path,
+                                                thumbnail_path,
+                                            },
+                                        );
+                                    }
+                                } else {
+                                    let thumbnail_width = (img.width() as f32 * factor) as u32;
+                                    let thumbnail_height = (img.height() as f32 * factor) as u32;
+                                    let thumbnail_img = img.resize(
+                                        thumbnail_width,
+                                        thumbnail_height,
+                                        image::imageops::FilterType::Triangle,
                                     );
-                                }
-                            } else {
-                                let thumbnail_width = (img.width() as f32 * factor) as u32;
-                                let thumbnail_height = (img.height() as f32 * factor) as u32;
-                                let thumbnail_img = img.resize(
-                                    thumbnail_width,
-                                    thumbnail_height,
-                                    image::imageops::FilterType::Triangle,
-                                );
-                                let jpeg_data = Self::encode_dynamic_image(&thumbnail_img);
-                                if let Ok(_) = file.write_all(&jpeg_data) {
-                                    return ThumbnailGenerationResponse::Generated(
-                                        GeneratedThumbnail {
-                                            original_image_path: path,
-                                            thumbnail_path,
-                                        },
-                                    );
+                                    let jpeg_data = Self::encode_dynamic_image(&thumbnail_img);
+                                    if let Ok(_) = file.write_all(&jpeg_data) {
+                                        return ThumbnailGenerationResponse::Generated(
+                                            GeneratedThumbnail {
+                                                original_image_path: path,
+                                                thumbnail_path,
+                                            },
+                                        );
+                                    }
                                 }
                             }
                         }
