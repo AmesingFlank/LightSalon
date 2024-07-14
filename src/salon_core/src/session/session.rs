@@ -22,7 +22,7 @@ impl Session {
         let services = Arc::new(Services::new(runtime.clone(), toolbox.clone()));
         let mut session = Session {
             library: Library::new(runtime.clone(), toolbox.clone(), services.clone()),
-            editor: Editor::new(runtime.clone(), toolbox.clone()),
+            editor: Editor::new(runtime.clone(), toolbox.clone(), services.clone()),
             toolbox,
             runtime,
             services,
@@ -44,6 +44,19 @@ impl Session {
                 }
             }
             Err(err)
+        }
+    }
+
+    pub fn update_thumbnail_for_current_image(&mut self) {
+        if let Some(identifier) = self.editor.current_image_identifier() {
+            if let Some(edit_context) = self.editor.current_edit_context_ref() {
+                if let Some(ref curr_result) = edit_context.current_result {
+                    self.library.update_thumbnail_for_editted_image(
+                        &identifier,
+                        curr_result.before_framing.clone(),
+                    );
+                }
+            }
         }
     }
 

@@ -20,7 +20,9 @@ pub fn keyboard_response(
         if i.key_pressed(egui::Key::Enter) {
             if ui_state.editor_panel == EditorPanel::CropAndRotate {
                 ui_state.editor_panel = EditorPanel::LightAndColor;
-                session.editor.commit_transient_edit(true);
+                if session.editor.commit_transient_edit(true) {
+                    session.update_thumbnail_for_current_image();
+                }
             }
         }
         let control_or_comand = i.modifiers.command || i.modifiers.ctrl || i.modifiers.mac_cmd;

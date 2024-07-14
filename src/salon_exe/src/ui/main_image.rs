@@ -205,7 +205,9 @@ fn show_edited_image(
                 );
                 session.editor.update_transient_edit(transient_edit, true);
                 if should_commit {
-                    session.editor.commit_transient_edit(false);
+                    if session.editor.commit_transient_edit(false) {
+                        session.update_thumbnail_for_current_image();
+                    }
                 }
             } else {
                 maybe_zoom_image(ctx, ui, ui_state, main_image_rect, response);

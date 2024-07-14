@@ -5,7 +5,7 @@ use sha256::TrySha256Digest;
 
 use crate::{
     library::is_supported_image_file,
-    runtime::{Image, ImageReaderJpeg, Runtime, Toolbox},
+    runtime::{ColorSpace, Image, ImageFormat, ImageReaderJpeg, Runtime, Toolbox},
     session::Session,
 };
 
@@ -127,6 +127,10 @@ impl ThumbnailGeneratorService {
     }
 
     fn compute_thumbnail(&self, image: Arc<Image>) -> Arc<Image> {
+        let image = self.toolbox.convert_color_space(image, ColorSpace::sRGB);
+        let image = self
+            .toolbox
+            .convert_image_format(image, ImageFormat::Rgba8Unorm);
         let factor = ThumbnailGeneratorService::THUMBNAIL_MIN_DIMENSION_SIZE
             / (image.properties.dimensions.0).min(image.properties.dimensions.1) as f32;
         if factor < 0.5 {

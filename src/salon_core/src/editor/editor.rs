@@ -7,6 +7,7 @@ use crate::{
     engine::{common::ImageHistogram, Engine, ExecutionContext},
     library::LibraryImageIdentifier,
     runtime::{Buffer, BufferReader, Image, Runtime, Toolbox},
+    services::services::Services,
 };
 
 use super::{
@@ -25,6 +26,7 @@ pub struct Editor {
 
     runtime: Arc<Runtime>,
     toolbox: Arc<Toolbox>,
+    services: Arc<Services>,
 }
 
 pub struct EditContext {
@@ -137,7 +139,7 @@ impl EditContext {
 }
 
 impl Editor {
-    pub fn new(runtime: Arc<Runtime>, toolbox: Arc<Toolbox>) -> Self {
+    pub fn new(runtime: Arc<Runtime>, toolbox: Arc<Toolbox>, services: Arc<Services>) -> Self {
         let engine = Engine::new(runtime.clone(), toolbox.clone());
         Editor {
             engine,
@@ -147,6 +149,7 @@ impl Editor {
             engine_execution_context: ExecutionContext::new(),
             runtime,
             toolbox,
+            services,
         }
     }
 
@@ -203,7 +206,7 @@ impl Editor {
         }
     }
 
-    pub fn commit_transient_edit(&mut self, execute: bool) {
+    pub fn commit_transient_edit(&mut self, execute: bool) -> bool {
         let committed = self
             .current_edit_context_mut()
             .unwrap()
@@ -211,6 +214,7 @@ impl Editor {
         if committed && execute {
             self.execute_current_edit();
         }
+        committed
     }
 
     pub fn can_undo(&mut self) -> bool {

@@ -29,6 +29,7 @@ pub fn edit_menu(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) 
 
 pub fn undo_action(session: &mut Session, ui_state: &mut AppUiState) {
     session.editor.maybe_undo();
+    session.update_thumbnail_for_current_image();
     if let Some(context) = session.editor.current_edit_context_ref() {
         legalize_ui_state(ui_state, context.current_edit_ref());
     }
@@ -36,6 +37,7 @@ pub fn undo_action(session: &mut Session, ui_state: &mut AppUiState) {
 
 pub fn redo_action(session: &mut Session, ui_state: &mut AppUiState) {
     session.editor.maybe_redo();
+    session.update_thumbnail_for_current_image();
     if let Some(context) = session.editor.current_edit_context_ref() {
         legalize_ui_state(ui_state, context.current_edit_ref());
     }

@@ -683,6 +683,24 @@ impl Library {
         Some(item.thumbnail.as_ref().unwrap().clone())
     }
 
+    // when an image has been editted we want to use the editted image for the thumbnail
+    pub fn update_thumbnail_for_editted_image(
+        &mut self,
+        identifier: &LibraryImageIdentifier,
+        editted_image: Arc<Image>,
+    ) {
+        if let Some(item) = self.items.get_mut(identifier) {
+            item.thumbnail = Some(
+                self.services
+                    .thumbnail_generator
+                    .generate_and_maybe_save_thumbnail_for_image(
+                        editted_image,
+                        identifier.get_path(),
+                    ),
+            );
+        }
+    }
+
     pub fn get_persistent_state(&mut self) -> LibraryPersistentState {
         // these items are found to be unavailable, so remove them from the library
         self.remove_items(&self.unavailable_items.clone());

@@ -6,7 +6,8 @@ use egui_plot::{Line, MarkerShape, Plot, Points};
 use salon_core::{editor::GlobalEdit, session::Session};
 
 use super::{
-    color_adjust, color_mixer, curve, effects, framing, histogram, light_adjust, masking, rotate_and_crop, AppUiState, EditorPanel
+    color_adjust, color_mixer, curve, effects, framing, histogram, light_adjust, masking,
+    rotate_and_crop, AppUiState, EditorPanel,
 };
 
 pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
@@ -20,7 +21,9 @@ pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
             "Light and Color",
         );
         if response.clicked() {
-            session.editor.commit_transient_edit(true);
+            if session.editor.commit_transient_edit(true) {
+                session.update_thumbnail_for_current_image();
+            }
         }
         ui.separator();
         ui.selectable_value(
@@ -29,11 +32,7 @@ pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
             "Crop and Rotate",
         );
         ui.separator();
-        ui.selectable_value(
-            &mut ui_state.editor_panel,
-            EditorPanel::Framing,
-            "Framing",
-        );
+        ui.selectable_value(&mut ui_state.editor_panel, EditorPanel::Framing, "Framing");
     });
 
     ui.separator();
@@ -64,7 +63,9 @@ pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
             session.editor.update_transient_edit(transient_edit, true);
             ui.input(|i| {
                 if !i.pointer.any_down() {
-                    session.editor.commit_transient_edit(false);
+                    if session.editor.commit_transient_edit(false) {
+                        session.update_thumbnail_for_current_image();
+                    }
                 }
                 // else a slider could still be being dragged, so the edit should remain transient
             });
