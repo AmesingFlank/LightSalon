@@ -5,6 +5,7 @@ use std::sync::Arc;
 use crate::editor::{Edit, EditHistory, Editor, EditorPersistentState};
 use crate::library::{Library, LibraryImageIdentifier, LibraryPersistentState};
 use crate::runtime::{Runtime, Toolbox};
+use crate::services::services::Services;
 use crate::versioning::Version;
 
 pub struct Session {
@@ -12,16 +13,19 @@ pub struct Session {
     pub editor: Editor,
     pub runtime: Arc<Runtime>,
     pub toolbox: Arc<Toolbox>,
+    pub services: Arc<Services>,
 }
 
 impl Session {
     pub fn new(runtime: Arc<Runtime>) -> Self {
         let toolbox = Arc::new(Toolbox::new(runtime.clone()));
+        let services = Arc::new(Services::new());
         let mut session = Session {
-            library: Library::new(runtime.clone(), toolbox.clone()),
+            library: Library::new(runtime.clone(), toolbox.clone(), services.clone()),
             editor: Editor::new(runtime.clone(), toolbox.clone()),
             toolbox,
             runtime,
+            services,
         };
         session.on_start();
         session

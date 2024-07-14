@@ -7,6 +7,8 @@ use sha256::TrySha256Digest;
 
 use crate::runtime::{ColorSpace, Image, ImageReaderJpeg, Toolbox};
 use crate::runtime::{ImageFormat, Runtime};
+use crate::services;
+use crate::services::services::Services;
 use crate::session::Session;
 use crate::utils::uuid::{get_next_uuid, Uuid};
 
@@ -39,15 +41,14 @@ pub struct Library {
     items_ordered: Vec<LibraryImageIdentifier>,
     items_order_dirty: bool,
 
-    runtime: Arc<Runtime>,
-    toolbox: Arc<Toolbox>,
-    albums: Vec<Album>,
-
     // items that cannot be found
     unavailable_items: HashSet<LibraryImageIdentifier>,
 
-    #[cfg(not(target_arch = "wasm32"))]
-    thumbnail_generator: ThumbnailGeneratorService,
+    albums: Vec<Album>,
+
+    runtime: Arc<Runtime>,
+    toolbox: Arc<Toolbox>,
+    services: Arc<Services>,
 }
 
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
@@ -72,18 +73,17 @@ impl LibraryPersistentState {
 }
 
 impl Library {
-    pub fn new(runtime: Arc<Runtime>, toolbox: Arc<Toolbox>) -> Self {
+    pub fn new(runtime: Arc<Runtime>, toolbox: Arc<Toolbox>, services: Arc<Services>) -> Self {
         Self {
             items: HashMap::new(),
             item_indices: HashMap::new(),
             items_ordered: Vec::new(),
             items_order_dirty: false,
+            unavailable_items: HashSet::new(),
             albums: Vec::new(),
             runtime,
             toolbox,
-            unavailable_items: HashSet::new(),
-            #[cfg(not(target_arch = "wasm32"))]
-            thumbnail_generator: ThumbnailGeneratorService::new(),
+            services,
         }
     }
 
@@ -296,7 +296,9 @@ impl Library {
             identifiers.push(identifier);
 
             #[cfg(not(target_arch = "wasm32"))]
-            self.thumbnail_generator.request_thumbnail_for_image(path)
+            self.services
+                .thumbnail_generator
+                .request_thumbnail_for_image(path)
         }
         identifiers
     }
@@ -369,7 +371,7 @@ impl Library {
 
         #[cfg(not(target_arch = "wasm32"))]
         {
-            let thumbnail_results = self.thumbnail_generator.poll_results();
+            let thumbnail_results = self.services.thumbnail_generator.poll_results();
             for generated_thumbnail in thumbnail_results {
                 let thumbnail_path = generated_thumbnail.thumbnail_path;
                 let identifier =
@@ -700,7 +702,8 @@ impl Library {
                 self.items.get_mut(&identifier).unwrap().thumbnail_path = item.thumbnail_path;
             } else {
                 #[cfg(not(target_arch = "wasm32"))]
-                self.thumbnail_generator
+                self.services
+                    .thumbnail_generator
                     .request_thumbnail_for_image(item.path);
             }
         }
