@@ -11,6 +11,7 @@ use crate::services;
 use crate::services::services::Services;
 use crate::session::Session;
 use crate::utils::uuid::{get_next_uuid, Uuid};
+use crate::versioning::Version;
 
 use super::{album, is_supported_image_file, Album, AlbumPersistentState};
 
@@ -61,7 +62,8 @@ pub struct Library {
 }
 
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
-pub struct LibraryPersistentState {
+struct LibraryPersistentState {
+    version: Version,
     items: Vec<LibraryPersistentStateItem>,
     albums: Vec<AlbumPersistentState>,
 }
@@ -75,6 +77,7 @@ struct LibraryPersistentStateItem {
 impl LibraryPersistentState {
     pub fn new() -> Self {
         Self {
+            version: Version::current_build(),
             items: Vec::new(),
             albums: Vec::new(),
         }
@@ -701,7 +704,7 @@ impl Library {
         }
     }
 
-    pub fn get_persistent_state(&mut self) -> LibraryPersistentState {
+    fn get_persistent_state(&mut self) -> LibraryPersistentState {
         // these items are found to be unavailable, so remove them from the library
         self.remove_items(&self.unavailable_items.clone());
 
@@ -722,29 +725,59 @@ impl Library {
             persistent_albums.push(album.get_persistent_state());
         }
         LibraryPersistentState {
+            version: Version::current_build(),
             items: persistent_items,
             albums: persistent_albums,
         }
     }
 
-    pub fn load_persistent_state(&mut self, state: LibraryPersistentState) {
-        for item in state.items {
-            let identifier = self.add_item_from_path_impl(item.path.clone(), None, false);
-            if item.thumbnail_path.is_some() {
-                self.items.get_mut(&identifier).unwrap().thumbnail_path = item.thumbnail_path;
-            } else {
-                #[cfg(not(target_arch = "wasm32"))]
-                self.services
-                    .thumbnail_generator
-                    .request_thumbnail_for_image_at_path(item.path);
+    fn persistent_state_file_name(&self) -> &str {
+        "library.json"
+    }
+
+    pub fn save_persistent_state(&mut self) {
+        if let Some(dir) = Session::get_persistent_storage_dir() {
+            let path = dir.join(self.persistent_state_file_name());
+            if let Ok(_) = std::fs::create_dir_all(dir.clone()) {
+                let state = self.get_persistent_state();
+                let state_json_str =
+                    serde_json::to_string_pretty(&state).expect("failed to serialize to json");
+                let _ = std::fs::write(&path, state_json_str);
             }
         }
-        for album in state.albums {
-            self.albums.push(Album::from_persistent_state(album))
+    }
+
+    pub fn load_persistent_state(&mut self) {
+        if let Some(dir) = Session::get_persistent_storage_dir() {
+            let path = dir.join(self.persistent_state_file_name());
+            if path.exists() {
+                if let Ok(state_json_str) = std::fs::read_to_string(&path) {
+                    if let Ok(state) =
+                        serde_json::from_str::<LibraryPersistentState>(state_json_str.as_str())
+                    {
+                        for item in state.items {
+                            let identifier =
+                                self.add_item_from_path_impl(item.path.clone(), None, false);
+                            if item.thumbnail_path.is_some() {
+                                self.items.get_mut(&identifier).unwrap().thumbnail_path =
+                                    item.thumbnail_path;
+                            } else {
+                                #[cfg(not(target_arch = "wasm32"))]
+                                self.services
+                                    .thumbnail_generator
+                                    .request_thumbnail_for_image_at_path(item.path);
+                            }
+                        }
+                        for album in state.albums {
+                            self.albums.push(Album::from_persistent_state(album))
+                        }
+                        for album_index in 0..self.albums.len() {
+                            self.enumerate_album_images(album_index);
+                        }
+                        self.ensure_items_order();
+                    }
+                }
+            }
         }
-        for album_index in 0..self.albums.len() {
-            self.enumerate_album_images(album_index);
-        }
-        self.ensure_items_order();
     }
 }

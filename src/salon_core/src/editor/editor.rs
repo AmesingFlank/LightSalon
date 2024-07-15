@@ -236,6 +236,7 @@ impl Editor {
     }
 
     fn update_current_edit_in_filesystem(&self) {
+        #[cfg(not(target_arch = "wasm32"))]
         if let Some(ref identifier) = self.current_image_identifier {
             if let Some(path) = identifier.get_path() {
                 if let Some(edit_context) = self.current_edit_context_ref() {
