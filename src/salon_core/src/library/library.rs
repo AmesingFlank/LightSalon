@@ -751,19 +751,11 @@ impl Library {
                     if let Ok(state) =
                         serde_json::from_str::<LibraryPersistentState>(state_json_str.as_str())
                     {
+                        #[cfg(not(target_arch = "wasm32"))]
                         for item in state.items {
-                            #[cfg(not(target_arch = "wasm32"))]
-                            if let Some(thumbnail_path) =
-                                ThumbnailGeneratorService::get_thumbnail_path_for_image_path(
-                                    &item.path,
-                                )
-                            {
-                                if !thumbnail_path.exists() {
-                                    self.services
-                                        .thumbnail_generator
-                                        .request_thumbnail_for_image_at_path(item.path);
-                                }
-                            }
+                            self.services
+                                .thumbnail_generator
+                                .request_thumbnail_for_image_at_path(item.path);
                         }
                         for album in state.albums {
                             self.albums.push(Album::from_persistent_state(album))
