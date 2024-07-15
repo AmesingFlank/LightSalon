@@ -34,6 +34,7 @@ impl Session {
     pub fn set_current_image(&mut self, identifier: LibraryImageIdentifier) -> Result<(), String> {
         if let Some(new_image) = self.library.get_image_from_identifier(&identifier) {
             self.editor.set_current_image(identifier, new_image.clone());
+            self.update_thumbnail_for_current_image();
             Ok(())
         } else {
             self.editor.clear_current_image();
