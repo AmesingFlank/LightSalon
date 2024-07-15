@@ -29,9 +29,6 @@ pub struct ThumbnailGeneratorService {
     toolbox: Arc<Toolbox>,
 
     #[cfg(not(target_arch = "wasm32"))]
-    response_receiver: std::sync::mpsc::Receiver<ThumbnailGenerationResponse>,
-
-    #[cfg(not(target_arch = "wasm32"))]
     write_request_sender: std::sync::mpsc::Sender<WriteRequest>,
     #[cfg(not(target_arch = "wasm32"))]
     write_worker_join_handle: Option<JoinHandle<()>>,
@@ -45,11 +42,7 @@ pub struct ThumbnailGeneratorService {
 impl ThumbnailGeneratorService {
     #[cfg(not(target_arch = "wasm32"))]
     pub fn new(runtime: Arc<Runtime>, toolbox: Arc<Toolbox>) -> Self {
-        let (response_sender, response_receiver) = std::sync::mpsc::channel();
-
         let (write_request_sender, write_request_receiver) = std::sync::mpsc::channel();
-        let write_worker_response_sender: std::sync::mpsc::Sender<ThumbnailGenerationResponse> =
-            response_sender.clone();
         let write_worker_runtime = runtime.clone();
         let write_worker_toolbox = toolbox.clone();
         let write_worker_join_handle = Some(std::thread::spawn(move || {
@@ -57,7 +50,6 @@ impl ThumbnailGeneratorService {
                 write_worker_runtime,
                 write_worker_toolbox,
                 write_request_receiver,
-                write_worker_response_sender,
             );
             worker.run();
         }));
@@ -65,15 +57,13 @@ impl ThumbnailGeneratorService {
         let (generate_from_path_request_sender, generate_from_path_request_receiver) =
             std::sync::mpsc::channel();
         let generate_from_path_worker_join_handle = Some(std::thread::spawn(move || {
-            let mut worker =
-                GenerateFromPathWorker::new(generate_from_path_request_receiver, response_sender);
+            let mut worker = GenerateFromPathWorker::new(generate_from_path_request_receiver);
             worker.run();
         }));
 
         Self {
             runtime,
             toolbox,
-            response_receiver,
             write_request_sender,
             write_worker_join_handle,
             generate_from_path_worker_join_handle,
@@ -84,17 +74,6 @@ impl ThumbnailGeneratorService {
     #[cfg(target_arch = "wasm32")]
     pub fn new(runtime: Arc<Runtime>, toolbox: Arc<Toolbox>) -> Self {
         Self { runtime, toolbox }
-    }
-
-    #[cfg(not(target_arch = "wasm32"))]
-    pub fn poll_results(&self) -> Vec<GeneratedThumbnail> {
-        let mut results = Vec::new();
-        while let Ok(response) = self.response_receiver.try_recv() {
-            if let ThumbnailGenerationResponse::Generated(result) = response {
-                results.push(result)
-            }
-        }
-        results
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -145,7 +124,7 @@ impl ThumbnailGeneratorService {
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    fn get_thumbnail_path_for_image_path(image_path: &PathBuf) -> Option<PathBuf> {
+    pub fn get_thumbnail_path_for_image_path(image_path: &PathBuf) -> Option<PathBuf> {
         if let Ok(digest_str) = image_path.digest() {
             if let Some(storage_dir) = Session::get_persistent_storage_dir() {
                 let full_path = storage_dir
@@ -193,7 +172,6 @@ struct WriteWorker {
     runtime: Arc<Runtime>,
     toolbox: Arc<Toolbox>,
     request_receiver: std::sync::mpsc::Receiver<WriteRequest>,
-    response_sender: std::sync::mpsc::Sender<ThumbnailGenerationResponse>,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -202,13 +180,11 @@ impl WriteWorker {
         runtime: Arc<Runtime>,
         toolbox: Arc<Toolbox>,
         request_receiver: std::sync::mpsc::Receiver<WriteRequest>,
-        response_sender: std::sync::mpsc::Sender<ThumbnailGenerationResponse>,
     ) -> Self {
         Self {
             runtime,
             toolbox,
             request_receiver,
-            response_sender,
         }
     }
 
@@ -221,8 +197,7 @@ impl WriteWorker {
                         break;
                     }
                     WriteRequest::Write(thumbnail_image, thumbnail_path, original_path) => {
-                        let response = self.write(thumbnail_image, thumbnail_path, original_path);
-                        let _ = self.response_sender.send(response);
+                        self.write(thumbnail_image, thumbnail_path, original_path);
                     }
                 }
             } else {
@@ -236,7 +211,7 @@ impl WriteWorker {
         thumbnail_image: Arc<Image>,
         thumbnail_path: PathBuf,
         original_path: PathBuf,
-    ) -> ThumbnailGenerationResponse {
+    ) {
         let mut image_reader = ImageReaderJpeg::new(
             self.runtime.clone(),
             self.toolbox.clone(),
@@ -245,20 +220,12 @@ impl WriteWorker {
 
         if let Ok(_) = std::fs::create_dir_all(thumbnail_path.parent().unwrap()) {
             if let Ok(mut file) = std::fs::File::create(&thumbnail_path) {
-                let write_result = futures::executor::block_on(async move {
+                futures::executor::block_on(async move {
                     let jpeg_data = image_reader.await_jpeg_data().await;
-                    file.write_all(&jpeg_data)
+                    let _ = file.write_all(&jpeg_data);
                 });
-                if let Ok(_) = write_result {
-                    return ThumbnailGenerationResponse::Generated(GeneratedThumbnail {
-                        original_image_path: original_path,
-                        thumbnail_path,
-                    });
-                }
             }
         }
-
-        ThumbnailGenerationResponse::CouldNotGenerate(original_path)
     }
 }
 
@@ -271,18 +238,15 @@ enum GenerateFromPathRequest {
 #[cfg(not(target_arch = "wasm32"))]
 struct GenerateFromPathWorker {
     request_receiver: std::sync::mpsc::Receiver<GenerateFromPathRequest>,
-    response_sender: std::sync::mpsc::Sender<ThumbnailGenerationResponse>,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 impl GenerateFromPathWorker {
     fn new(
         request_receiver: std::sync::mpsc::Receiver<GenerateFromPathRequest>,
-        response_sender: std::sync::mpsc::Sender<ThumbnailGenerationResponse>,
     ) -> Self {
         Self {
             request_receiver,
-            response_sender,
         }
     }
 
@@ -295,8 +259,7 @@ impl GenerateFromPathWorker {
                         break;
                     }
                     GenerateFromPathRequest::Generate(path) => {
-                        let response = self.generate(path);
-                        let _ = self.response_sender.send(response);
+                       self.generate(path);
                     }
                 }
             } else {
@@ -305,7 +268,7 @@ impl GenerateFromPathWorker {
         }
     }
 
-    fn generate(&mut self, path: PathBuf) -> ThumbnailGenerationResponse {
+    fn generate(&mut self, path: PathBuf) {
         if is_supported_image_file(&path) {
             if let Some(thumbnail_path) =
                 ThumbnailGeneratorService::get_thumbnail_path_for_image_path(&path)
@@ -313,10 +276,7 @@ impl GenerateFromPathWorker {
                 if thumbnail_path.exists() {
                     // don't regenerate if the thumbnail already exists
                     // (e.g. we might be generating an image from a large album, but one of the images has already been editted and has an updated thumbnail)
-                    return ThumbnailGenerationResponse::Generated(GeneratedThumbnail {
-                        original_image_path: path,
-                        thumbnail_path,
-                    });
+                    return;
                 }
                 if let Ok(image_bytes) = std::fs::read(&path) {
                     if let Ok(img) = Runtime::create_dynamic_image_from_bytes_jpg_png(&image_bytes)
@@ -335,14 +295,7 @@ impl GenerateFromPathWorker {
                                 if factor >= 1.0 {
                                     // no need to resize;
                                     let jpeg_data = Self::encode_dynamic_image(&img);
-                                    if let Ok(_) = file.write_all(&jpeg_data) {
-                                        return ThumbnailGenerationResponse::Generated(
-                                            GeneratedThumbnail {
-                                                original_image_path: path,
-                                                thumbnail_path,
-                                            },
-                                        );
-                                    }
+                                    let _ = file.write_all(&jpeg_data);
                                 } else {
                                     let thumbnail_width = (img.width() as f32 * factor) as u32;
                                     let thumbnail_height = (img.height() as f32 * factor) as u32;
@@ -352,14 +305,7 @@ impl GenerateFromPathWorker {
                                         image::imageops::FilterType::Triangle,
                                     );
                                     let jpeg_data = Self::encode_dynamic_image(&thumbnail_img);
-                                    if let Ok(_) = file.write_all(&jpeg_data) {
-                                        return ThumbnailGenerationResponse::Generated(
-                                            GeneratedThumbnail {
-                                                original_image_path: path,
-                                                thumbnail_path,
-                                            },
-                                        );
-                                    }
+                                    let _ = file.write_all(&jpeg_data);
                                 }
                             }
                         }
@@ -367,7 +313,6 @@ impl GenerateFromPathWorker {
                 }
             };
         }
-        ThumbnailGenerationResponse::CouldNotGenerate(path)
     }
 
     fn encode_dynamic_image(image: &DynamicImage) -> Vec<u8> {
@@ -384,14 +329,4 @@ impl GenerateFromPathWorker {
             .expect("Failed to encode image into jpeg");
         jpeg
     }
-}
-
-pub struct GeneratedThumbnail {
-    pub original_image_path: PathBuf,
-    pub thumbnail_path: PathBuf,
-}
-
-enum ThumbnailGenerationResponse {
-    Generated(GeneratedThumbnail),
-    CouldNotGenerate(PathBuf),
 }

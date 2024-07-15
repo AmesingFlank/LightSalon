@@ -40,7 +40,6 @@ pub struct LibraryImageMetaData {
 struct LibraryItem {
     image: Option<Arc<Image>>,
     thumbnail: Option<Arc<Image>>,
-    thumbnail_path: Option<PathBuf>,
     albums: HashSet<usize>,
     metadata: LibraryImageMetaData,
 }
@@ -71,7 +70,6 @@ struct LibraryPersistentState {
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
 struct LibraryPersistentStateItem {
     pub path: PathBuf,
-    pub thumbnail_path: Option<PathBuf>,
 }
 
 impl LibraryPersistentState {
@@ -253,7 +251,6 @@ impl Library {
         let library_item = LibraryItem {
             image: Some(image),
             thumbnail: Some(thumbnail),
-            thumbnail_path: None,
             albums: HashSet::new(),
             metadata,
         };
@@ -284,7 +281,6 @@ impl Library {
         let item = LibraryItem {
             image: None,
             thumbnail: None,
-            thumbnail_path: None,
             albums: HashSet::new(),
             metadata,
         };
@@ -383,21 +379,6 @@ impl Library {
                 self.handle_modified_paths(modified_paths, Some(i));
             }
         }
-
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            let thumbnail_results = self.services.thumbnail_generator.poll_results();
-            for generated_thumbnail in thumbnail_results {
-                let thumbnail_path = generated_thumbnail.thumbnail_path;
-                let identifier =
-                    LibraryImageIdentifier::Path(generated_thumbnail.original_image_path);
-                if let Some(item) = self.items.get_mut(&identifier) {
-                    item.thumbnail_path = Some(thumbnail_path);
-                } else {
-                    let _ = std::fs::remove_file(&thumbnail_path);
-                }
-            }
-        }
     }
 
     fn handle_modified_paths(
@@ -440,10 +421,14 @@ impl Library {
                 let item = self.items.get_mut(&item_identifier).unwrap();
                 item.image = None;
                 item.thumbnail = None;
-                if let Some(ref thumbnail_path) = item.thumbnail_path {
-                    let _ = std::fs::remove_file(&thumbnail_path);
+                #[cfg(not(target_arch = "wasm32"))]
+                if let Some(thumbnail_path) =
+                    ThumbnailGeneratorService::get_thumbnail_path_for_image_path(image_path)
+                {
+                    if thumbnail_path.exists() {
+                        let _ = std::fs::remove_file(thumbnail_path);
+                    }
                 }
-                item.thumbnail_path = None;
             } else {
                 paths_to_add.push(image_path.clone());
             }
@@ -495,8 +480,15 @@ impl Library {
             let item = self.items.remove(item_identifier).unwrap();
             let index = self.item_indices.remove(item_identifier).unwrap();
             item_indices.push(index);
-            if let Some(ref old_thumbnail_path) = item.thumbnail_path {
-                let _ = std::fs::remove_file(old_thumbnail_path);
+            #[cfg(not(target_arch = "wasm32"))]
+            if let Some(image_path) = item_identifier.get_path() {
+                if let Some(thumbnail_path) =
+                    ThumbnailGeneratorService::get_thumbnail_path_for_image_path(&image_path)
+                {
+                    if thumbnail_path.exists() {
+                        let _ = std::fs::remove_file(thumbnail_path);
+                    }
+                }
             }
             for album_index in item.albums.iter() {
                 self.remove_image_from_album(*album_index, item_identifier);
@@ -574,21 +566,39 @@ impl Library {
         &self.albums[album].items_ordered[index]
     }
 
+    fn maybe_load_thumbnail(&mut self, identifier: &LibraryImageIdentifier) -> Option<Arc<Image>> {
+        if self.items[identifier].thumbnail.is_none() {
+            if let Some(image_path) = identifier.get_path() {
+                #[cfg(not(target_arch = "wasm32"))]
+                if let Some(thumbnail_path) =
+                    ThumbnailGeneratorService::get_thumbnail_path_for_image_path(&image_path)
+                {
+                    if let Ok(thumbnail) = self.runtime.create_image_from_path(&thumbnail_path) {
+                        let thumbnail = Arc::new(thumbnail);
+                        self.toolbox.generate_mipmap(&thumbnail);
+                        self.items.get_mut(identifier).unwrap().thumbnail = Some(thumbnail.clone());
+                        return Some(thumbnail);
+                    } else {
+                        let _ = std::fs::remove_file(thumbnail_path);
+                    }
+                }
+            }
+        }
+        None
+    }
+
     // return the item or delete the identifier
     fn get_fully_loaded_item(
         &mut self,
         identifier: &LibraryImageIdentifier,
     ) -> Option<&LibraryItem> {
+        // If thumbnail file exists, load that first.
+        let _ = self.maybe_load_thumbnail(identifier);
+
         if self.items[identifier].image.is_none() {
             if let LibraryImageIdentifier::Path(ref path) = identifier {
                 if let Ok(image) = self.runtime.create_image_from_path(&path) {
                     let image = Arc::new(image);
-
-                    // when loading image from path, always re-compute thumbnail (before format and color space conversions)
-                    if let Some(ref old_thumbnail_path) = self.items[identifier].thumbnail_path {
-                        let _ = std::fs::remove_file(old_thumbnail_path);
-                        self.items.get_mut(identifier).unwrap().thumbnail_path = None;
-                    }
 
                     if self.items[identifier].thumbnail.is_none() {
                         let thumbnail = self
@@ -625,18 +635,6 @@ impl Library {
         }
 
         if self.items[identifier].thumbnail.is_none() {
-            if let Some(ref thumbnail_path) = self.items[identifier].thumbnail_path {
-                if let Ok(thumbnail) = self.runtime.create_image_from_path(thumbnail_path) {
-                    let thumbnail = Arc::new(thumbnail);
-                    self.toolbox.generate_mipmap(&thumbnail);
-                    self.items.get_mut(identifier).unwrap().thumbnail = Some(thumbnail.clone());
-                    return Some(&self.items[identifier]);
-                } else {
-                    let _ = std::fs::remove_file(thumbnail_path);
-                    self.items.get_mut(identifier).unwrap().thumbnail_path = None;
-                }
-            }
-
             let thumbnail = self
                 .services
                 .thumbnail_generator
@@ -674,13 +672,8 @@ impl Library {
         if let Some(ref thumbnail) = self.items[identifier].thumbnail {
             return Some(thumbnail.clone());
         }
-        if let Some(ref thumbnail_path) = self.items[identifier].thumbnail_path {
-            if let Ok(thumbnail) = self.runtime.create_image_from_path(thumbnail_path) {
-                let thumbnail = Arc::new(thumbnail);
-                self.toolbox.generate_mipmap(&thumbnail);
-                self.items.get_mut(identifier).unwrap().thumbnail = Some(thumbnail.clone());
-                return Some(thumbnail);
-            }
+        if let Some(thumbnail) = self.maybe_load_thumbnail(identifier) {
+            return Some(thumbnail);
         }
         let item = self.get_fully_loaded_item(identifier)?;
         Some(item.thumbnail.as_ref().unwrap().clone())
@@ -713,10 +706,7 @@ impl Library {
         let mut persistent_items = Vec::new();
         for identifier in self.items_ordered.iter() {
             if let LibraryImageIdentifier::Path(ref path) = identifier {
-                let item = LibraryPersistentStateItem {
-                    path: path.clone(),
-                    thumbnail_path: self.items[identifier].thumbnail_path.clone(),
-                };
+                let item = LibraryPersistentStateItem { path: path.clone() };
                 persistent_items.push(item);
             }
         }
@@ -756,16 +746,17 @@ impl Library {
                         serde_json::from_str::<LibraryPersistentState>(state_json_str.as_str())
                     {
                         for item in state.items {
-                            let identifier =
-                                self.add_item_from_path_impl(item.path.clone(), None, false);
-                            if item.thumbnail_path.is_some() {
-                                self.items.get_mut(&identifier).unwrap().thumbnail_path =
-                                    item.thumbnail_path;
-                            } else {
-                                #[cfg(not(target_arch = "wasm32"))]
-                                self.services
-                                    .thumbnail_generator
-                                    .request_thumbnail_for_image_at_path(item.path);
+                            #[cfg(not(target_arch = "wasm32"))]
+                            if let Some(thumbnail_path) =
+                                ThumbnailGeneratorService::get_thumbnail_path_for_image_path(
+                                    &item.path,
+                                )
+                            {
+                                if !thumbnail_path.exists() {
+                                    self.services
+                                        .thumbnail_generator
+                                        .request_thumbnail_for_image_at_path(item.path);
+                                }
                             }
                         }
                         for album in state.albums {
