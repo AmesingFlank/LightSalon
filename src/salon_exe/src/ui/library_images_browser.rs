@@ -1,5 +1,5 @@
 use eframe::{
-    egui::{self, Ui},
+    egui::{self, CursorIcon, Ui},
     egui_wgpu,
 };
 use egui_extras::{Column, TableBuilder};
@@ -83,6 +83,26 @@ pub fn library_images_browser(
                             rect.min.y = top_y;
                             y_clip = ThumbnailClip::Top
                         }
+
+                        let cell_max_rect = ui.max_rect();
+                        let image_frame_rect = egui::Rect::from_center_size(
+                            cell_max_rect.center(),
+                            egui::Vec2::new(
+                                cell_max_rect.width() * 1.0,
+                                // somehow, only this makes the vertical gaps and horizontal gaps similar in size..
+                                cell_max_rect.height() * 0.98,
+                            ),
+                        );
+                        let mut image_framing_color = egui::Color32::from_gray(40);
+                        if response.hovered() {
+                            image_framing_color = egui::Color32::from_gray(60);
+                        }
+                        ui.painter().rect_filled(
+                            image_frame_rect,
+                            egui::Rounding::ZERO,
+                            image_framing_color,
+                        );
+
                         ui.centered_and_justified(|ui| {
                             ui.painter().add(egui_wgpu::Callback::new_paint_callback(
                                 rect,
@@ -93,6 +113,10 @@ pub fn library_images_browser(
                                 },
                             ));
                         });
+
+                        if response.hovered() {
+                            ui.output_mut(|out| out.cursor_icon = CursorIcon::PointingHand);
+                        }
                         if response.clicked() {
                             ui_state.app_page = AppPage::Editor;
                             ui_state.library_side_panel_requested_row = Some(image_index);
