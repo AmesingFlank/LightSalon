@@ -4,6 +4,7 @@ use std::path::Path;
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use sha256::TrySha256Digest;
+use wgpu::core::id;
 
 use crate::runtime::{ColorSpace, Image, ImageReaderJpeg, Toolbox};
 use crate::runtime::{ImageFormat, Runtime};
@@ -13,7 +14,7 @@ use crate::session::Session;
 use crate::utils::uuid::{get_next_uuid, Uuid};
 use crate::versioning::Version;
 
-use super::{album, is_supported_image_file, Album, AlbumPersistentState};
+use super::{album, is_supported_image_file, Album, AlbumPersistentState, ImageRating};
 
 use crate::services::thumbnail_generator::ThumbnailGeneratorService;
 
@@ -42,6 +43,7 @@ struct LibraryItem {
     thumbnail: Option<Arc<Image>>,
     albums: HashSet<usize>,
     metadata: LibraryImageMetaData,
+    rating: ImageRating,
 }
 
 pub struct Library {
@@ -70,6 +72,7 @@ struct LibraryPersistentState {
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
 struct LibraryPersistentStateItem {
     pub path: PathBuf,
+    pub rating: ImageRating,
 }
 
 impl LibraryPersistentState {
@@ -259,6 +262,7 @@ impl Library {
             thumbnail: Some(thumbnail),
             albums: HashSet::new(),
             metadata,
+            rating: ImageRating::new(None),
         };
         self.add_item(
             library_item,
@@ -289,6 +293,7 @@ impl Library {
             thumbnail: None,
             albums: HashSet::new(),
             metadata,
+            rating: ImageRating::new(None),
         };
         self.add_item(item, id.clone(), album, ensure_order);
         id
@@ -703,6 +708,14 @@ impl Library {
         }
     }
 
+    pub fn get_rating(&self, identifier: &LibraryImageIdentifier) -> ImageRating {
+        self.items[identifier].rating.clone()
+    }
+
+    pub fn set_rating(&mut self, identifier: &LibraryImageIdentifier, rating: ImageRating) {
+        self.items.get_mut(identifier).unwrap().rating = rating
+    }
+
     fn get_persistent_state(&mut self) -> LibraryPersistentState {
         // these items are found to be unavailable, so remove them from the library
         self.remove_items(&self.unavailable_items.clone());
@@ -712,7 +725,10 @@ impl Library {
         let mut persistent_items = Vec::new();
         for identifier in self.items_ordered.iter() {
             if let LibraryImageIdentifier::Path(ref path) = identifier {
-                let item = LibraryPersistentStateItem { path: path.clone() };
+                let item = LibraryPersistentStateItem {
+                    path: path.clone(),
+                    rating: self.items[identifier].rating.clone(),
+                };
                 persistent_items.push(item);
             }
         }
