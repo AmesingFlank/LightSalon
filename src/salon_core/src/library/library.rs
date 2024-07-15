@@ -117,6 +117,12 @@ impl Library {
         self.albums.push(Album::new(name, None, Vec::new()));
     }
 
+    pub fn delete_album(&mut self, album_index: usize) {
+        // TODO: support deleting albums backed by a directory as well.
+        assert!(self.albums[album_index].directory.is_none());
+        self.albums.remove(album_index);
+    }
+
     // the item should already be present in all_items, this function adds it into a items_ordered vector (of either the entire library, or an album)
     fn ordered_insert(
         all_items: &HashMap<LibraryImageIdentifier, LibraryItem>,

@@ -47,15 +47,35 @@ pub fn library_albums_browser(
             .show(ui, |ui| {
                 ui.with_layout(egui::Layout::top_down_justified(egui::Align::LEFT), |ui| {
                     let albums = session.library.albums();
+                    let mut album_to_delete = None;
                     for i in 0..albums.len() {
                         let text = get_album_name_text_with_emoji_and_count(&albums[i]);
-                        if ui
-                            .selectable_label(ui_state.selected_album == Some(i), text)
-                            .clicked()
-                        {
+                        let response =
+                            ui.selectable_label(ui_state.selected_album == Some(i), text);
+                        if response.clicked() {
                             ui_state.selected_album = Some(i);
+                        } else {
+                            response.context_menu(|ui| {
+                                // TODO: support deleting albums backed by a directory as well.
+                                let can_delete = albums[i].directory.is_none();
+                                if ui
+                                    .add_enabled(can_delete, egui::Button::new("Delete album"))
+                                    .clicked()
+                                {
+                                    ui.close_menu();
+                                    album_to_delete = Some(i);
+                                }
+                            });
                         }
                     }
+
+                    if let Some(i) = album_to_delete {
+                        session.library.delete_album(i);
+                        if ui_state.selected_album == Some(i) {
+                            ui_state.selected_album = None;
+                        }
+                    }
+
                     let mut finished_name_input = false;
                     if let Some(name) = ui_state.new_album_name.as_mut() {
                         let response = ui.add(egui::TextEdit::singleline(name));
