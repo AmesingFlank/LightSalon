@@ -7,7 +7,7 @@ use crate::{
     engine::{common::ImageHistogram, Engine, ExecutionContext},
     library::LibraryImageIdentifier,
     runtime::{Buffer, BufferReader, Image, Runtime, Toolbox},
-    services::services::Services,
+    services::{edit_writer::EditWriterService, services::Services},
 };
 
 use super::{
@@ -161,12 +161,27 @@ impl Editor {
         }
 
         if let Some(context) = self.edit_contexts.get_mut(&identifier) {
-            // update the image, in case it was None before (e.g. if the context is populated from a persistent state)
             context.input_image = Some(image)
         } else {
+            let mut edit = Edit::trivial();
+            if let Some(image_path) = identifier.get_path() {
+                if let Some(edit_path) =
+                    EditWriterService::get_edit_path_for_image_path(&image_path)
+                {
+                    if edit_path.exists() {
+                        if let Ok(edit_json_str) = std::fs::read_to_string(&edit_path) {
+                            if let Ok(saved_edit) =
+                                serde_json::from_str::<Edit>(edit_json_str.as_str())
+                            {
+                                edit = saved_edit;
+                            }
+                        }
+                    }
+                }
+            }
             let new_context = EditContext {
                 input_image: Some(image),
-                edit_history: vec![Edit::trivial()],
+                edit_history: vec![edit],
                 current_edit_index: 0,
                 transient_edit: None,
                 current_result: None,
@@ -211,10 +226,25 @@ impl Editor {
             .current_edit_context_mut()
             .unwrap()
             .commit_transient_edit();
+        if committed {
+            self.update_current_edit_in_filesystem();
+        }
         if committed && execute {
             self.execute_current_edit();
         }
         committed
+    }
+
+    fn update_current_edit_in_filesystem(&self) {
+        if let Some(ref identifier) = self.current_image_identifier {
+            if let Some(path) = identifier.get_path() {
+                if let Some(edit_context) = self.current_edit_context_ref() {
+                    self.services
+                        .edit_writer
+                        .request_update(edit_context.current_edit_ref().clone(), path);
+                }
+            }
+        }
     }
 
     pub fn can_undo(&mut self) -> bool {
@@ -237,6 +267,7 @@ impl Editor {
         if let Some(context) = self.current_edit_context_mut() {
             if context.maybe_undo() {
                 self.execute_current_edit();
+                self.update_current_edit_in_filesystem();
                 return true;
             }
         }
@@ -247,6 +278,7 @@ impl Editor {
         if let Some(context) = self.current_edit_context_mut() {
             if context.maybe_redo() {
                 self.execute_current_edit();
+                self.update_current_edit_in_filesystem();
                 return true;
             }
         }
@@ -401,43 +433,4 @@ impl Editor {
             masked_edit_results,
         }
     }
-
-    pub fn get_persistent_state(&self) -> EditorPersistentState {
-        let mut edit_context_states = Vec::new();
-        for (identifier, context) in self.edit_contexts.iter() {
-            let state = EditContextPersistentState {
-                identifier: identifier.clone(),
-                current_edit: context.current_edit_ref().clone(),
-            };
-            edit_context_states.push(state);
-        }
-        EditorPersistentState {
-            edit_context_states,
-        }
-    }
-
-    pub fn load_persistent_state(&mut self, state: EditorPersistentState) {
-        for edit_context_state in state.edit_context_states {
-            let new_context = EditContext {
-                input_image: None,
-                edit_history: vec![edit_context_state.current_edit],
-                current_edit_index: 0,
-                transient_edit: None,
-                current_result: None,
-            };
-            self.edit_contexts
-                .insert(edit_context_state.identifier, new_context);
-        }
-    }
-}
-
-#[derive(Clone, serde::Deserialize, serde::Serialize)]
-pub struct EditorPersistentState {
-    edit_context_states: Vec<EditContextPersistentState>,
-}
-
-#[derive(Clone, serde::Deserialize, serde::Serialize)]
-struct EditContextPersistentState {
-    identifier: LibraryImageIdentifier,
-    current_edit: Edit,
 }
