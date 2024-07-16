@@ -4,7 +4,6 @@ use std::path::Path;
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use sha256::TrySha256Digest;
-use wgpu::core::id;
 
 use crate::runtime::{ColorSpace, Image, ImageReaderJpeg, Toolbox};
 use crate::runtime::{ImageFormat, Runtime};

@@ -173,6 +173,7 @@ impl App {
     fn get_visuals(&self) -> Visuals {
         Visuals {
             panel_fill: Color32::from_gray(32),
+            override_text_color: Some(egui::Color32::from_gray(255)),
             ..Visuals::dark()
         }
     }

@@ -3,7 +3,10 @@ use eframe::{
     egui_wgpu,
 };
 use egui_extras::{Column, TableBuilder};
-use salon_core::{library::LibraryImageIdentifier, session::Session};
+use salon_core::{
+    library::{ImageRating, LibraryImageIdentifier},
+    session::Session,
+};
 
 use super::{
     ui_set_current_editor_image,
@@ -35,8 +38,8 @@ pub fn library_images_browser(
     }
 
     let row_height = column_width;
-    let max_image_height = row_height * 0.9;
-    let max_image_width = max_image_height;
+    let max_image_height = row_height * 0.8; // leave some room for the rating stars
+    let max_image_width = column_width * 0.9;
     let num_images = if let Some(album_index) = ui_state.selected_album {
         session.library.num_images_in_album(album_index)
     } else {
@@ -70,20 +73,6 @@ pub fn library_images_browser(
                         .library
                         .get_thumbnail_from_identifier(&image_identifier)
                     {
-                        let aspect_ratio = image.aspect_ratio();
-                        let image_size =
-                            get_max_image_size(aspect_ratio, max_image_width, max_image_height);
-                        let (mut rect, response) =
-                            ui.allocate_exact_size(image_size, egui::Sense::click());
-                        let mut y_clip = ThumbnailClip::None;
-                        if bottom_y < rect.max.y {
-                            rect.max.y = bottom_y;
-                            y_clip = ThumbnailClip::Bottom;
-                        } else if top_y > rect.min.y {
-                            rect.min.y = top_y;
-                            y_clip = ThumbnailClip::Top
-                        }
-
                         let cell_max_rect = ui.max_rect();
                         let image_frame_rect = egui::Rect::from_center_size(
                             cell_max_rect.center(),
@@ -93,8 +82,12 @@ pub fn library_images_browser(
                                 cell_max_rect.height() * 0.98,
                             ),
                         );
+
+                        let image_frame_response =
+                            ui.allocate_rect(image_frame_rect, egui::Sense::click());
+
                         let mut image_framing_color = egui::Color32::from_gray(40);
-                        if response.hovered() {
+                        if image_frame_response.hovered() {
                             image_framing_color = egui::Color32::from_gray(60);
                         }
                         ui.painter().rect_filled(
@@ -103,21 +96,53 @@ pub fn library_images_browser(
                             image_framing_color,
                         );
 
+                        let aspect_ratio = image.aspect_ratio();
+                        let image_size =
+                            get_max_image_size(aspect_ratio, max_image_width, max_image_height);
+                        let mut image_rect =
+                            egui::Rect::from_center_size(image_frame_rect.center(), image_size);
+                        let mut y_clip = ThumbnailClip::None;
+                        if bottom_y < image_rect.max.y {
+                            image_rect.max.y = bottom_y;
+                            y_clip = ThumbnailClip::Bottom;
+                        } else if top_y > image_rect.min.y {
+                            image_rect.min.y = top_y;
+                            y_clip = ThumbnailClip::Top
+                        }
+
                         ui.centered_and_justified(|ui| {
                             ui.painter().add(egui_wgpu::Callback::new_paint_callback(
-                                rect,
+                                image_rect,
                                 ThumbnailCallback {
                                     image: image,
-                                    allocated_ui_rect: rect,
+                                    allocated_ui_rect: image_rect,
                                     clip: y_clip,
                                 },
                             ));
                         });
 
-                        if response.hovered() {
+                        let rating_rect = egui::Rect::from_min_max(
+                            egui::Pos2::new(
+                                cell_max_rect.min.x,
+                                cell_max_rect.min.y + row_height * 0.9,
+                            ),
+                            cell_max_rect.max,
+                        );
+                        let mut clicked_rating = image_rating(
+                            ctx,
+                            ui,
+                            session,
+                            ui_state,
+                            rating_rect,
+                            &image_frame_response,
+                            &image_identifier,
+                        );
+
+                        if image_frame_response.hovered() {
                             ui.output_mut(|out| out.cursor_icon = CursorIcon::PointingHand);
                         }
-                        if response.clicked() {
+
+                        if image_frame_response.clicked() && !clicked_rating {
                             ui_state.app_page = AppPage::Editor;
                             ui_state.library_side_panel_requested_row = Some(image_index);
                             ui_state.library_images_browser_requested_row = Some(row_index);
@@ -128,7 +153,7 @@ pub fn library_images_browser(
                                 image_identifier.clone(),
                             );
                         }
-                        response.context_menu(|ui| {
+                        image_frame_response.context_menu(|ui| {
                             ui.menu_button("Add to album", |ui| {
                                 for i in 0..session.library.albums().len() {
                                     let can_add = !session.library.albums()[i]
@@ -170,4 +195,60 @@ pub fn library_images_browser(
             .library
             .remove_image_from_album(ui_state.selected_album.clone().unwrap(), &removed_image);
     }
+}
+
+pub fn image_rating(
+    ctx: &egui::Context,
+    ui: &mut Ui,
+    session: &mut Session,
+    ui_state: &mut AppUiState,
+    rating_rect: egui::Rect,
+    image_frame_response: &egui::Response,
+    identifier: &LibraryImageIdentifier,
+) -> bool {
+    let mut num_stars = 0;
+    let original_rating = session.library.get_rating(&identifier);
+    if let Some(rated_stars) = original_rating.num_stars {
+        num_stars = rated_stars;
+    }
+    if !image_frame_response.hovered() && original_rating.num_stars.is_none() {
+        return false;
+    }
+
+    let mut clicked_rating = false;
+
+    for i in 0..ImageRating::MAX_STARS {
+        let delta_from_center = i as f32 - (ImageRating::MAX_STARS / 2) as f32;
+        let star_rect = egui::Rect::from_center_size(
+            egui::Pos2::new(
+                rating_rect.center().x + delta_from_center * rating_rect.width() * 0.1,
+                rating_rect.center().y,
+            ),
+            egui::Vec2::new(rating_rect.width() * 0.08, rating_rect.height()),
+        );
+
+        let mut ui = ui.child_ui(star_rect, ui.layout().clone());
+
+        let star_text = if i < num_stars { "★" } else { "☆" };
+        ui.label(star_text);
+
+        if image_frame_response.clicked() {
+            if let Some(click_pos) = image_frame_response.hover_pos() {
+                if star_rect.contains(click_pos) {
+                    let selected_num_stars = i + 1;
+                    println!("{}", selected_num_stars);
+                    let selected_rating = ImageRating::new(Some(selected_num_stars));
+                    if selected_rating == original_rating {
+                        session
+                            .library
+                            .set_rating(&identifier, ImageRating::new(None));
+                    } else {
+                        session.library.set_rating(&identifier, selected_rating);
+                    }
+                    clicked_rating = true;
+                }
+            }
+        }
+    }
+    clicked_rating
 }
