@@ -85,9 +85,18 @@ pub fn library_images_browser(
 
                         let image_frame_response =
                             ui.allocate_rect(image_frame_rect, egui::Sense::click());
+                        let image_frame_clicked = image_frame_response.clicked();
+                        // cannot use `image_frame_response.hovered()` here, because it is false when hovering over stars rating text
+                        let image_frame_hovered = ui.input(|i| {
+                            if let Some(pos) = i.pointer.latest_pos() {
+                                return image_frame_rect.contains(pos);
+                            }
+                            false
+                        });
 
                         let mut image_framing_color = egui::Color32::from_gray(40);
-                        if image_frame_response.hovered() {
+
+                        if image_frame_hovered {
                             image_framing_color = egui::Color32::from_gray(60);
                         }
                         ui.painter().rect_filled(
@@ -128,13 +137,13 @@ pub fn library_images_browser(
                             ),
                             cell_max_rect.max,
                         );
-                        let mut clicked_rating = image_rating(
+                        let rating_clicked = image_rating(
                             ctx,
                             ui,
                             session,
                             ui_state,
                             rating_rect,
-                            &image_frame_response,
+                            image_frame_hovered,
                             &image_identifier,
                         );
 
@@ -142,7 +151,7 @@ pub fn library_images_browser(
                             ui.output_mut(|out| out.cursor_icon = CursorIcon::PointingHand);
                         }
 
-                        if image_frame_response.clicked() && !clicked_rating {
+                        if image_frame_clicked && !rating_clicked {
                             ui_state.app_page = AppPage::Editor;
                             ui_state.library_side_panel_requested_row = Some(image_index);
                             ui_state.library_images_browser_requested_row = Some(row_index);
@@ -197,13 +206,13 @@ pub fn library_images_browser(
     }
 }
 
-pub fn image_rating(
+fn image_rating(
     ctx: &egui::Context,
     ui: &mut Ui,
     session: &mut Session,
     ui_state: &mut AppUiState,
     rating_rect: egui::Rect,
-    image_frame_response: &egui::Response,
+    image_frame_hovered: bool,
     identifier: &LibraryImageIdentifier,
 ) -> bool {
     let mut num_stars = 0;
@@ -211,7 +220,8 @@ pub fn image_rating(
     if let Some(rated_stars) = original_rating.num_stars {
         num_stars = rated_stars;
     }
-    if !image_frame_response.hovered() && original_rating.num_stars.is_none() {
+
+    if !image_frame_hovered && original_rating.num_stars.is_none() {
         return false;
     }
 
@@ -227,28 +237,34 @@ pub fn image_rating(
             egui::Vec2::new(rating_rect.width() * 0.08, rating_rect.height()),
         );
 
-        let mut ui = ui.child_ui(star_rect, ui.layout().clone());
-
         let star_text = if i < num_stars { "★" } else { "☆" };
-        ui.label(star_text);
 
-        if image_frame_response.clicked() {
-            if let Some(click_pos) = image_frame_response.hover_pos() {
-                if star_rect.contains(click_pos) {
-                    let selected_num_stars = i + 1;
-                    println!("{}", selected_num_stars);
-                    let selected_rating = ImageRating::new(Some(selected_num_stars));
-                    if selected_rating == original_rating {
-                        session
-                            .library
-                            .set_rating(&identifier, ImageRating::new(None));
-                    } else {
-                        session.library.set_rating(&identifier, selected_rating);
-                    }
-                    clicked_rating = true;
+        ui.allocate_ui_at_rect(star_rect, |ui| {
+            let label_response = ui.add(
+                egui::Label::new(star_text)
+                    .selectable(false)
+                    .sense(egui::Sense::click()),
+            );
+
+            if let Some(pos) = ui.input(|i| i.pointer.latest_pos()) {
+                if star_rect.contains(pos) {
+                    ui.output_mut(|out| out.cursor_icon = CursorIcon::PointingHand);
                 }
             }
-        }
+
+            if label_response.clicked() {
+                let selected_num_stars = i + 1;
+                let selected_rating = ImageRating::new(Some(selected_num_stars));
+                if selected_rating == original_rating {
+                    session
+                        .library
+                        .set_rating(&identifier, ImageRating::new(None));
+                } else {
+                    session.library.set_rating(&identifier, selected_rating);
+                }
+                clicked_rating = true;
+            }
+        });
     }
     clicked_rating
 }
