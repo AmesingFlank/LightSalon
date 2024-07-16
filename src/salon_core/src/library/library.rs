@@ -766,8 +766,9 @@ impl Library {
                     if let Ok(state) =
                         serde_json::from_str::<LibraryPersistentState>(state_json_str.as_str())
                     {
-                        #[cfg(not(target_arch = "wasm32"))]
                         for item in state.items {
+                            self.add_item_from_path_impl(item.path.clone(), None, false);
+                            #[cfg(not(target_arch = "wasm32"))]
                             self.services
                                 .thumbnail_generator
                                 .request_thumbnail_for_image_at_path(item.path);
