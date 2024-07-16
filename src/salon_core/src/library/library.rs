@@ -4,6 +4,7 @@ use std::path::Path;
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use sha256::TrySha256Digest;
+use wgpu::core::id;
 
 use crate::runtime::{ColorSpace, Image, ImageReaderJpeg, Toolbox};
 use crate::runtime::{ImageFormat, Runtime};
@@ -767,7 +768,11 @@ impl Library {
                         serde_json::from_str::<LibraryPersistentState>(state_json_str.as_str())
                     {
                         for item in state.items {
-                            self.add_item_from_path_impl(item.path.clone(), None, false);
+                            let identifier =
+                                self.add_item_from_path_impl(item.path.clone(), None, false);
+                            if let Some(loaded_item) = self.items.get_mut(&identifier) {
+                                loaded_item.rating = item.rating;
+                            }
                             #[cfg(not(target_arch = "wasm32"))]
                             self.services
                                 .thumbnail_generator
