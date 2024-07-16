@@ -227,30 +227,31 @@ fn image_rating(
 
     let mut clicked_rating = false;
 
-    for i in 0..ImageRating::MAX_STARS {
+    for i in (0..ImageRating::MAX_STARS).rev() {
         let delta_from_center = i as f32 - (ImageRating::MAX_STARS / 2) as f32;
         let star_rect = egui::Rect::from_center_size(
             egui::Pos2::new(
                 rating_rect.center().x + delta_from_center * rating_rect.width() * 0.1,
                 rating_rect.center().y,
             ),
-            egui::Vec2::new(rating_rect.width() * 0.08, rating_rect.height()),
+            egui::Vec2::new(rating_rect.width() * 0.1, rating_rect.height()),
         );
 
-        let star_text = if i < num_stars { "★" } else { "☆" };
-
         ui.allocate_ui_at_rect(star_rect, |ui| {
+            if let Some(pos) = ui.input(|i| i.pointer.latest_pos()) {
+                if star_rect.contains(pos) {
+                    ui.output_mut(|out| out.cursor_icon = CursorIcon::PointingHand);
+                    num_stars = i + 1;
+                }
+            }
+
+            let star_text = if i < num_stars { "★" } else { "☆" };
+
             let label_response = ui.add(
                 egui::Label::new(star_text)
                     .selectable(false)
                     .sense(egui::Sense::click()),
             );
-
-            if let Some(pos) = ui.input(|i| i.pointer.latest_pos()) {
-                if star_rect.contains(pos) {
-                    ui.output_mut(|out| out.cursor_icon = CursorIcon::PointingHand);
-                }
-            }
 
             if label_response.clicked() {
                 let selected_num_stars = i + 1;
