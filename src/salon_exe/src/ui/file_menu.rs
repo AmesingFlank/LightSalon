@@ -93,6 +93,14 @@ fn file_dialogue_export_image(
             .convert_image_format(final_image, ImageFormat::Rgba8Unorm);
         let mut image_reader =
             ImageReaderJpeg::new(runtime.clone(), session.toolbox.clone(), final_image);
+
+        let mut output_file_name = "output.jpg".to_owned();
+        if let Some(identifier) = session.editor.current_image_identifier() {
+            if let Some(name) = session.library.get_metadata(&identifier).name {
+                output_file_name = name;
+            }
+        }
+
         execute(async move {
             let jpeg_data = image_reader.await_jpeg_data().await;
             let array = Uint8Array::from(jpeg_data.as_slice());
@@ -101,7 +109,7 @@ fn file_dialogue_export_image(
 
             let file = File::new_with_blob_sequence_and_options(
                 &blob_parts.into(),
-                "output.jpg",
+                output_file_name.as_str(),
                 web_sys::FilePropertyBag::new().type_("image/jpeg"),
             )
             .unwrap();
@@ -115,7 +123,7 @@ fn file_dialogue_export_image(
                     .dyn_into::<web_sys::HtmlAnchorElement>()
                     .unwrap();
                 a.set_href(&url.unwrap());
-                a.set_download("output.jpg");
+                a.set_download(output_file_name.as_str());
                 body.append_child(&a).unwrap();
                 a.click();
                 body.remove_child(&a).unwrap();

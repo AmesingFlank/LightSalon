@@ -4,7 +4,6 @@ use std::path::Path;
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use sha256::TrySha256Digest;
-use wgpu::core::id;
 
 use crate::runtime::{ColorSpace, Image, ImageReaderJpeg, Toolbox};
 use crate::runtime::{ImageFormat, Runtime};
@@ -714,6 +713,10 @@ impl Library {
 
     pub fn set_rating(&mut self, identifier: &LibraryImageIdentifier, rating: ImageRating) {
         self.items.get_mut(identifier).unwrap().rating = rating
+    }
+
+    pub fn get_metadata(&self, identifier: &LibraryImageIdentifier) -> LibraryImageMetaData {
+        self.items[identifier].metadata.clone()
     }
 
     fn get_persistent_state(&mut self) -> LibraryPersistentState {
