@@ -25,7 +25,7 @@ pub fn library_images_browser(
     let top_y = ui.max_rect().min.y;
 
     let max_height = ui.available_height();
-    let num_columns = 6;
+    let num_columns = (ui.available_width() as usize / 200).max(1).min(6);
     let column_width = (ui.available_width() / num_columns as f32) * 0.95;
     let mut table = TableBuilder::new(ui)
         .cell_layout(egui::Layout::centered_and_justified(
