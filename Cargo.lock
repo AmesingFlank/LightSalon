@@ -3008,6 +3008,8 @@ dependencies = [
  "log",
  "rfd",
  "salon_core",
+ "serde",
+ "serde_json",
  "wasm-bindgen-futures",
  "web-sys",
  "wgpu",

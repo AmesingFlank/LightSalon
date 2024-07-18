@@ -32,12 +32,21 @@ pub fn file_menu(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) 
 
         let has_current_img = session.editor.current_edit_context_ref().is_some();
         if ui
-            .add_enabled(has_current_img, egui::Button::new("Export Image"))
+            .add_enabled(has_current_img, egui::Button::new("Export Editted Image"))
             .clicked()
         {
             ui.close_menu();
             let ctx = ui.ctx().clone();
             file_dialogue_export_image(ctx, session, ui_state);
+        }
+
+        if ui
+            .add_enabled(has_current_img, egui::Button::new("Export Edit JSON"))
+            .clicked()
+        {
+            ui.close_menu();
+            let ctx = ui.ctx().clone();
+            file_dialogue_export_edit(ctx, session, ui_state);
         }
     });
 }
@@ -76,6 +85,34 @@ fn file_dialogue_export_image(
         let jpeg_data = image_reader.await_jpeg_data().await;
         if let Some(file) = file {
             file.write(&jpeg_data).await.expect("Write file failed");
+        }
+    });
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn file_dialogue_export_edit(
+    context: egui::Context,
+    session: &mut Session,
+    ui_state: &mut AppUiState,
+) {
+    let edit = session.editor.get_full_size_edit();
+    let edit_json_str = serde_json::to_string_pretty(&edit).expect("failed to serialize to json");
+
+    let mut task = rfd::AsyncFileDialog::new().add_filter("extension", &["json"]);
+    if let Some(name) = session
+        .library
+        .get_metadata(&session.editor.current_image_identifier().unwrap())
+        .name
+    {
+        task = task.set_file_name(edit_json_file_name(&name));
+    }
+    let file_handle = task.save_file();
+    execute(async move {
+        let file = file_handle.await;
+        if let Some(file) = file {
+            file.write(edit_json_str.as_bytes())
+                .await
+                .expect("Write file failed");
         }
     });
 }
@@ -137,12 +174,65 @@ fn file_dialogue_export_image(
     });
 }
 
+#[cfg(target_arch = "wasm32")]
+fn file_dialogue_export_edit(
+    context: egui::Context,
+    session: &mut Session,
+    ui_state: &mut AppUiState,
+) {
+    let edit = session.editor.get_full_size_edit();
+    let edit_json_str = serde_json::to_string_pretty(&edit).expect("failed to serialize to json");
+
+    let mut output_file_name = "edit.json".to_owned();
+    if let Some(identifier) = session.editor.current_image_identifier() {
+        if let Some(name) = session.library.get_metadata(&identifier).name {
+            output_file_name = edit_json_file_name(&name);
+        }
+    }
+
+    execute(async move {
+        let array = Uint8Array::from(edit_json_str.as_bytes());
+        let blob_parts = Array::new();
+        blob_parts.push(&array.buffer());
+        let file = File::new_with_blob_sequence_and_options(
+            &blob_parts.into(),
+            output_file_name.as_str(),
+            web_sys::FilePropertyBag::new().type_("text/json"),
+        )
+        .unwrap();
+        let url = Url::create_object_url_with_blob(&file);
+        if let Some(window) = web_sys::window() {
+            let document = window.document().unwrap();
+            let body = document.body().unwrap();
+            let a = document
+                .create_element("a")
+                .unwrap()
+                .dyn_into::<web_sys::HtmlAnchorElement>()
+                .unwrap();
+            a.set_href(&url.unwrap());
+            a.set_download(output_file_name.as_str());
+            body.append_child(&a).unwrap();
+            a.click();
+            body.remove_child(&a).unwrap();
+        }
+    });
+}
+
 fn editted_image_file_name(name: &String) -> String {
     let parts: Vec<&str> = name.rsplitn(2, '.').collect();
     if parts.len() == 2 {
         format!("{}_edit.{}", parts[1], parts[0])
     } else {
         format!("{}_edit", name)
+    }
+}
+
+fn edit_json_file_name(name: &String) -> String {
+    let parts: Vec<&str> = name.rsplitn(2, '.').collect();
+    if parts.len() == 2 {
+        format!("{}_edit.{}", parts[1], "json")
+    } else {
+        format!("{}_edit.json", name)
     }
 }
 

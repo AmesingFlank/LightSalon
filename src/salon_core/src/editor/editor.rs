@@ -324,13 +324,18 @@ impl Editor {
             Some(self.collect_result(&id_store));
     }
 
-    pub fn get_full_size_editted_image(&mut self) -> Arc<Image> {
+    pub fn get_full_size_edit(&self) -> Edit {
         let mut edit = self
             .current_edit_context_ref()
             .unwrap()
             .current_edit_ref()
             .clone();
         edit.resize_factor = None;
+        edit
+    }
+
+    pub fn get_full_size_editted_image(&mut self) -> Arc<Image> {
+        let edit = self.get_full_size_edit();
         let image = self
             .current_edit_context_ref()
             .unwrap()
