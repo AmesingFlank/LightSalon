@@ -36,7 +36,7 @@ pub fn app_ui(ctx: &egui::Context, session: &mut Session, ui_state: &mut AppUiSt
         }
         AppPage::Editor => {
             egui::SidePanel::left("library_panel")
-                .default_width(0.0)
+                .default_width(last_frame_size.0 * 0.1)
                 .resizable(false)
                 .show(ctx, |ui| {
                     // ui.set_width(ui.available_width());

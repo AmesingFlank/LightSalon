@@ -7,6 +7,7 @@ use salon_core::session::Session;
 
 use super::{
     ui_set_current_editor_image,
+    utils::get_max_image_size,
     widgets::{ThumbnailCallback, ThumbnailClip},
     AppPage, AppUiState,
 };
@@ -39,20 +40,24 @@ pub fn library_side_panel(
     let bottom_y = ui.max_rect().max.y;
     let top_y = ui.max_rect().min.y;
 
-    let max_height = ui.available_height();
+    let cell_width = ui.available_width();
+    let cell_height = cell_width;
+
+    let table_height = ui.available_height();
+
     let mut table = TableBuilder::new(ui)
-        .column(Column::auto())
+        .column(Column::exact(cell_width))
         .cell_layout(egui::Layout::centered_and_justified(
             egui::Direction::TopDown,
         ))
-        .max_scroll_height(max_height);
+        .max_scroll_height(table_height);
 
     if let Some(ref requested_row) = ui_state.library_side_panel_requested_row.take() {
         table = table.scroll_to_row(*requested_row, Some(Align::Center));
     }
 
-    let row_height = ui_state.last_frame_size.unwrap().1 * 0.1;
-    let image_height = row_height * 0.8;
+    let max_image_width = cell_height * 0.8;
+    let max_image_height = max_image_width;
 
     let num_images = if let Some(album_index) = ui_state.selected_album {
         session.library.num_images_in_album(album_index)
@@ -61,7 +66,7 @@ pub fn library_side_panel(
     };
 
     table.body(|mut body| {
-        body.rows(row_height, num_images, |mut row| {
+        body.rows(cell_width, num_images, |mut row| {
             let row_index = row.index();
             let image_identifier = if let Some(album_index) = ui_state.selected_album {
                 session
@@ -72,9 +77,11 @@ pub fn library_side_panel(
                 session.library.get_identifier_at_index(row_index).clone()
             };
 
+            let mut selected = false;
+
             if let Some(editor_image) = session.editor.current_image_identifier() {
                 if editor_image == image_identifier {
-                    row.set_selected(true);
+                    selected = true;
                     ui_state.library_side_panel_current_row = Some(row_index);
                 }
             }
@@ -84,12 +91,31 @@ pub fn library_side_panel(
                     .library
                     .get_thumbnail_from_identifier(&image_identifier)
                 {
+                    let cell_max_rect = ui.max_rect();
+                    let image_frame_rect = egui::Rect::from_center_size(
+                        cell_max_rect.center(),
+                        egui::Vec2::new(cell_height * 0.98, cell_width * 0.98),
+                    );
+
+                    let mut image_framing_color = egui::Color32::from_gray(40);
+                    if selected {
+                        image_framing_color = egui::Color32::from_gray(90);
+                    } else {
+                        if let Some(pos) = ui.input(|i| i.pointer.latest_pos()) {
+                            if cell_max_rect.contains(pos) {
+                                image_framing_color = egui::Color32::from_gray(60);
+                            }
+                        }
+                    }
+
+                    ui.painter().rect_filled(
+                        image_frame_rect,
+                        egui::Rounding::ZERO,
+                        image_framing_color,
+                    );
+
                     let aspect_ratio = image.aspect_ratio();
-                    let image_width = image_height * aspect_ratio;
-                    let size = egui::Vec2 {
-                        x: image_width,
-                        y: image_height,
-                    };
+                    let size = get_max_image_size(aspect_ratio, max_image_width, max_image_height);
                     let (mut rect, response) = ui.allocate_exact_size(size, egui::Sense::click());
                     let mut y_clip = ThumbnailClip::None;
                     if bottom_y < rect.max.y {
