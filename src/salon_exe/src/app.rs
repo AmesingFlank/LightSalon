@@ -8,6 +8,7 @@ use crate::ui::{
     AppUiState,
 };
 use crate::ui::{ui_set_current_editor_image, AddedImageOrAlbum};
+use eframe::egui::style::Selection;
 use eframe::{
     egui::{self, Visuals},
     egui_wgpu,
@@ -174,6 +175,10 @@ impl App {
         Visuals {
             panel_fill: Color32::from_gray(32),
             override_text_color: Some(egui::Color32::from_gray(255)),
+            selection: Selection {
+                bg_fill: Color32::from_gray(90),
+                stroke: egui::Stroke::new(1.0, Color32::from_gray(255)),
+            },
             ..Visuals::dark()
         }
     }
