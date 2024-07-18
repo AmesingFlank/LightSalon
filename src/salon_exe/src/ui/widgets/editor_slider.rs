@@ -5,13 +5,11 @@
 use std::ops::RangeInclusive;
 
 use eframe::{
-    egui::{
-        egui_assert, DragValue, Key, Label, Response, Sense, TextStyle, Ui, Widget, WidgetInfo,
-        WidgetText,
-    },
+    egui::{DragValue, Key, Label, Response, Sense, TextStyle, Ui, Widget, WidgetInfo, WidgetText},
     emath::{self, lerp, remap, remap_clamp, NumExt, Rangef},
     epaint::{self, pos2, vec2, Color32, Pos2, Rect, Rounding},
 };
+use egui::TextWrapMode;
 use salon_core::runtime::ColorSpace;
 
 use crate::*;
@@ -779,7 +777,7 @@ impl<'a> EditorSlider<'a> {
 
         let value = self.get_value();
         response.changed = value != old_value;
-        response.widget_info(|| WidgetInfo::slider(value, self.text.text()));
+        response.widget_info(|| WidgetInfo::slider(ui.is_enabled(), value, self.text.text()));
 
         #[cfg(feature = "accesskit")]
         ui.ctx().accesskit_node_builder(response.id, |builder| {
@@ -821,7 +819,8 @@ impl<'a> EditorSlider<'a> {
         };
 
         if !self.text.is_empty() {
-            let label_response = ui.add(Label::new(self.text.clone()).wrap(false));
+            let label_response =
+                ui.add(Label::new(self.text.clone()).wrap_mode(TextWrapMode::Extend));
             // The slider already has an accessibility label via widget info,
             // but sometimes it's useful for a screen reader to know
             // that a piece of text is a label for another widget,
@@ -902,7 +901,7 @@ fn value_from_normalized(normalized: f64, range: RangeInclusive<f64>, spec: &Sli
             }
         }
     } else {
-        egui_assert!(
+        assert!(
             min.is_finite() && max.is_finite(),
             "You should use a logarithmic range"
         );
@@ -951,7 +950,7 @@ fn normalized_from_value(value: f64, range: RangeInclusive<f64>, spec: &SliderSp
             }
         }
     } else {
-        egui_assert!(
+        assert!(
             min.is_finite() && max.is_finite(),
             "You should use a logarithmic range"
         );
@@ -999,6 +998,6 @@ fn logarithmic_zero_cutoff(min: f64, max: f64) -> f64 {
     };
 
     let cutoff = min_magnitude / (min_magnitude + max_magnitude);
-    egui_assert!(0.0 <= cutoff && cutoff <= 1.0);
+    assert!(0.0 <= cutoff && cutoff <= 1.0);
     cutoff
 }

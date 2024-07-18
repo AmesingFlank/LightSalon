@@ -43,7 +43,7 @@ impl App {
         let _ = eframe::run_native(
             "Light Salon",
             options,
-            Box::new(|_cc| Box::new(App::new(_cc))),
+            Box::new(|_cc| Ok(Box::new(App::new(_cc)))),
         );
     }
 
@@ -70,7 +70,7 @@ impl App {
                 .start(
                     "the_canvas_id", // hardcode it
                     web_options,
-                    Box::new(|_cc| Box::new(App::new(_cc))),
+                    Box::new(|_cc| Ok(Box::new(App::new(_cc)))),
                 )
                 .await
                 .expect("failed to start eframe");

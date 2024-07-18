@@ -67,6 +67,7 @@ impl Runtime {
                 layout: None,
                 module: &shader,
                 entry_point: "cs_main",
+                compilation_options: Default::default(),
             });
 
         let bind_group_layout = pipeline.get_bind_group_layout(0);
@@ -95,11 +96,13 @@ impl Runtime {
                     module: &shader,
                     entry_point: "vs_main",
                     buffers: &[],
+                    compilation_options: Default::default(),
                 },
                 fragment: Some(wgpu::FragmentState {
                     module: &shader,
                     entry_point: "fs_main",
                     targets: &[Some(target_format.into())],
+                    compilation_options: Default::default(),
                 }),
                 primitive: wgpu::PrimitiveState::default(),
                 depth_stencil: None,

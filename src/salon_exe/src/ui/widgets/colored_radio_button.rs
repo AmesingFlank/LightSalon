@@ -62,6 +62,7 @@ impl Widget for ColoredRadioButton {
         response.widget_info(|| {
             WidgetInfo::selected(
                 WidgetType::RadioButton,
+                true,
                 checked,
                 text.as_ref().map_or("", |x| x.text()),
             )
