@@ -21,18 +21,24 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         return;
     }
     var rgb = textureLoad(input, global_id.xy, 0).rgb;
-    //var Luv = XYZ_to_Luv(rgb_to_XYZ(rgb));
 
-    let uv = vec2(f32(global_id.x) / f32(input_size.x), f32(global_id.y) / f32(input_size.y));
+    var uv = vec2(f32(global_id.x) / f32(input_size.x - 1u), f32(global_id.y) / f32(input_size.y - 1u));
 
-    let inner = 0.6;
-    let outer = 1.2;
-    let strength = -params.value * 0.01;
+    let aspect_ratio = f32(input_size.x) / f32(input_size.y);
+    // make the vignette a bit more round
+    let x_factor = sqrt(aspect_ratio);
+    uv.x *= x_factor;
 
-    let edge = length(abs(uv * 2.0 - 1.0));
-    let vignette = 1.0 - strength * smoothstep(inner, outer, edge);
+    let inner_radius = 0.2;
+    let outer_radius = 0.5 * max(1.0, x_factor) * 1.1;
 
-    rgb *= vignette;
+    var strength = params.value * 0.01;
+    strength = sign(strength) * sqrt(abs(strength));
+
+    let dist = length(uv - vec2(0.5 * x_factor, 0.5));
+    let vignette = smoothstep(inner_radius, outer_radius, dist) ;
+
+    rgb *= 1.0 + vignette * strength;
 
     textureStore(output, global_id.xy, vec4<f32>(rgb, 1.0));
 }
