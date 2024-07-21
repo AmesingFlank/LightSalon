@@ -1,4 +1,12 @@
-use std::{io::Write, path::PathBuf, sync::Arc, thread::JoinHandle};
+use std::{
+    io::Write,
+    path::PathBuf,
+    sync::{
+        mpsc::{RecvTimeoutError, TryRecvError},
+        Arc,
+    },
+    thread::JoinHandle,
+};
 
 use image::{DynamicImage, GenericImageView};
 use sha256::TrySha256Digest;
@@ -31,10 +39,14 @@ pub struct ThumbnailGeneratorService {
     #[cfg(not(target_arch = "wasm32"))]
     write_request_sender: std::sync::mpsc::Sender<WriteRequest>,
     #[cfg(not(target_arch = "wasm32"))]
+    write_worker_stop_sender: std::sync::mpsc::Sender<()>,
+    #[cfg(not(target_arch = "wasm32"))]
     write_worker_join_handle: Option<JoinHandle<()>>,
 
     #[cfg(not(target_arch = "wasm32"))]
-    generate_from_path_request_sender: std::sync::mpsc::Sender<GenerateFromPathRequest>,
+    generate_from_path_request_sender: std::sync::mpsc::Sender<PathBuf>,
+    #[cfg(not(target_arch = "wasm32"))]
+    generate_from_path_worker_stop_sender: std::sync::mpsc::Sender<()>,
     #[cfg(not(target_arch = "wasm32"))]
     generate_from_path_worker_join_handle: Option<JoinHandle<()>>,
 }
@@ -43,6 +55,7 @@ impl ThumbnailGeneratorService {
     #[cfg(not(target_arch = "wasm32"))]
     pub fn new(runtime: Arc<Runtime>, toolbox: Arc<Toolbox>) -> Self {
         let (write_request_sender, write_request_receiver) = std::sync::mpsc::channel();
+        let (write_worker_stop_sender, write_worker_stop_receiver) = std::sync::mpsc::channel();
         let write_worker_runtime = runtime.clone();
         let write_worker_toolbox = toolbox.clone();
         let write_worker_join_handle = Some(std::thread::spawn(move || {
@@ -50,14 +63,20 @@ impl ThumbnailGeneratorService {
                 write_worker_runtime,
                 write_worker_toolbox,
                 write_request_receiver,
+                write_worker_stop_receiver,
             );
             worker.run();
         }));
 
         let (generate_from_path_request_sender, generate_from_path_request_receiver) =
             std::sync::mpsc::channel();
+        let (generate_from_path_worker_stop_sender, generate_from_path_worker_stop_receiver) =
+            std::sync::mpsc::channel();
         let generate_from_path_worker_join_handle = Some(std::thread::spawn(move || {
-            let mut worker = GenerateFromPathWorker::new(generate_from_path_request_receiver);
+            let mut worker = GenerateFromPathWorker::new(
+                generate_from_path_request_receiver,
+                generate_from_path_worker_stop_receiver,
+            );
             worker.run();
         }));
 
@@ -65,9 +84,11 @@ impl ThumbnailGeneratorService {
             runtime,
             toolbox,
             write_request_sender,
+            write_worker_stop_sender,
             write_worker_join_handle,
-            generate_from_path_worker_join_handle,
             generate_from_path_request_sender,
+            generate_from_path_worker_stop_sender,
+            generate_from_path_worker_join_handle,
         }
     }
 
@@ -78,9 +99,7 @@ impl ThumbnailGeneratorService {
 
     #[cfg(not(target_arch = "wasm32"))]
     pub fn request_thumbnail_for_image_at_path(&self, image_path: PathBuf) {
-        let _ = self
-            .generate_from_path_request_sender
-            .send(GenerateFromPathRequest::Generate(image_path));
+        let _ = self.generate_from_path_request_sender.send(image_path);
     }
 
     pub fn generate_and_maybe_save_thumbnail_for_image(
@@ -95,11 +114,9 @@ impl ThumbnailGeneratorService {
             if let Some(thumbnail_path) =
                 ThumbnailGeneratorService::get_thumbnail_path_for_image_path(&image_original_path)
             {
-                let _ = self.write_request_sender.send(WriteRequest::Write(
-                    thumbnail_image.clone(),
-                    thumbnail_path,
-                    image_original_path,
-                ));
+                let _ = self
+                    .write_request_sender
+                    .send(WriteRequest::new(thumbnail_image.clone(), thumbnail_path));
             }
         }
         thumbnail_image
@@ -143,16 +160,14 @@ impl ThumbnailGeneratorService {
 #[cfg(not(target_arch = "wasm32"))]
 impl Drop for ThumbnailGeneratorService {
     fn drop(&mut self) {
-        let stop_send_result = self.write_request_sender.send(WriteRequest::Stop);
+        let stop_send_result = self.write_worker_stop_sender.send(());
         if let Ok(_) = stop_send_result {
             if let Some(handle) = self.write_worker_join_handle.take() {
                 let _ = handle.join();
             }
         }
 
-        let stop_send_result = self
-            .generate_from_path_request_sender
-            .send(GenerateFromPathRequest::Stop);
+        let stop_send_result = self.generate_from_path_worker_stop_sender.send(());
         if let Ok(_) = stop_send_result {
             if let Some(handle) = self.generate_from_path_worker_join_handle.take() {
                 let _ = handle.join();
@@ -162,9 +177,19 @@ impl Drop for ThumbnailGeneratorService {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-enum WriteRequest {
-    Write(Arc<Image>, PathBuf, PathBuf),
-    Stop,
+struct WriteRequest {
+    thumbnail_image: Arc<Image>,
+    thumbnail_path: PathBuf,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl WriteRequest {
+    pub fn new(thumbnail_image: Arc<Image>, thumbnail_path: PathBuf) -> Self {
+        Self {
+            thumbnail_image,
+            thumbnail_path,
+        }
+    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -172,6 +197,7 @@ struct WriteWorker {
     runtime: Arc<Runtime>,
     toolbox: Arc<Toolbox>,
     request_receiver: std::sync::mpsc::Receiver<WriteRequest>,
+    stop_receiver: std::sync::mpsc::Receiver<()>,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -180,46 +206,50 @@ impl WriteWorker {
         runtime: Arc<Runtime>,
         toolbox: Arc<Toolbox>,
         request_receiver: std::sync::mpsc::Receiver<WriteRequest>,
+        stop_receiver: std::sync::mpsc::Receiver<()>,
     ) -> Self {
         Self {
             runtime,
             toolbox,
             request_receiver,
+            stop_receiver,
         }
     }
 
     fn run(&mut self) {
         loop {
-            let req = self.request_receiver.recv();
-            if let Ok(req) = req {
-                match req {
-                    WriteRequest::Stop => {
-                        break;
-                    }
-                    WriteRequest::Write(thumbnail_image, thumbnail_path, original_path) => {
-                        self.write(thumbnail_image, thumbnail_path, original_path);
-                    }
+            match self.stop_receiver.try_recv() {
+                Ok(_) => {
+                    break;
                 }
-            } else {
-                break;
+                Err(TryRecvError::Disconnected) => {
+                    break;
+                }
+                Err(TryRecvError::Empty) => {}
+            }
+
+            match self
+                .request_receiver
+                .recv_timeout(std::time::Duration::from_millis(100))
+            {
+                Ok(path) => self.write(path),
+                Err(RecvTimeoutError::Disconnected) => {
+                    break;
+                }
+                Err(RecvTimeoutError::Timeout) => {}
             }
         }
     }
 
-    fn write(
-        &mut self,
-        thumbnail_image: Arc<Image>,
-        thumbnail_path: PathBuf,
-        original_path: PathBuf,
-    ) {
+    fn write(&mut self, write_request: WriteRequest) {
         let mut image_reader = ImageReaderJpeg::new(
             self.runtime.clone(),
             self.toolbox.clone(),
-            thumbnail_image.clone(),
+            write_request.thumbnail_image,
         );
 
-        if let Ok(_) = std::fs::create_dir_all(thumbnail_path.parent().unwrap()) {
-            if let Ok(mut file) = std::fs::File::create(&thumbnail_path) {
+        if let Ok(_) = std::fs::create_dir_all(write_request.thumbnail_path.parent().unwrap()) {
+            if let Ok(mut file) = std::fs::File::create(&write_request.thumbnail_path) {
                 futures::executor::block_on(async move {
                     let jpeg_data = image_reader.await_jpeg_data().await;
                     let _ = file.write_all(&jpeg_data);
@@ -230,40 +260,46 @@ impl WriteWorker {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-enum GenerateFromPathRequest {
-    Generate(PathBuf),
-    Stop,
-}
-
-#[cfg(not(target_arch = "wasm32"))]
 struct GenerateFromPathWorker {
-    request_receiver: std::sync::mpsc::Receiver<GenerateFromPathRequest>,
+    request_receiver: std::sync::mpsc::Receiver<PathBuf>,
+    stop_receiver: std::sync::mpsc::Receiver<()>,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 impl GenerateFromPathWorker {
     fn new(
-        request_receiver: std::sync::mpsc::Receiver<GenerateFromPathRequest>,
+        request_receiver: std::sync::mpsc::Receiver<PathBuf>,
+        stop_receiver: std::sync::mpsc::Receiver<()>,
     ) -> Self {
         Self {
             request_receiver,
+            stop_receiver,
         }
     }
 
     fn run(&mut self) {
         loop {
-            let req = self.request_receiver.recv();
-            if let Ok(req) = req {
-                match req {
-                    GenerateFromPathRequest::Stop => {
-                        break;
-                    }
-                    GenerateFromPathRequest::Generate(path) => {
-                       self.generate(path);
-                    }
+            match self.stop_receiver.try_recv() {
+                Ok(_) => {
+                    break;
                 }
-            } else {
-                break;
+                Err(TryRecvError::Disconnected) => {
+                    break;
+                }
+                Err(TryRecvError::Empty) => {}
+            }
+
+            match self
+                .request_receiver
+                .recv_timeout(std::time::Duration::from_millis(100))
+            {
+                Ok(path) => {
+                    self.generate(path);
+                }
+                Err(RecvTimeoutError::Disconnected) => {
+                    break;
+                }
+                Err(RecvTimeoutError::Timeout) => {}
             }
         }
     }
