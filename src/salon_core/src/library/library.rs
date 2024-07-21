@@ -776,6 +776,10 @@ impl Library {
                             if let Some(loaded_item) = self.items.get_mut(&identifier) {
                                 loaded_item.rating = item.rating;
                             }
+                            #[cfg(not(target_arch = "wasm32"))]
+                            self.services
+                                .thumbnail_generator
+                                .request_thumbnail_for_image_at_path(item.path);
                         }
                         for album in state.albums {
                             self.albums.push(Album::from_persistent_state(album))
