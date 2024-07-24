@@ -70,8 +70,10 @@ impl ThumbnailGeneratorService {
             std::sync::mpsc::channel();
         let (generate_from_path_worker_stop_sender, generate_from_path_worker_stop_receiver) =
             std::sync::mpsc::channel();
+        let generate_from_path_worker_worker_runtime = runtime.clone();
         let generate_from_path_worker_join_handle = Some(std::thread::spawn(move || {
             let mut worker = GenerateFromPathWorker::new(
+                generate_from_path_worker_worker_runtime,
                 generate_from_path_request_receiver,
                 generate_from_path_worker_stop_receiver,
             );
@@ -105,7 +107,8 @@ impl ThumbnailGeneratorService {
         image: Arc<Image>,
         image_original_path: Option<PathBuf>,
     ) -> Arc<Image> {
-        let thumbnail_image = self.compute_thumbnail(image);
+        let thumbnail_image = Self::compute_thumbnail(&self.toolbox, image);
+        self.toolbox.generate_mipmap(&thumbnail_image);
 
         #[cfg(not(target_arch = "wasm32"))]
         if let Some(image_original_path) = image_original_path {
@@ -120,20 +123,16 @@ impl ThumbnailGeneratorService {
         thumbnail_image
     }
 
-    fn compute_thumbnail(&self, image: Arc<Image>) -> Arc<Image> {
-        let image = self.toolbox.convert_color_space(image, ColorSpace::sRGB);
-        let image = self
-            .toolbox
-            .convert_image_format(image, ImageFormat::Rgba8Unorm);
+    fn compute_thumbnail(toolbox: &Toolbox, image: Arc<Image>) -> Arc<Image> {
+        let image = toolbox.convert_color_space(image, ColorSpace::sRGB);
+        let image = toolbox.convert_image_format(image, ImageFormat::Rgba8Unorm);
         let factor = ThumbnailGeneratorService::THUMBNAIL_MIN_DIMENSION_SIZE
             / (image.properties.dimensions.0).min(image.properties.dimensions.1) as f32;
         if factor < 0.5 {
-            self.toolbox.generate_mipmap(&image);
-            let thumbnail = self.toolbox.resize_image(image, factor);
-            self.toolbox.generate_mipmap(&thumbnail);
+            toolbox.generate_mipmap(&image);
+            let thumbnail = toolbox.resize_image(image, factor);
             thumbnail
         } else {
-            self.toolbox.generate_mipmap(&image);
             image
         }
     }
@@ -259,6 +258,8 @@ impl WriteWorker {
 
 #[cfg(not(target_arch = "wasm32"))]
 struct GenerateFromPathWorker {
+    runtime: Arc<Runtime>,
+    toolbox: Arc<Toolbox>,
     request_receiver: std::sync::mpsc::Receiver<PathBuf>,
     stop_receiver: std::sync::mpsc::Receiver<()>,
 }
@@ -266,10 +267,14 @@ struct GenerateFromPathWorker {
 #[cfg(not(target_arch = "wasm32"))]
 impl GenerateFromPathWorker {
     fn new(
+        runtime: Arc<Runtime>,
         request_receiver: std::sync::mpsc::Receiver<PathBuf>,
         stop_receiver: std::sync::mpsc::Receiver<()>,
     ) -> Self {
+        let toolbox = Arc::new(Toolbox::new(runtime.clone()));
         Self {
+            runtime,
+            toolbox,
             request_receiver,
             stop_receiver,
         }
@@ -317,50 +322,26 @@ impl GenerateFromPathWorker {
                     {
                         if let Ok(_) = std::fs::create_dir_all(thumbnail_path.parent().unwrap()) {
                             if let Ok(mut file) = std::fs::File::create(&thumbnail_path) {
-                                let aspect_ratio = img.width() as f32 / img.height() as f32;
-                                let factor = if aspect_ratio >= 1.0 {
-                                    ThumbnailGeneratorService::THUMBNAIL_MIN_DIMENSION_SIZE
-                                        / img.height() as f32
-                                } else {
-                                    ThumbnailGeneratorService::THUMBNAIL_MIN_DIMENSION_SIZE
-                                        / img.width() as f32
-                                };
-
-                                if factor >= 1.0 {
-                                    // no need to resize;
-                                    let jpeg_data = Self::encode_dynamic_image(&img);
+                                let image =
+                                    Arc::new(self.runtime.create_image_from_dynamic_image(img));
+                                let thumbnail_image = ThumbnailGeneratorService::compute_thumbnail(
+                                    &self.toolbox,
+                                    image,
+                                );
+                                let mut image_reader = ImageReaderJpeg::new(
+                                    self.runtime.clone(),
+                                    self.toolbox.clone(),
+                                    thumbnail_image,
+                                );
+                                futures::executor::block_on(async move {
+                                    let jpeg_data = image_reader.await_jpeg_data().await;
                                     let _ = file.write_all(&jpeg_data);
-                                } else {
-                                    let thumbnail_width = (img.width() as f32 * factor) as u32;
-                                    let thumbnail_height = (img.height() as f32 * factor) as u32;
-                                    let thumbnail_img = img.resize(
-                                        thumbnail_width,
-                                        thumbnail_height,
-                                        image::imageops::FilterType::Triangle,
-                                    );
-                                    let jpeg_data = Self::encode_dynamic_image(&thumbnail_img);
-                                    let _ = file.write_all(&jpeg_data);
-                                }
+                                });
                             }
                         }
                     }
                 }
             };
         }
-    }
-
-    fn encode_dynamic_image(image: &DynamicImage) -> Vec<u8> {
-        let image_buffer = image.to_rgba8();
-        let mut jpeg: Vec<u8> = Vec::new();
-        let mut encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut jpeg, 100);
-        encoder
-            .encode(
-                &image_buffer,
-                image.width(),
-                image.height(),
-                image::ColorType::Rgba8,
-            )
-            .expect("Failed to encode image into jpeg");
-        jpeg
     }
 }
