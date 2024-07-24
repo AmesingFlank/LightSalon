@@ -57,11 +57,9 @@ impl ThumbnailGeneratorService {
         let (write_request_sender, write_request_receiver) = std::sync::mpsc::channel();
         let (write_worker_stop_sender, write_worker_stop_receiver) = std::sync::mpsc::channel();
         let write_worker_runtime = runtime.clone();
-        let write_worker_toolbox = toolbox.clone();
         let write_worker_join_handle = Some(std::thread::spawn(move || {
             let mut worker = WriteWorker::new(
                 write_worker_runtime,
-                write_worker_toolbox,
                 write_request_receiver,
                 write_worker_stop_receiver,
             );
@@ -204,10 +202,10 @@ struct WriteWorker {
 impl WriteWorker {
     fn new(
         runtime: Arc<Runtime>,
-        toolbox: Arc<Toolbox>,
         request_receiver: std::sync::mpsc::Receiver<WriteRequest>,
         stop_receiver: std::sync::mpsc::Receiver<()>,
     ) -> Self {
+        let toolbox = Arc::new(Toolbox::new(runtime.clone()));
         Self {
             runtime,
             toolbox,
