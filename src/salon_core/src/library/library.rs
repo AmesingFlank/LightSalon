@@ -389,6 +389,19 @@ impl Library {
                 self.handle_modified_paths(modified_paths, Some(i));
             }
         }
+
+        #[cfg(not(target_arch = "wasm32"))]
+        for loaded_thumbnail in self.services.thumbnail_generator.poll_loaded_thumbnails() {
+            let identifier = LibraryImageIdentifier::Path(loaded_thumbnail.original_image_path);
+            if let Some(item) = self.items.get_mut(&identifier) {
+                if item.thumbnail.is_none() {
+                    item.thumbnail = Some(loaded_thumbnail.thumbnail);
+                }
+                if item.image.is_none() {
+                    item.image = loaded_thumbnail.original_image;
+                }
+            }
+        }
     }
 
     fn handle_modified_paths(
@@ -682,11 +695,18 @@ impl Library {
         if let Some(ref thumbnail) = self.items[identifier].thumbnail {
             return Some(thumbnail.clone());
         }
-        if let Some(thumbnail) = self.maybe_load_thumbnail(identifier) {
-            return Some(thumbnail);
+
+        // if let Some(thumbnail) = self.maybe_load_thumbnail(identifier) {
+        //     return Some(thumbnail);
+        // }
+        // let item = self.get_fully_loaded_item(identifier)?;
+        // Some(item.thumbnail.as_ref().unwrap().clone())
+
+        if let Some(path) = identifier.get_path() {
+            self.services.thumbnail_generator.request_thumbnail_for_image_at_path(path);
         }
-        let item = self.get_fully_loaded_item(identifier)?;
-        Some(item.thumbnail.as_ref().unwrap().clone())
+
+        None
     }
 
     // when an image has been editted we want to use the editted image for the thumbnail

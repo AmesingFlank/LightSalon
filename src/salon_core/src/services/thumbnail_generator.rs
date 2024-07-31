@@ -1,4 +1,5 @@
 use std::{
+    collections::LinkedList,
     io::Write,
     path::PathBuf,
     sync::{
@@ -48,6 +49,8 @@ pub struct ThumbnailGeneratorService {
     #[cfg(not(target_arch = "wasm32"))]
     generate_from_path_worker_stop_sender: std::sync::mpsc::Sender<()>,
     #[cfg(not(target_arch = "wasm32"))]
+    loaded_thumbnail_receiver: std::sync::mpsc::Receiver<LoadedThumbnail>,
+    #[cfg(not(target_arch = "wasm32"))]
     generate_from_path_worker_join_handle: Option<JoinHandle<()>>,
 }
 
@@ -71,11 +74,13 @@ impl ThumbnailGeneratorService {
         let (generate_from_path_worker_stop_sender, generate_from_path_worker_stop_receiver) =
             std::sync::mpsc::channel();
         let generate_from_path_worker_worker_runtime = runtime.clone();
+        let (loaded_thumbnail_sender, loaded_thumbnail_receiver) = std::sync::mpsc::channel();
         let generate_from_path_worker_join_handle = Some(std::thread::spawn(move || {
             let mut worker = GenerateFromPathWorker::new(
                 generate_from_path_worker_worker_runtime,
                 generate_from_path_request_receiver,
                 generate_from_path_worker_stop_receiver,
+                loaded_thumbnail_sender,
             );
             worker.run();
         }));
@@ -88,8 +93,17 @@ impl ThumbnailGeneratorService {
             write_worker_join_handle,
             generate_from_path_request_sender,
             generate_from_path_worker_stop_sender,
+            loaded_thumbnail_receiver,
             generate_from_path_worker_join_handle,
         }
+    }
+
+    pub fn poll_loaded_thumbnails(&self) -> Vec<LoadedThumbnail> {
+        let mut result = Vec::new();
+        while let Ok(loaded) = self.loaded_thumbnail_receiver.try_recv() {
+            result.push(loaded)
+        }
+        result
     }
 
     #[cfg(target_arch = "wasm32")]
@@ -262,6 +276,9 @@ struct GenerateFromPathWorker {
     toolbox: Arc<Toolbox>,
     request_receiver: std::sync::mpsc::Receiver<PathBuf>,
     stop_receiver: std::sync::mpsc::Receiver<()>,
+    loaded_thumbnail_sender: std::sync::mpsc::Sender<LoadedThumbnail>,
+
+    requests_stack: LinkedList<PathBuf>,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -270,6 +287,7 @@ impl GenerateFromPathWorker {
         runtime: Arc<Runtime>,
         request_receiver: std::sync::mpsc::Receiver<PathBuf>,
         stop_receiver: std::sync::mpsc::Receiver<()>,
+        loaded_thumbnail_sender: std::sync::mpsc::Sender<LoadedThumbnail>,
     ) -> Self {
         let toolbox = Arc::new(Toolbox::new(runtime.clone()));
         Self {
@@ -277,6 +295,8 @@ impl GenerateFromPathWorker {
             toolbox,
             request_receiver,
             stop_receiver,
+            loaded_thumbnail_sender,
+            requests_stack: LinkedList::new(),
         }
     }
 
@@ -292,32 +312,45 @@ impl GenerateFromPathWorker {
                 Err(TryRecvError::Empty) => {}
             }
 
-            match self
-                .request_receiver
-                .recv_timeout(std::time::Duration::from_millis(100))
-            {
-                Ok(path) => {
-                    self.generate(path);
+            while let Ok(path) = self.request_receiver.try_recv() {
+                self.requests_stack.push_back(path)
+            }
+
+            if !self.requests_stack.is_empty() {
+                let latest_request = self.requests_stack.pop_back().unwrap();
+                self.load_or_generate(latest_request);
+            } else {
+                match self
+                    .request_receiver
+                    .recv_timeout(std::time::Duration::from_millis(100))
+                {
+                    Ok(path) => self.requests_stack.push_back(path),
+                    Err(RecvTimeoutError::Disconnected) => {
+                        break;
+                    }
+                    Err(RecvTimeoutError::Timeout) => {}
                 }
-                Err(RecvTimeoutError::Disconnected) => {
-                    break;
-                }
-                Err(RecvTimeoutError::Timeout) => {}
             }
         }
     }
 
-    fn generate(&mut self, path: PathBuf) {
+    fn load_or_generate(&mut self, path: PathBuf) {
         if is_supported_image_file(&path) {
             if let Some(thumbnail_path) =
                 ThumbnailGeneratorService::get_thumbnail_path_for_image_path(&path)
             {
                 if thumbnail_path.exists() {
                     // don't regenerate if the thumbnail already exists
-                    // (e.g. we might be generating an image from a large album, but one of the images has already been editted and has an updated thumbnail)
-                    return;
-                }
-                if let Ok(image_bytes) = std::fs::read(&path) {
+                    if let Ok(thumbnail) = self.runtime.create_image_from_path(&thumbnail_path) {
+                        self.toolbox.generate_mipmap(&thumbnail);
+                        let result = LoadedThumbnail {
+                            original_image_path: path,
+                            original_image: None,
+                            thumbnail: Arc::new(thumbnail),
+                        };
+                        let _ = self.loaded_thumbnail_sender.send(result);
+                    }
+                } else if let Ok(image_bytes) = std::fs::read(&path) {
                     if let Ok(img) = Runtime::create_dynamic_image_from_bytes_jpg_png(&image_bytes)
                     {
                         if let Ok(_) = std::fs::create_dir_all(thumbnail_path.parent().unwrap()) {
@@ -326,8 +359,14 @@ impl GenerateFromPathWorker {
                                     Arc::new(self.runtime.create_image_from_dynamic_image(img));
                                 let thumbnail_image = ThumbnailGeneratorService::compute_thumbnail(
                                     &self.toolbox,
-                                    image,
+                                    image.clone(),
                                 );
+                                let result = LoadedThumbnail {
+                                    original_image_path: path,
+                                    original_image: Some(image),
+                                    thumbnail: thumbnail_image.clone(),
+                                };
+                                let _ = self.loaded_thumbnail_sender.send(result);
                                 let mut image_reader = ImageReaderJpeg::new(
                                     self.runtime.clone(),
                                     self.toolbox.clone(),
@@ -344,4 +383,10 @@ impl GenerateFromPathWorker {
             };
         }
     }
+}
+
+pub struct LoadedThumbnail {
+    pub original_image_path: PathBuf,
+    pub original_image: Option<Arc<Image>>,
+    pub thumbnail: Arc<Image>,
 }
