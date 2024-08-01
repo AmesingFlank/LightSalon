@@ -357,10 +357,17 @@ impl GenerateFromPathWorker {
                             if let Ok(mut file) = std::fs::File::create(&thumbnail_path) {
                                 let image =
                                     Arc::new(self.runtime.create_image_from_dynamic_image(img));
+                                let image = self
+                                    .toolbox
+                                    .convert_image_format(image, ImageFormat::Rgba16Float);
+                                let image = self
+                                    .toolbox
+                                    .convert_color_space(image, ColorSpace::LinearRGB);
                                 let thumbnail_image = ThumbnailGeneratorService::compute_thumbnail(
                                     &self.toolbox,
                                     image.clone(),
                                 );
+                                self.toolbox.generate_mipmap(&thumbnail_image);
                                 let result = LoadedThumbnail {
                                     original_image_path: path,
                                     original_image: Some(image),
