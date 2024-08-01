@@ -98,6 +98,7 @@ impl ThumbnailGeneratorService {
         }
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn poll_loaded_thumbnails(&self) -> Vec<LoadedThumbnail> {
         let mut result = Vec::new();
         while let Ok(loaded) = self.loaded_thumbnail_receiver.try_recv() {

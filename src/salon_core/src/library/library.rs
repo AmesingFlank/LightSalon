@@ -13,6 +13,7 @@ use crate::session::Session;
 use crate::utils::uuid::{get_next_uuid, Uuid};
 use crate::versioning::Version;
 
+use super::image_cache::ImageCache;
 use super::{album, is_supported_image_file, Album, AlbumPersistentState, ImageRating};
 
 use crate::services::thumbnail_generator::ThumbnailGeneratorService;
@@ -30,6 +31,12 @@ impl LibraryImageIdentifier {
             _ => None,
         }
     }
+    pub fn is_temp(&self) -> bool {
+        match self {
+            LibraryImageIdentifier::Temp(_) => true,
+            _ => false,
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -38,8 +45,6 @@ pub struct LibraryImageMetaData {
 }
 
 struct LibraryItem {
-    image: Option<Arc<Image>>,
-    thumbnail: Option<Arc<Image>>,
     albums: HashSet<usize>,
     metadata: LibraryImageMetaData,
     rating: ImageRating,
@@ -50,6 +55,9 @@ pub struct Library {
     item_indices: HashMap<LibraryImageIdentifier, usize>,
     items_ordered: Vec<LibraryImageIdentifier>,
     items_order_dirty: bool,
+
+    images_cache: ImageCache,
+    thumbnails_cache: ImageCache,
 
     // items that cannot be found
     unavailable_items: HashSet<LibraryImageIdentifier>,
@@ -91,6 +99,8 @@ impl Library {
             item_indices: HashMap::new(),
             items_ordered: Vec::new(),
             items_order_dirty: false,
+            images_cache: ImageCache::new(100),
+            thumbnails_cache: ImageCache::new(300),
             unavailable_items: HashSet::new(),
             albums: Vec::new(),
             runtime,
@@ -145,10 +155,19 @@ impl Library {
     fn add_item(
         &mut self,
         mut item: LibraryItem,
+        image: Option<Arc<Image>>,
+        thumbnail: Option<Arc<Image>>,
         identifier: LibraryImageIdentifier,
         album: Option<usize>,
         ensure_order: bool,
     ) {
+        if image.is_some() {
+            self.images_cache.set(identifier.clone(), image.unwrap());
+        }
+        if thumbnail.is_some() {
+            self.thumbnails_cache
+                .set(identifier.clone(), thumbnail.unwrap());
+        }
         if let Some(album) = album {
             item.albums.insert(album);
         }
@@ -257,14 +276,14 @@ impl Library {
             .toolbox
             .convert_color_space(image, ColorSpace::LinearRGB);
         let library_item = LibraryItem {
-            image: Some(image),
-            thumbnail: Some(thumbnail),
             albums: HashSet::new(),
             metadata,
             rating: ImageRating::new(None),
         };
         self.add_item(
             library_item,
+            Some(image),
+            Some(thumbnail),
             temp_image_id.clone(),
             album,
             /* ensure_order */ true,
@@ -288,13 +307,11 @@ impl Library {
         let id = LibraryImageIdentifier::Path(path);
 
         let item = LibraryItem {
-            image: None,
-            thumbnail: None,
             albums: HashSet::new(),
             metadata,
             rating: ImageRating::new(None),
         };
-        self.add_item(item, id.clone(), album, ensure_order);
+        self.add_item(item, None, None, id.clone(), album, ensure_order);
         id
     }
 
@@ -394,11 +411,14 @@ impl Library {
         for loaded_thumbnail in self.services.thumbnail_generator.poll_loaded_thumbnails() {
             let identifier = LibraryImageIdentifier::Path(loaded_thumbnail.original_image_path);
             if let Some(item) = self.items.get_mut(&identifier) {
-                if item.thumbnail.is_none() {
-                    item.thumbnail = Some(loaded_thumbnail.thumbnail);
+                if !self.thumbnails_cache.contains(&identifier) {
+                    self.thumbnails_cache
+                        .set(identifier.clone(), loaded_thumbnail.thumbnail);
                 }
-                if item.image.is_none() {
-                    item.image = loaded_thumbnail.original_image;
+                if let Some(image) = loaded_thumbnail.original_image {
+                    if !self.thumbnails_cache.contains(&identifier) {
+                        self.images_cache.set(identifier.clone(), image);
+                    }
                 }
             }
         }
@@ -442,8 +462,8 @@ impl Library {
             let item_identifier = LibraryImageIdentifier::Path(image_path.clone());
             if self.items.contains_key(&item_identifier) {
                 let item = self.items.get_mut(&item_identifier).unwrap();
-                item.image = None;
-                item.thumbnail = None;
+                self.images_cache.remove(&item_identifier);
+                self.thumbnails_cache.remove(&item_identifier);
                 #[cfg(not(target_arch = "wasm32"))]
                 if let Some(thumbnail_path) =
                     ThumbnailGeneratorService::get_thumbnail_path_for_image_path(image_path)
@@ -590,7 +610,7 @@ impl Library {
     }
 
     fn maybe_load_thumbnail(&mut self, identifier: &LibraryImageIdentifier) -> Option<Arc<Image>> {
-        if self.items[identifier].thumbnail.is_none() {
+        if !self.thumbnails_cache.contains(identifier) {
             if let Some(image_path) = identifier.get_path() {
                 #[cfg(not(target_arch = "wasm32"))]
                 if let Some(thumbnail_path) =
@@ -599,7 +619,8 @@ impl Library {
                     if let Ok(thumbnail) = self.runtime.create_image_from_path(&thumbnail_path) {
                         let thumbnail = Arc::new(thumbnail);
                         self.toolbox.generate_mipmap(&thumbnail);
-                        self.items.get_mut(identifier).unwrap().thumbnail = Some(thumbnail.clone());
+                        self.thumbnails_cache
+                            .set(identifier.clone(), thumbnail.clone());
                         return Some(thumbnail);
                     } else {
                         let _ = std::fs::remove_file(thumbnail_path);
@@ -611,19 +632,16 @@ impl Library {
     }
 
     // return the item or delete the identifier
-    fn get_fully_loaded_item(
-        &mut self,
-        identifier: &LibraryImageIdentifier,
-    ) -> Option<&LibraryItem> {
+    fn ensure_fully_loaded(&mut self, identifier: &LibraryImageIdentifier) {
         // If thumbnail file exists, load that first.
         let _ = self.maybe_load_thumbnail(identifier);
 
-        if self.items[identifier].image.is_none() {
+        if !self.images_cache.contains(identifier) {
             if let LibraryImageIdentifier::Path(ref path) = identifier {
                 if let Ok(image) = self.runtime.create_image_from_path(&path) {
                     let image = Arc::new(image);
 
-                    if self.items[identifier].thumbnail.is_none() {
+                    if !self.thumbnails_cache.contains(identifier) {
                         let thumbnail = self
                             .services
                             .thumbnail_generator
@@ -631,8 +649,7 @@ impl Library {
                                 image.clone(),
                                 Some(path.clone()),
                             );
-                        let item = self.items.get_mut(identifier).unwrap();
-                        item.thumbnail = Some(thumbnail);
+                        self.thumbnails_cache.set(identifier.clone(), thumbnail);
                     }
 
                     let image = self
@@ -641,37 +658,30 @@ impl Library {
                     let image = self
                         .toolbox
                         .convert_color_space(image, ColorSpace::LinearRGB);
-                    {
-                        let item = self.items.get_mut(identifier).unwrap();
-                        item.image = Some(image);
-                    }
+                    self.images_cache.set(identifier.clone(), image);
                     self.unavailable_items.remove(identifier);
 
-                    return Some(&self.items[identifier]);
+                    return;
                 } else {
                     self.unavailable_items.insert(identifier.clone());
-                    return None;
+                    return;
                 }
             } else {
                 panic!("temp image is empty");
             }
         }
 
-        if self.items[identifier].thumbnail.is_none() {
+        if !self.thumbnails_cache.contains(identifier) {
+            let image = self
+                .images_cache
+                .get(identifier)
+                .expect("expecting an image");
             let thumbnail = self
                 .services
                 .thumbnail_generator
-                .generate_and_maybe_save_thumbnail_for_image(
-                    self.items[identifier]
-                        .image
-                        .clone()
-                        .expect("expecting an image"),
-                    identifier.get_path(),
-                );
-            self.items.get_mut(identifier).unwrap().thumbnail = Some(thumbnail);
+                .generate_and_maybe_save_thumbnail_for_image(image, identifier.get_path());
+            self.thumbnails_cache.set(identifier.clone(), thumbnail);
         }
-
-        Some(&self.items[identifier])
     }
 
     // return the item or delete the identifier
@@ -679,8 +689,8 @@ impl Library {
         &mut self,
         identifier: &LibraryImageIdentifier,
     ) -> Option<Arc<Image>> {
-        let item = self.get_fully_loaded_item(identifier)?;
-        Some(item.image.as_ref().unwrap().clone())
+        self.ensure_fully_loaded(identifier);
+        self.images_cache.get(identifier)
     }
 
     // return the item or delete the identifier
@@ -692,18 +702,24 @@ impl Library {
             // the identifier could have been removed
             return None;
         }
-        if let Some(ref thumbnail) = self.items[identifier].thumbnail {
-            return Some(thumbnail.clone());
+
+        if let Some(thumbnail) = self.thumbnails_cache.get(identifier) {
+            return Some(thumbnail);
         }
 
-        // if let Some(thumbnail) = self.maybe_load_thumbnail(identifier) {
-        //     return Some(thumbnail);
-        // }
-        // let item = self.get_fully_loaded_item(identifier)?;
-        // Some(item.thumbnail.as_ref().unwrap().clone())
+        if let Some(image) = self.images_cache.get(identifier) {
+            return Some(
+                self.services
+                    .thumbnail_generator
+                    .generate_and_maybe_save_thumbnail_for_image(image, identifier.get_path()),
+            );
+        }
 
+        #[cfg(not(target_arch = "wasm32"))]
         if let Some(path) = identifier.get_path() {
-            self.services.thumbnail_generator.request_thumbnail_for_image_at_path(path);
+            self.services
+                .thumbnail_generator
+                .request_thumbnail_for_image_at_path(path);
         }
 
         None
@@ -715,16 +731,11 @@ impl Library {
         identifier: &LibraryImageIdentifier,
         editted_image: Arc<Image>,
     ) {
-        if let Some(item) = self.items.get_mut(identifier) {
-            item.thumbnail = Some(
-                self.services
-                    .thumbnail_generator
-                    .generate_and_maybe_save_thumbnail_for_image(
-                        editted_image,
-                        identifier.get_path(),
-                    ),
-            );
-        }
+        let thumbnail = self
+            .services
+            .thumbnail_generator
+            .generate_and_maybe_save_thumbnail_for_image(editted_image, identifier.get_path());
+        self.thumbnails_cache.set(identifier.clone(), thumbnail);
     }
 
     pub fn get_rating(&self, identifier: &LibraryImageIdentifier) -> ImageRating {
