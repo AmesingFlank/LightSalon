@@ -52,10 +52,11 @@ pub fn app_ui(ctx: &egui::Context, session: &mut Session, ui_state: &mut AppUiSt
                 });
             egui::CentralPanel::default().show(ctx, |ui| {
                 main_image(ctx, ui, session, ui_state);
-                keyboard_response(ctx, ui, session, ui_state);
             });
         }
+        AppPage::Export => {}
     }
+    keyboard_response(ctx, session, ui_state);
 }
 
 pub fn ui_set_current_editor_image(

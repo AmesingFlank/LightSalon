@@ -19,5 +19,6 @@ pub fn menu_bar(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
                 ui.checkbox(&mut ui_state.show_comparison, "Show Comparison");
             });
         }
+        AppPage::Export => {}
     });
 }

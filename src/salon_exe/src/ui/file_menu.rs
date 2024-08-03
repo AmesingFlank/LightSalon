@@ -1,4 +1,7 @@
-use super::{file_dialogues::{file_dialogue_export_edit, file_dialogue_export_image}, AddedImageOrAlbum, AppUiState};
+use super::{
+    file_dialogues::{file_dialogue_export_edit, file_dialogue_export_image},
+    AddedImageOrAlbum, AppPage, AppUiState,
+};
 use eframe::{
     egui::{self, Ui},
     egui_wgpu,
@@ -37,6 +40,7 @@ pub fn file_menu(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) 
         {
             ui.close_menu();
             let ctx = ui.ctx().clone();
+            //ui_state.app_page = AppPage::Export;
             file_dialogue_export_image(ctx, session, ui_state);
         }
 
