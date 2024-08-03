@@ -39,9 +39,9 @@ pub fn file_menu(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) 
             .clicked()
         {
             ui.close_menu();
-            let ctx = ui.ctx().clone();
-            //ui_state.app_page = AppPage::Export;
-            file_dialogue_export_image(ctx, session, ui_state);
+            ui_state.app_page = AppPage::Export;
+            // let ctx = ui.ctx().clone();
+            // file_dialogue_export_image(ctx, session, ui_state);
         }
 
         if ui

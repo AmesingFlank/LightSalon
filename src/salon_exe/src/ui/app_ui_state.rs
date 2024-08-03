@@ -42,11 +42,14 @@ pub struct AppUiState {
     pub main_image_zoom: Option<MainImageZoom>,
     pub main_image_select_error_msg: Option<String>,
 
-    pub library_images_browser_requested_row: Option<usize>, 
-    pub library_side_panel_requested_row: Option<usize>, 
+    pub library_images_browser_requested_row: Option<usize>,
+    pub library_side_panel_requested_row: Option<usize>,
     pub library_side_panel_current_row: Option<usize>,
 
     pub new_album_name: Option<String>,
+    pub export_file_name: Option<String>,
+    pub export_image_resolution: Option<(u32, u32)>,
+    pub export_quality: Option<u32>,
 }
 
 impl AppUiState {
@@ -79,6 +82,9 @@ impl AppUiState {
             library_side_panel_requested_row: None,
             library_side_panel_current_row: None,
             new_album_name: None,
+            export_file_name: None,
+            export_image_resolution: None,
+            export_quality: None,
         }
     }
 

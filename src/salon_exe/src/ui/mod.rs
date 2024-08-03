@@ -20,6 +20,7 @@ mod main_image;
 mod masking;
 mod menu_bar;
 mod rotate_and_crop;
+mod export_panel;
 
 mod utils;
 

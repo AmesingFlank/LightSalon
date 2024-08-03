@@ -6,20 +6,15 @@ use egui_extras::{Column, TableBuilder};
 use salon_core::session::Session;
 
 use super::{
-    redo_action, ui_set_current_editor_image, undo_action, utils::legalize_ui_state, AppPage,
-    AppUiState, EditorPanel,
+    export_panel::exit_export_panel, redo_action, ui_set_current_editor_image, undo_action, utils::legalize_ui_state, AppPage, AppUiState, EditorPanel
 };
 
-pub fn keyboard_response(
-    ctx: &egui::Context,
-    session: &mut Session,
-    ui_state: &mut AppUiState,
-) {
+pub fn keyboard_response(ctx: &egui::Context, session: &mut Session, ui_state: &mut AppUiState) {
     ctx.input(|i| {
         if i.key_pressed(egui::Key::Escape) {
             match ui_state.app_page {
                 AppPage::Export => {
-                    ui_state.app_page = AppPage::Editor;
+                    exit_export_panel(ui_state);
                 }
                 AppPage::Editor => {
                     ui_state.app_page = AppPage::Library;

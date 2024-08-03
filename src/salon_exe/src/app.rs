@@ -79,7 +79,6 @@ impl App {
     }
 
     fn get_required_wgpu_limits() -> wgpu::Limits {
-        // 100MP medium format digital sensor file size: 11656 x 8742
         let max_dim = Runtime::get_required_max_texture_dim_1d_2d() as u32;
         let max_buff_size = Runtime::get_required_max_buffer_size() as u64;
         wgpu::Limits {

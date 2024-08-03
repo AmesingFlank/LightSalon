@@ -37,7 +37,12 @@ pub fn file_dialogue_export_image(
         .get_metadata(&session.editor.current_image_identifier().unwrap())
         .name
     {
-        task = task.set_file_name(editted_image_file_name(&name));
+        task = task.set_file_name(
+            ui_state
+                .export_file_name
+                .clone()
+                .expect("expecting an export file name"),
+        );
     }
     let file_handle = task.save_file();
     execute(async move {
@@ -97,12 +102,10 @@ pub fn file_dialogue_export_image(
         final_image,
     );
 
-    let mut output_file_name = "output.jpg".to_owned();
-    if let Some(identifier) = session.editor.current_image_identifier() {
-        if let Some(name) = session.library.get_metadata(&identifier).name {
-            output_file_name = editted_image_file_name(&name);
-        }
-    }
+    let output_file_name = ui_state
+        .export_file_name
+        .clone()
+        .expect("expecting an export file name");
 
     execute(async move {
         let jpeg_data = image_reader.await_jpeg_data().await;
@@ -176,15 +179,6 @@ pub fn file_dialogue_export_edit(
             body.remove_child(&a).unwrap();
         }
     });
-}
-
-fn editted_image_file_name(name: &String) -> String {
-    let parts: Vec<&str> = name.rsplitn(2, '.').collect();
-    if parts.len() == 2 {
-        format!("{}_edit.{}", parts[1], parts[0])
-    } else {
-        format!("{}_edit", name)
-    }
 }
 
 fn edit_json_file_name(name: &String) -> String {
