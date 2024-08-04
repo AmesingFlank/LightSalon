@@ -167,6 +167,8 @@ impl ThumbnailGeneratorService {
     }
 
     const THUMBNAIL_MIN_DIMENSION_SIZE: f32 = 400.0;
+
+    const THUMBNAIL_JPEG_QUALITY: u8 = 80;
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -258,6 +260,7 @@ impl WriteWorker {
             self.runtime.clone(),
             self.toolbox.clone(),
             write_request.thumbnail_image,
+            ThumbnailGeneratorService::THUMBNAIL_JPEG_QUALITY,
         );
 
         if let Ok(_) = std::fs::create_dir_all(write_request.thumbnail_path.parent().unwrap()) {
@@ -379,6 +382,7 @@ impl GenerateFromPathWorker {
                                     self.runtime.clone(),
                                     self.toolbox.clone(),
                                     thumbnail_image,
+                                    ThumbnailGeneratorService::THUMBNAIL_JPEG_QUALITY,
                                 );
                                 futures::executor::block_on(async move {
                                     let jpeg_data = image_reader.await_jpeg_data().await;

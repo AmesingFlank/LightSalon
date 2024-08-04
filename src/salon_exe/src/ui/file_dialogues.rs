@@ -29,6 +29,7 @@ pub fn file_dialogue_export_image(session: &mut Session, ui_state: &mut AppUiSta
         session.runtime.clone(),
         session.toolbox.clone(),
         final_image,
+        ui_state.export_quality.clone().unwrap(),
     );
 
     let mut task = rfd::AsyncFileDialog::new().add_filter("extension", &["jpg"]);
@@ -96,6 +97,7 @@ pub fn file_dialogue_export_image(session: &mut Session, ui_state: &mut AppUiSta
         session.runtime.clone(),
         session.toolbox.clone(),
         final_image,
+        ui_state.export_quality.clone().unwrap(),
     );
 
     let output_file_name = ui_state
@@ -226,7 +228,7 @@ impl Drop for ImageImportDialog {
 
 #[cfg(target_arch = "wasm32")]
 impl ImageImportDialog {
-    pub fn new(runtime: Arc<Runtime>, toolbox: Arc<Toolbox>, context: egui::Context) -> Self {
+    pub fn new(runtime: Arc<Runtime>, toolbox: Arc<Toolbox>) -> Self {
         let document = window().unwrap().document().unwrap();
         let body = document.body().unwrap();
         let input = document
@@ -243,8 +245,6 @@ impl ImageImportDialog {
             channel: std::sync::mpsc::channel(),
             runtime,
             toolbox,
-            context,
-
             input,
             closure: None,
         }

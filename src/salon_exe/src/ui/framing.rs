@@ -22,12 +22,6 @@ use super::{widgets::EditorSlider, AppUiState};
 pub fn framing(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState, edit: &mut Edit) {
     ui.spacing_mut().slider_width = ui.available_width() * 0.6;
 
-    let input_image = session
-        .editor
-        .current_edit_context_ref()
-        .unwrap()
-        .input_image();
-
     let mut use_framing = edit.framing.is_some();
     ui.checkbox(&mut use_framing, "Add Framing");
 
@@ -47,7 +41,7 @@ pub fn framing(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState, ed
 
             let mut aspect_ratio = old_aspect_ratio;
 
-            ui.label("Aspect Ratio: ");
+            ui.label("Aspect Ratio ");
             ui.label("Width ");
             let clamp_range = 1..=10000;
             ui.add(egui::DragValue::new(&mut aspect_ratio.0).range(clamp_range.clone()));
@@ -60,11 +54,13 @@ pub fn framing(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState, ed
             }
         });
 
-        ui.add(
-            EditorSlider::new(&mut framing.gap, 0.0..=1.0)
-                .double_click_reset_value(Frame::defualt().gap as f64)
-                .text("Gap"),
-        );
+        ui.horizontal(|ui| {
+            ui.label("Gap ");
+            ui.add(
+                EditorSlider::new(&mut framing.gap, 0.0..=1.0)
+                    .double_click_reset_value(Frame::defualt().gap as f64),
+            );
+        });
 
         edit.framing = Some(framing);
     }

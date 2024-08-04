@@ -41,7 +41,7 @@ pub fn rotate_and_crop(
 
         let mut aspect_ratio = old_aspect_ratio.clone();
 
-        ui.label("Aspect Ratio: ");
+        ui.label("Aspect Ratio ");
         ui.label("Width ");
         let clamp_range = 1..=Runtime::get_required_max_texture_dim_1d_2d();
         ui.add(egui::DragValue::new(&mut aspect_ratio.0).range(clamp_range.clone()));
@@ -63,15 +63,17 @@ pub fn rotate_and_crop(
         }
     });
 
-    ui.separator();
-
     let mut rotation_degrees = edit.rotation_degrees.clone().unwrap_or(0.0);
-    ui.add(
-        EditorSlider::new(&mut rotation_degrees, -180.0..=180.0)
-            .double_click_reset_value(0.0)
-            .step_by(0.01)
-            .fixed_decimals(2)
-            .text("Rotation"),
-    );
+
+    ui.horizontal(|ui| {
+        ui.label("Rotation ");
+        ui.add(
+            EditorSlider::new(&mut rotation_degrees, -180.0..=180.0)
+                .double_click_reset_value(0.0)
+                .step_by(0.01)
+                .fixed_decimals(2),
+        );
+    });
+
     handle_new_rotation(input_image.aspect_ratio(), edit, rotation_degrees);
 }

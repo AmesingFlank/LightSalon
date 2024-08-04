@@ -87,6 +87,7 @@ pub struct ImageReaderJpeg {
     runtime: Arc<Runtime>,
     toolbox: Arc<Toolbox>,
     image: Arc<Image>,
+    quality: u8,
     buffer: Arc<Buffer>,
     map_ready_receiver: flume::Receiver<()>,
     result_jpeg_data: Option<Vec<u8>>,
@@ -94,7 +95,12 @@ pub struct ImageReaderJpeg {
 }
 
 impl ImageReaderJpeg {
-    pub fn new(runtime: Arc<Runtime>, toolbox: Arc<Toolbox>, image: Arc<Image>) -> Self {
+    pub fn new(
+        runtime: Arc<Runtime>,
+        toolbox: Arc<Toolbox>,
+        image: Arc<Image>,
+        quality: u8,
+    ) -> Self {
         assert!(
             image.properties.format == ImageFormat::Rgba8Unorm,
             "only reading Rgba8Unorm is supported"
@@ -105,6 +111,7 @@ impl ImageReaderJpeg {
             runtime,
             toolbox,
             image,
+            quality,
             buffer,
             map_ready_receiver,
             result_jpeg_data: None,
@@ -145,7 +152,8 @@ impl ImageReaderJpeg {
         let image_buffer: image::ImageBuffer<image::Rgba<u8>, Vec<u8>> =
             image::ImageBuffer::from_raw(w, h, data).unwrap();
         let mut jpeg: Vec<u8> = Vec::new();
-        let mut encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut jpeg, 100);
+        let mut encoder =
+            image::codecs::jpeg::JpegEncoder::new_with_quality(&mut jpeg, self.quality);
         encoder
             .encode(&image_buffer, w, h, image::ColorType::Rgba8)
             .expect("Failed to encode image into jpeg");

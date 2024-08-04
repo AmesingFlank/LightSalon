@@ -47,7 +47,7 @@ pub struct AppUiState {
     pub export_file_name: Option<String>,
     pub export_image_full_resolution: Option<Arc<Image>>,
     pub export_image_selected_resolution: Option<Arc<Image>>,
-    pub export_quality: Option<u32>,
+    pub export_quality: Option<u8>,
 }
 
 impl AppUiState {
@@ -94,6 +94,7 @@ impl AppUiState {
         self.export_file_name = None;
         self.export_image_full_resolution = None;
         self.export_image_selected_resolution = None;
+        self.export_quality = None;
         self.editor_panel = EditorPanel::LightAndColor;
     }
 }

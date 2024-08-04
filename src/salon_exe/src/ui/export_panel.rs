@@ -7,10 +7,12 @@ use salon_core::{editor::GlobalEdit, runtime::Runtime, session::Session};
 
 use super::{
     color_adjust, color_mixer, curve, effects, file_dialogues::file_dialogue_export_image, framing,
-    histogram, light_adjust, masking, rotate_and_crop, AppPage, AppUiState, EditorPanel,
+    histogram, light_adjust, masking, rotate_and_crop, widgets::EditorSlider, AppPage, AppUiState,
+    EditorPanel,
 };
 
 pub fn export_panel(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
+    ui.spacing_mut().slider_width = ui.available_width() * 0.6;
     if ui_state.export_file_name.is_none() {
         if let Some(ref name) = session
             .library
@@ -24,13 +26,11 @@ pub fn export_panel(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiStat
     }
 
     ui.horizontal(|ui| {
-        ui.label("File name: ");
+        ui.label("File name ");
         ui.add(egui::TextEdit::singleline(
             ui_state.export_file_name.as_mut().unwrap(),
         ));
     });
-
-    ui.separator();
 
     if ui_state.export_image_full_resolution.is_none() {
         ui_state.export_image_full_resolution = Some(session.editor.get_full_size_editted_image());
@@ -56,7 +56,7 @@ pub fn export_panel(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiStat
     let height_range = 1..=full_resolution.1;
 
     ui.horizontal(|ui| {
-        ui.label("Resolution: ");
+        ui.label("Resolution ");
         ui.label("Width ");
         ui.add(egui::DragValue::new(&mut resolution.0).range(width_range));
         ui.label(" x ");
@@ -81,7 +81,18 @@ pub fn export_panel(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiStat
         ui_state.export_image_selected_resolution = Some(new_image);
     }
 
-    ui.separator();
+    if ui_state.export_quality.is_none() {
+        ui_state.export_quality = Some(100);
+    }
+
+    ui.horizontal(|ui| {
+        ui.label("Quality ");
+        ui.add(
+            EditorSlider::new(ui_state.export_quality.as_mut().unwrap(), 1..=100)
+                .double_click_reset_value(100.0)
+                .step_by(1.0),
+        );
+    });
 
     ui.horizontal(|ui| {
         if ui.button("Cancel").clicked() {
@@ -97,6 +108,7 @@ pub fn export_panel(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiStat
 
 pub fn exit_export_panel(ui_state: &mut AppUiState) {
     ui_state.app_page = AppPage::Editor;
+    ui_state.export_quality = None;
     ui_state.export_file_name = None;
     ui_state.export_image_full_resolution = None;
     ui_state.export_image_selected_resolution = None;
