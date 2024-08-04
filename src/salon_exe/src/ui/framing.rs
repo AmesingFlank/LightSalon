@@ -45,26 +45,16 @@ pub fn framing(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState, ed
         ui.horizontal(|ui| {
             let old_aspect_ratio = approximate_aspect_ratio(framing.aspect_ratio, 21);
 
-            if reduced_aspect_ratio(old_aspect_ratio)
-                != reduced_aspect_ratio(ui_state.framing_aspect_ratio)
-            {
-                ui_state.crop_rect_aspect_ratio = old_aspect_ratio;
-            }
+            let mut aspect_ratio = old_aspect_ratio;
 
             ui.label("Aspect Ratio: ");
             ui.label("Width ");
             let clamp_range = 1..=10000;
-            ui.add(
-                egui::DragValue::new(&mut ui_state.framing_aspect_ratio.0)
-                    .clamp_range(clamp_range.clone()),
-            );
+            ui.add(egui::DragValue::new(&mut aspect_ratio.0).range(clamp_range.clone()));
             ui.label(" x ");
             ui.label("Height ");
-            ui.add(
-                egui::DragValue::new(&mut ui_state.framing_aspect_ratio.1)
-                    .clamp_range(clamp_range.clone()),
-            );
-            let new_reduced_aspect_ratio = reduced_aspect_ratio(ui_state.framing_aspect_ratio);
+            ui.add(egui::DragValue::new(&mut aspect_ratio.1).range(clamp_range.clone()));
+            let new_reduced_aspect_ratio = reduced_aspect_ratio(aspect_ratio);
             if new_reduced_aspect_ratio != reduced_aspect_ratio(old_aspect_ratio) {
                 framing.aspect_ratio = new_reduced_aspect_ratio;
             }

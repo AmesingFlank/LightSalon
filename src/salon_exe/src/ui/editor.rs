@@ -15,16 +15,12 @@ pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
         return;
     }
     ui.horizontal(|ui| {
-        let response = ui.selectable_value(
+        let old_panel = ui_state.editor_panel;
+        ui.selectable_value(
             &mut ui_state.editor_panel,
             EditorPanel::LightAndColor,
             "Light and Color",
         );
-        if response.clicked() {
-            if session.editor.commit_transient_edit(true) {
-                session.update_thumbnail_for_current_image();
-            }
-        }
         ui.separator();
         ui.selectable_value(
             &mut ui_state.editor_panel,
@@ -33,6 +29,12 @@ pub fn editor(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
         );
         ui.separator();
         ui.selectable_value(&mut ui_state.editor_panel, EditorPanel::Framing, "Framing");
+
+        if old_panel != ui_state.editor_panel {
+            if session.editor.commit_transient_edit(true) {
+                session.update_thumbnail_for_current_image();
+            }
+        }
     });
 
     ui.separator();

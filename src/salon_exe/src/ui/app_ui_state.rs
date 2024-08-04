@@ -36,9 +36,6 @@ pub struct AppUiState {
 
     pub import_image_dialog: ImageImportDialog,
 
-    pub crop_rect_aspect_ratio: (u32, u32),
-    pub framing_aspect_ratio: (u32, u32),
-
     pub main_image_zoom: Option<MainImageZoom>,
     pub main_image_select_error_msg: Option<String>,
 
@@ -74,8 +71,6 @@ impl AppUiState {
                 toolbox.clone(),
                 context.clone(),
             ),
-            crop_rect_aspect_ratio: (0, 0),
-            framing_aspect_ratio: (0, 0),
             main_image_zoom: None,
             main_image_select_error_msg: None,
             library_images_browser_requested_row: None,
@@ -95,8 +90,7 @@ impl AppUiState {
         self.selected_mask_term_index = None;
         self.mask_edit_state.dragged_control_point_index = None;
         self.main_image_zoom = None;
-        self.framing_aspect_ratio = (0, 0);
-        self.crop_rect_aspect_ratio = (0, 0);
+        self.editor_panel = EditorPanel::LightAndColor;
     }
 }
 
@@ -139,7 +133,7 @@ impl fmt::Display for CurveScope {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Eq, Clone, Copy)]
 pub enum EditorPanel {
     LightAndColor,
     CropAndRotate,

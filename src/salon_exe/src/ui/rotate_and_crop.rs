@@ -4,14 +4,17 @@ use eframe::{
 };
 use egui_plot::{Line, MarkerShape, Plot, Points};
 use salon_core::{
-    editor::Edit, runtime::Runtime, session::Session, utils::{
+    editor::Edit,
+    runtime::Runtime,
+    session::Session,
+    utils::{
         math::{
             approximate_aspect_ratio, get_cropped_image_dimensions,
             get_max_crop_rect_with_aspect_ratio, handle_new_crop_rect, handle_new_rotation,
             maybe_shrink_crop_rect_due_to_rotation, reduced_aspect_ratio,
         },
         rectangle::Rectangle,
-    }
+    },
 };
 
 use super::{widgets::EditorSlider, AppUiState};
@@ -36,29 +39,18 @@ pub fn rotate_and_crop(
             get_cropped_image_dimensions(input_image.properties.dimensions, crop_rect);
         let old_aspect_ratio = approximate_aspect_ratio(output_dimensions, 21);
 
-        if reduced_aspect_ratio(old_aspect_ratio)
-            != reduced_aspect_ratio(ui_state.crop_rect_aspect_ratio)
-        {
-            ui_state.crop_rect_aspect_ratio = old_aspect_ratio;
-        }
+        let mut aspect_ratio = old_aspect_ratio.clone();
 
         ui.label("Aspect Ratio: ");
         ui.label("Width ");
         let clamp_range = 1..=Runtime::get_required_max_texture_dim_1d_2d();
-        ui.add(
-            egui::DragValue::new(&mut ui_state.crop_rect_aspect_ratio.0).range(clamp_range.clone()),
-        );
+        ui.add(egui::DragValue::new(&mut aspect_ratio.0).range(clamp_range.clone()));
         ui.label(" x ");
         ui.label("Height ");
-        ui.add(
-            egui::DragValue::new(&mut ui_state.crop_rect_aspect_ratio.1).range(clamp_range.clone()),
-        );
-        if reduced_aspect_ratio(old_aspect_ratio)
-            != reduced_aspect_ratio(ui_state.crop_rect_aspect_ratio)
-        {
+        ui.add(egui::DragValue::new(&mut aspect_ratio.1).range(clamp_range.clone()));
+        if reduced_aspect_ratio(old_aspect_ratio) != reduced_aspect_ratio(aspect_ratio) {
             let rotation_degrees = edit.rotation_degrees.clone().unwrap_or(0.0);
-            let aspect_ratio =
-                ui_state.crop_rect_aspect_ratio.0 as f32 / ui_state.crop_rect_aspect_ratio.1 as f32;
+            let aspect_ratio = aspect_ratio.0 as f32 / aspect_ratio.1 as f32;
             let new_crop_rect = get_max_crop_rect_with_aspect_ratio(
                 rotation_degrees,
                 crop_rect,
