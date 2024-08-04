@@ -100,6 +100,23 @@ pub fn library_images_browser(ui: &mut Ui, session: &mut Session, ui_state: &mut
                             image_framing_color,
                         );
 
+                        if image_frame_hovered {
+                            let metadata = session.library.get_metadata(&image_identifier);
+                            if let Some(name) = metadata.name {
+                                let image_name_rect = egui::Rect::from_min_max(
+                                    cell_max_rect.min,
+                                    egui::Pos2::new(
+                                        cell_max_rect.max.x,
+                                        cell_max_rect.min.y + row_height * 0.1,
+                                    ),
+                                );
+
+                                ui.allocate_ui_at_rect(image_name_rect, |ui| {
+                                    ui.centered_and_justified(|ui| ui.label(name))
+                                });
+                            }
+                        }
+
                         let aspect_ratio = image.aspect_ratio();
                         let image_size =
                             get_max_image_size(aspect_ratio, max_image_width, max_image_height);
