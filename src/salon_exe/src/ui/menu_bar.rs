@@ -13,6 +13,15 @@ pub fn menu_bar(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
         AppPage::Editor => {
             file_menu(ui, session, ui_state);
             edit_menu(ui, session, ui_state);
+            if let Some(name) = session
+                .library
+                .get_metadata(&session.editor.current_image_identifier().unwrap())
+                .name
+            {
+                ui.centered_and_justified(|ui| {
+                    ui.label(name);
+                });
+            }
             ui.with_layout(egui::Layout::right_to_left(egui::Align::RIGHT), |ui| {
                 ui.checkbox(&mut ui_state.show_grid, "Show Grid");
                 ui.separator();
