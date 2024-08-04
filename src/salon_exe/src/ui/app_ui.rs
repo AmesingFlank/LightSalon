@@ -24,7 +24,7 @@ pub fn app_ui(ctx: &egui::Context, session: &mut Session, ui_state: &mut AppUiSt
     match ui_state.app_page {
         AppPage::Library => {
             egui::SidePanel::left("albums_browser_panel")
-                .default_width(last_frame_size.0 * 0.1)
+                .min_width(last_frame_size.0 * 0.1)
                 .resizable(false)
                 .show(ctx, |ui| {
                     ui.set_width(ui.available_width());
