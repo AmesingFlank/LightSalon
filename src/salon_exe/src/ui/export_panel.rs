@@ -89,7 +89,7 @@ pub fn export_panel(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiStat
         }
         ui.separator();
         if ui.button("Export").clicked() {
-            file_dialogue_export_image(ui.ctx().clone(), session, ui_state);
+            file_dialogue_export_image(session, ui_state);
             exit_export_panel(ui_state);
         }
     });

@@ -11,7 +11,6 @@ use super::{
 };
 
 pub fn library_albums_browser(
-    ctx: &egui::Context,
     ui: &mut Ui,
     session: &mut Session,
     ui_state: &mut AppUiState,

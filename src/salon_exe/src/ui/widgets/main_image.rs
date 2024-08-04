@@ -19,7 +19,6 @@ use crate::ui::utils::get_max_image_size;
 use crate::ui::{get_ui_crop_rect, MainImageZoom};
 
 pub struct MainImageCallback {
-    pub context: egui::Context,
     pub image: Arc<Image>,
     pub mask: Option<Arc<Image>>,
     pub zoom: Option<MainImageZoom>,
@@ -32,9 +31,10 @@ impl MainImageCallback {
         let mut translation = egui::Vec2 { x: 0.0, y: 0.0 };
 
         if let Some(ref zoom) = self.zoom {
-            if !zoom.zoom.completed() || !zoom.translation.completed() {
-                self.context.request_repaint();
-            }
+            // not needed right now because we always request repaint.
+            // if !zoom.zoom.completed() || !zoom.translation.completed() {
+            //     self.context.request_repaint();
+            // }
             zoom_ratio = zoom.zoom.get();
             translation = zoom.translation.get();
         }

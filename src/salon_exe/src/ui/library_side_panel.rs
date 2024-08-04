@@ -12,12 +12,7 @@ use super::{
     AppPage, AppUiState,
 };
 
-pub fn library_side_panel(
-    ctx: &egui::Context,
-    ui: &mut Ui,
-    session: &mut Session,
-    ui_state: &mut AppUiState,
-) {
+pub fn library_side_panel(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
     ui.horizontal(|ui| {
         let name = if let Some(album_index) = ui_state.selected_album {
             session.library.albums()[album_index].name.clone()
@@ -136,7 +131,7 @@ pub fn library_side_panel(
                         ));
                     });
                     if response.clicked() {
-                        ui_set_current_editor_image(ctx, session, ui_state, image_identifier);
+                        ui_set_current_editor_image(session, ui_state, image_identifier);
                     }
                 }
             });

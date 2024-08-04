@@ -5,7 +5,8 @@ use eframe::{
 use salon_core::{library::LibraryImageIdentifier, session::Session};
 
 use super::{
-    bottom_bar, editor, export_panel::export_panel, keyboard_response, library_albums_browser, library_images_browser, library_side_panel, main_image, menu_bar, AppPage, AppUiState
+    bottom_bar, editor, export_panel::export_panel, keyboard_response, library_albums_browser,
+    library_images_browser, library_side_panel, main_image, menu_bar, AppPage, AppUiState,
 };
 
 pub fn app_ui(ctx: &egui::Context, session: &mut Session, ui_state: &mut AppUiState) {
@@ -27,10 +28,10 @@ pub fn app_ui(ctx: &egui::Context, session: &mut Session, ui_state: &mut AppUiSt
                 .resizable(false)
                 .show(ctx, |ui| {
                     ui.set_width(ui.available_width());
-                    library_albums_browser(ctx, ui, session, ui_state);
+                    library_albums_browser(ui, session, ui_state);
                 });
             egui::CentralPanel::default().show(ctx, |ui| {
-                library_images_browser(ctx, ui, session, ui_state);
+                library_images_browser(ui, session, ui_state);
             });
         }
         AppPage::Editor => {
@@ -39,7 +40,7 @@ pub fn app_ui(ctx: &egui::Context, session: &mut Session, ui_state: &mut AppUiSt
                 .resizable(false)
                 .show(ctx, |ui| {
                     // ui.set_width(ui.available_width());
-                    library_side_panel(ctx, ui, session, ui_state);
+                    library_side_panel(ui, session, ui_state);
                 });
             egui::SidePanel::right("editor_panel")
                 .default_width(last_frame_size.0 * 0.2)
@@ -50,7 +51,7 @@ pub fn app_ui(ctx: &egui::Context, session: &mut Session, ui_state: &mut AppUiSt
                     editor(ui, session, ui_state);
                 });
             egui::CentralPanel::default().show(ctx, |ui| {
-                main_image(ctx, ui, session, ui_state);
+                main_image(ui, session, ui_state);
             });
         }
         AppPage::Export => {
@@ -63,7 +64,7 @@ pub fn app_ui(ctx: &egui::Context, session: &mut Session, ui_state: &mut AppUiSt
                     export_panel(ui, session, ui_state);
                 });
             egui::CentralPanel::default().show(ctx, |ui| {
-                main_image(ctx, ui, session, ui_state);
+                main_image(ui, session, ui_state);
             });
         }
     }
@@ -71,7 +72,6 @@ pub fn app_ui(ctx: &egui::Context, session: &mut Session, ui_state: &mut AppUiSt
 }
 
 pub fn ui_set_current_editor_image(
-    ctx: &egui::Context,
     session: &mut Session,
     ui_state: &mut AppUiState,
     identifier: LibraryImageIdentifier,

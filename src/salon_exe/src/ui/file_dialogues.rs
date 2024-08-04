@@ -12,11 +12,7 @@ use salon_core::{
 use std::{future::Future, ops::Add, sync::Arc};
 
 #[cfg(not(target_arch = "wasm32"))]
-pub fn file_dialogue_export_image(
-    context: egui::Context,
-    session: &mut Session,
-    ui_state: &mut AppUiState,
-) {
+pub fn file_dialogue_export_image(session: &mut Session, ui_state: &mut AppUiState) {
     session.editor.commit_transient_edit(false);
     let final_image = ui_state
         .export_image_selected_resolution
@@ -59,11 +55,7 @@ pub fn file_dialogue_export_image(
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-pub fn file_dialogue_export_edit(
-    context: egui::Context,
-    session: &mut Session,
-    ui_state: &mut AppUiState,
-) {
+pub fn file_dialogue_export_edit(session: &mut Session, ui_state: &mut AppUiState) {
     let edit = session.editor.get_full_size_edit();
     let edit_json_str = serde_json::to_string_pretty(&edit).expect("failed to serialize to json");
 
@@ -87,11 +79,7 @@ pub fn file_dialogue_export_edit(
 }
 
 #[cfg(target_arch = "wasm32")]
-pub fn file_dialogue_export_image(
-    context: egui::Context,
-    session: &mut Session,
-    ui_state: &mut AppUiState,
-) {
+pub fn file_dialogue_export_image(session: &mut Session, ui_state: &mut AppUiState) {
     session.editor.commit_transient_edit(false);
     let final_image = ui_state
         .export_image_selected_resolution
@@ -146,11 +134,7 @@ pub fn file_dialogue_export_image(
 }
 
 #[cfg(target_arch = "wasm32")]
-pub fn file_dialogue_export_edit(
-    context: egui::Context,
-    session: &mut Session,
-    ui_state: &mut AppUiState,
-) {
+pub fn file_dialogue_export_edit(session: &mut Session, ui_state: &mut AppUiState) {
     let edit = session.editor.get_full_size_edit();
     let edit_json_str = serde_json::to_string_pretty(&edit).expect("failed to serialize to json");
 
@@ -226,7 +210,6 @@ pub struct ImageImportDialog {
     ),
     runtime: Arc<Runtime>,
     toolbox: Arc<Toolbox>,
-    context: egui::Context,
     input: HtmlInputElement,
     closure: Option<Closure<dyn FnMut()>>,
 }
@@ -277,7 +260,6 @@ impl ImageImportDialog {
 
         let runtime = self.runtime.clone();
         let toolbox = self.toolbox.clone();
-        let context = self.context.clone();
         let sender = self.channel.0.clone();
         let input_clone = self.input.clone();
 
@@ -293,7 +275,6 @@ impl ImageImportDialog {
                     let reader_clone = reader.clone();
                     let runtime = runtime.clone();
                     let toolbox = toolbox.clone();
-                    let context = context.clone();
                     let sender = sender.clone();
 
                     let onload_closure = Closure::once(Box::new(move || {
@@ -315,7 +296,6 @@ impl ImageImportDialog {
                                 let image = Arc::new(image);
                                 let added_img = AddedImageOrAlbum::Image(image, metadata);
                                 sender.send(added_img).expect("failed to send added image");
-                                context.request_repaint();
                             }
                             Err(_) => {}
                         }
@@ -354,17 +334,15 @@ pub struct ImageImportDialog {
     ),
     runtime: Arc<Runtime>,
     toolbox: Arc<Toolbox>,
-    context: egui::Context,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 impl ImageImportDialog {
-    pub fn new(runtime: Arc<Runtime>, toolbox: Arc<Toolbox>, context: egui::Context) -> Self {
+    pub fn new(runtime: Arc<Runtime>, toolbox: Arc<Toolbox>) -> Self {
         Self {
             channel: std::sync::mpsc::channel(),
             runtime,
             toolbox,
-            context,
         }
     }
 
@@ -375,7 +353,6 @@ impl ImageImportDialog {
 
         let sender = self.channel.0.clone();
         let runtime = self.runtime.clone();
-        let context = self.context.clone();
 
         execute(async move {
             let files = task.await;
@@ -389,7 +366,6 @@ impl ImageImportDialog {
                 sender
                     .send(added_image)
                     .expect("failed to send added image");
-                context.request_repaint();
             }
         });
     }
@@ -399,7 +375,6 @@ impl ImageImportDialog {
 
         let sender = self.channel.0.clone();
         let runtime = self.runtime.clone();
-        let context = self.context.clone();
 
         execute(async move {
             let file = task.await;
@@ -408,7 +383,6 @@ impl ImageImportDialog {
                 sender
                     .send(added_album)
                     .expect("failed to send added image");
-                context.request_repaint();
             }
         });
     }

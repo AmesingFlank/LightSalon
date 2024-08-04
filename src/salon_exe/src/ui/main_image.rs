@@ -30,14 +30,9 @@ use super::utils::{
 use super::widgets::{ImageFramingCallback, ImageGeometryEditCallback, MainImageCallback};
 use super::{AppPage, AppUiState, CropDragEdgeOrCorner, EditorPanel, MainImageZoom, MaskEditState};
 
-pub fn main_image(
-    ctx: &egui::Context,
-    ui: &mut Ui,
-    session: &mut Session,
-    ui_state: &mut AppUiState,
-) {
+pub fn main_image(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
     if ui_state.app_page == AppPage::Export {
-        show_image_to_be_exported(ctx, ui, session, ui_state);
+        show_image_to_be_exported(ui, session, ui_state);
         return;
     }
     if session.editor.current_edit_context_ref().is_none() {
@@ -50,39 +45,29 @@ pub fn main_image(
     }
     if ui_state.show_comparison {
         ui.columns(2, |columns| {
-            show_comparison_reference_image(ctx, &mut columns[0], session, ui_state);
-            show_main_image(ctx, &mut columns[1], session, ui_state);
+            show_comparison_reference_image(&mut columns[0], session, ui_state);
+            show_main_image(&mut columns[1], session, ui_state);
         });
     } else {
-        show_main_image(ctx, ui, session, ui_state);
+        show_main_image(ui, session, ui_state);
     }
 }
 
-fn show_main_image(
-    ctx: &egui::Context,
-    ui: &mut Ui,
-    session: &mut Session,
-    ui_state: &mut AppUiState,
-) {
+fn show_main_image(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
     match ui_state.editor_panel {
         EditorPanel::CropAndRotate => {
-            image_crop_and_rotate(ctx, ui, session, ui_state);
+            image_crop_and_rotate(ui, session, ui_state);
         }
         EditorPanel::Framing => {
-            image_framing(ctx, ui, session, ui_state);
+            image_framing(ui, session, ui_state);
         }
         EditorPanel::LightAndColor => {
-            show_edited_image(ctx, ui, session, ui_state);
+            show_edited_image(ui, session, ui_state);
         }
     }
 }
 
-fn show_comparison_reference_image(
-    ctx: &egui::Context,
-    ui: &mut Ui,
-    session: &mut Session,
-    ui_state: &mut AppUiState,
-) {
+fn show_comparison_reference_image(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
     ui.centered_and_justified(|ui| {
         let context = session.editor.current_edit_context_ref().unwrap();
         if let Some(ref result) = context.current_result {
@@ -93,7 +78,6 @@ fn show_comparison_reference_image(
             };
 
             let main_image_callback = MainImageCallback {
-                context: ctx.clone(),
                 image: original_image.clone(),
                 mask: None,
                 zoom: None,
@@ -112,12 +96,7 @@ fn show_comparison_reference_image(
     });
 }
 
-fn show_edited_image(
-    ctx: &egui::Context,
-    ui: &mut Ui,
-    session: &mut Session,
-    ui_state: &mut AppUiState,
-) {
+fn show_edited_image(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
     ui.centered_and_justified(|ui| {
         // request to resize the image into a smaller image before applying all other edits, for better perf.
         let context = session.editor.current_edit_context_mut().unwrap();
@@ -131,7 +110,7 @@ fn show_edited_image(
 
         let size_in_ui = get_image_size_in_ui(ui, aspect_ratio);
         // HiDPI (aka Apple Retina) scaling factor;
-        let num_pixels_in_ui = size_in_ui * ctx.pixels_per_point();
+        let num_pixels_in_ui = size_in_ui * ui.ctx().pixels_per_point();
         let x_factor = num_pixels_in_ui.x / original_size.x;
         let y_factor = num_pixels_in_ui.y / original_size.y;
         let mut factor = x_factor.max(y_factor); // possible for these two to be slightly different..?
@@ -168,7 +147,6 @@ fn show_edited_image(
             }
 
             let main_image_callback = MainImageCallback {
-                context: ctx.clone(),
                 image: result.before_framing.clone(),
                 mask,
                 zoom: ui_state.main_image_zoom.clone(),
@@ -214,25 +192,19 @@ fn show_edited_image(
                     }
                 }
             } else {
-                maybe_zoom_image(ctx, ui, ui_state, main_image_rect, response);
+                maybe_zoom_image(ui, ui_state, main_image_rect, response);
             }
         }
     });
 }
 
-fn image_framing(
-    ctx: &egui::Context,
-    ui: &mut Ui,
-    session: &mut Session,
-    ui_state: &mut AppUiState,
-) {
+fn image_framing(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
     ui.centered_and_justified(|ui| {
         let context = session.editor.current_edit_context_mut().unwrap();
         let framing = context.transient_edit_ref().framing.clone();
         if let Some(ref result) = context.current_result {
             if framing.is_none() {
                 let main_image_callback = MainImageCallback {
-                    context: ctx.clone(),
                     image: result.before_framing.clone(),
                     mask: None,
                     zoom: None,
@@ -273,12 +245,7 @@ fn image_framing(
     });
 }
 
-fn image_crop_and_rotate(
-    ctx: &egui::Context,
-    ui: &mut Ui,
-    session: &mut Session,
-    ui_state: &mut AppUiState,
-) {
+fn image_crop_and_rotate(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
     ui.centered_and_justified(|ui| {
         let context = session.editor.current_edit_context_ref().unwrap();
         let original_image = context.input_image();
@@ -309,7 +276,6 @@ fn image_crop_and_rotate(
             .unwrap_or(Rectangle::regular());
         let original_rotation_degrees = transient_edit.rotation_degrees.clone().unwrap_or(0.0);
         let new_crop_rect = handle_crop_and_rotate_response(
-            ctx,
             ui,
             &response,
             original_image.aspect_ratio(),
@@ -332,12 +298,7 @@ fn image_crop_and_rotate(
     });
 }
 
-fn show_image_to_be_exported(
-    ctx: &egui::Context,
-    ui: &mut Ui,
-    session: &mut Session,
-    ui_state: &mut AppUiState,
-) {
+fn show_image_to_be_exported(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
     ui.centered_and_justified(|ui| {
         let image_to_be_exported = ui_state
             .export_image_selected_resolution
@@ -346,7 +307,6 @@ fn show_image_to_be_exported(
             .clone();
 
         let main_image_callback = MainImageCallback {
-            context: ctx.clone(),
             image: image_to_be_exported,
             mask: None,
             zoom: None,
@@ -365,7 +325,6 @@ fn show_image_to_be_exported(
 }
 
 fn maybe_zoom_image(
-    ctx: &egui::Context,
     ui: &mut Ui,
     ui_state: &mut AppUiState,
     main_image_rect: egui::Rect,
@@ -399,7 +358,7 @@ fn maybe_zoom_image(
                     animation_duration,
                 ),
             });
-            ctx.request_repaint();
+            // ctx.request_repaint();
         }
         if response.dragged() {
             ui.output_mut(|out| out.cursor_icon = CursorIcon::Grabbing);
@@ -425,7 +384,7 @@ fn maybe_zoom_image(
                     animation_duration,
                 ),
             });
-            ctx.request_repaint();
+            // ctx.request_repaint();
         }
     }
 
@@ -734,7 +693,6 @@ fn set_edge_or_corner_cursor(ui: &mut Ui, edge_or_corner: CropDragEdgeOrCorner) 
 }
 
 fn handle_crop_and_rotate_response(
-    ctx: &egui::Context,
     ui: &mut Ui,
     response: &egui::Response,
     original_image_aspect_ratio: f32,

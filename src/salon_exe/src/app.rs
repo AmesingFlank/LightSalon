@@ -107,7 +107,7 @@ impl App {
 
         Self {
             session,
-            ui_state: AppUiState::new(runtime.clone(), toolbox, cc.egui_ctx.clone()),
+            ui_state: AppUiState::new(runtime.clone(), toolbox),
         }
     }
 
@@ -189,7 +189,6 @@ impl App {
                     if !paths.is_empty() {
                         let identifiers = self.session.library.add_items_from_paths(paths, None);
                         ui_set_current_editor_image(
-                            ctx,
                             &mut self.session,
                             &mut self.ui_state,
                             identifiers.last().unwrap().clone(),
@@ -198,12 +197,7 @@ impl App {
                 }
                 AddedImageOrAlbum::Image(image, metadata) => {
                     let identifier = self.session.library.add_image_temp(image, None, metadata);
-                    ui_set_current_editor_image(
-                        ctx,
-                        &mut self.session,
-                        &mut self.ui_state,
-                        identifier,
-                    );
+                    ui_set_current_editor_image(&mut self.session, &mut self.ui_state, identifier);
                 }
                 AddedImageOrAlbum::AlbumFromPath(album_dir) => {
                     let album_index = self.session.library.add_album_from_directory(album_dir);
@@ -220,7 +214,7 @@ impl App {
                     .session
                     .library
                     .add_single_item_from_path(pathbuf, None);
-                ui_set_current_editor_image(ctx, &mut self.session, &mut self.ui_state, identifier);
+                ui_set_current_editor_image(&mut self.session, &mut self.ui_state, identifier);
             } else {
                 if let Some(bytes) = dropped_file.bytes {
                     let file_name = dropped_file.name;
@@ -241,7 +235,6 @@ impl App {
                                     .library
                                     .add_image_temp(Arc::new(img), None, metadata);
                             ui_set_current_editor_image(
-                                ctx,
                                 &mut self.session,
                                 &mut self.ui_state,
                                 identifier,

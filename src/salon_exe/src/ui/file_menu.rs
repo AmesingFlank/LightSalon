@@ -40,8 +40,6 @@ pub fn file_menu(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) 
         {
             ui.close_menu();
             ui_state.app_page = AppPage::Export;
-            // let ctx = ui.ctx().clone();
-            // file_dialogue_export_image(ctx, session, ui_state);
         }
 
         if ui
@@ -49,8 +47,7 @@ pub fn file_menu(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) 
             .clicked()
         {
             ui.close_menu();
-            let ctx = ui.ctx().clone();
-            file_dialogue_export_edit(ctx, session, ui_state);
+            file_dialogue_export_edit(session, ui_state);
         }
     });
 }

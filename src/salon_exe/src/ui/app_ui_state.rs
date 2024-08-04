@@ -51,7 +51,7 @@ pub struct AppUiState {
 }
 
 impl AppUiState {
-    pub fn new(runtime: Arc<Runtime>, toolbox: Arc<Toolbox>, context: egui::Context) -> Self {
+    pub fn new(runtime: Arc<Runtime>, toolbox: Arc<Toolbox>) -> Self {
         AppUiState {
             last_frame_size: None,
             fps_counter: FpsCounterState::new(),
@@ -70,7 +70,6 @@ impl AppUiState {
             import_image_dialog: ImageImportDialog::new(
                 runtime.clone(),
                 toolbox.clone(),
-                context.clone(),
             ),
             main_image_zoom: None,
             main_image_select_error_msg: None,

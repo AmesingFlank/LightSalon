@@ -37,10 +37,12 @@ impl RingBuffer {
                 .runtime
                 .create_buffer_of_properties(self.properties.clone());
             self.buffers.push(new_buffer);
-            assert!(
-                self.buffers.len() < 100,
-                "ring buffer size over 100! something is probably wrong"
-            );
+            if self.buffers.len() >= 100 {
+                assert!(
+                    self.buffers.len() < 100,
+                    "ring buffer size over 100! something is probably wrong"
+                );
+            }
         }
         let result = &self.buffers[self.next_available_index];
         self.next_available_index = self.next_available_index + 1;

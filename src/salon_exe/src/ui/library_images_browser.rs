@@ -15,12 +15,7 @@ use super::{
     AppPage, AppUiState,
 };
 
-pub fn library_images_browser(
-    ctx: &egui::Context,
-    ui: &mut Ui,
-    session: &mut Session,
-    ui_state: &mut AppUiState,
-) {
+pub fn library_images_browser(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
     let bottom_y = ui.max_rect().max.y;
     let top_y = ui.max_rect().min.y;
 
@@ -138,7 +133,6 @@ pub fn library_images_browser(
                             cell_max_rect.max,
                         );
                         let rating_clicked = image_rating(
-                            ctx,
                             ui,
                             session,
                             ui_state,
@@ -156,7 +150,6 @@ pub fn library_images_browser(
                             ui_state.library_side_panel_requested_row = Some(image_index);
                             ui_state.library_images_browser_requested_row = Some(row_index);
                             ui_set_current_editor_image(
-                                ctx,
                                 session,
                                 ui_state,
                                 image_identifier.clone(),
@@ -207,7 +200,6 @@ pub fn library_images_browser(
 }
 
 fn image_rating(
-    ctx: &egui::Context,
     ui: &mut Ui,
     session: &mut Session,
     ui_state: &mut AppUiState,

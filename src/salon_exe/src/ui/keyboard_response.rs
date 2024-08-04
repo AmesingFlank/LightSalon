@@ -70,7 +70,6 @@ pub fn keyboard_response(ctx: &egui::Context, session: &mut Session, ui_state: &
                             != requested_image_identifier
                     {
                         ui_set_current_editor_image(
-                            ctx,
                             session,
                             ui_state,
                             requested_image_identifier,
