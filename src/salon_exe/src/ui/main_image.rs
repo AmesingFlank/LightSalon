@@ -28,7 +28,7 @@ use super::utils::{
     get_abs_x_in_rect, get_abs_y_in_rect, get_max_image_size, pos2_to_vec2, AnimatedValue,
 };
 use super::widgets::{ImageFramingCallback, ImageGeometryEditCallback, MainImageCallback};
-use super::{AppUiState, CropDragEdgeOrCorner, EditorPanel, MainImageZoom, MaskEditState};
+use super::{AppPage, AppUiState, CropDragEdgeOrCorner, EditorPanel, MainImageZoom, MaskEditState};
 
 pub fn main_image(
     ctx: &egui::Context,
@@ -36,6 +36,10 @@ pub fn main_image(
     session: &mut Session,
     ui_state: &mut AppUiState,
 ) {
+    if ui_state.app_page == AppPage::Export {
+        show_image_to_be_exported(ctx, ui, session, ui_state);
+        return;
+    }
     if session.editor.current_edit_context_ref().is_none() {
         if let Some(ref err_msg) = ui_state.main_image_select_error_msg {
             ui.centered_and_justified(|ui| {
@@ -325,6 +329,38 @@ fn image_crop_and_rotate(
             );
             session.editor.update_transient_edit(transient_edit, false);
         }
+    });
+}
+
+fn show_image_to_be_exported(
+    ctx: &egui::Context,
+    ui: &mut Ui,
+    session: &mut Session,
+    ui_state: &mut AppUiState,
+) {
+    ui.centered_and_justified(|ui| {
+        let image_to_be_exported = ui_state
+            .export_image_selected_resolution
+            .as_ref()
+            .unwrap()
+            .clone();
+
+        let main_image_callback = MainImageCallback {
+            context: ctx.clone(),
+            image: image_to_be_exported,
+            mask: None,
+            zoom: None,
+            ui_max_rect: ui.max_rect(),
+        };
+
+        let main_image_rect = main_image_callback.image_ui_rect();
+
+        let _response = ui.allocate_rect(main_image_rect, egui::Sense::drag());
+
+        ui.painter().add(egui_wgpu::Callback::new_paint_callback(
+            main_image_rect,
+            main_image_callback,
+        ));
     });
 }
 

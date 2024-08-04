@@ -38,6 +38,10 @@ pub struct EditContext {
     // (e.g. as the user drags the slider, the temporary edit state)
     transient_edit: Option<Edit>,
     pub current_result: Option<EditResult>,
+
+    // full size result that includes framing
+    // (not equal to current_result.final_image, which might not be full-size)
+    pub current_full_size_editted_image: Option<Arc<Image>>,
 }
 
 impl EditContext {
@@ -93,6 +97,8 @@ impl EditContext {
             }
             self.edit_history.push(self.transient_edit.take().unwrap());
             self.current_edit_index = self.edit_history.len() - 1;
+            
+            self.current_full_size_editted_image = None;
         }
         self.transient_edit = None;
         needs_commit
@@ -111,6 +117,7 @@ impl EditContext {
         if self.current_edit_index > 0 {
             self.current_edit_index -= 1;
             self.transient_edit = None;
+            self.current_full_size_editted_image = None;
             true
         } else {
             false
@@ -122,6 +129,7 @@ impl EditContext {
         if self.current_edit_index < self.edit_history.len() - 1 {
             self.current_edit_index += 1;
             self.transient_edit = None;
+            self.current_full_size_editted_image = None;
             true
         } else {
             false
@@ -185,6 +193,7 @@ impl Editor {
                 current_edit_index: 0,
                 transient_edit: None,
                 current_result: None,
+                current_full_size_editted_image: None,
             };
             self.edit_contexts.insert(identifier.clone(), new_context);
         }
@@ -325,32 +334,50 @@ impl Editor {
     }
 
     pub fn get_full_size_edit(&self) -> Edit {
-        let mut edit = self
+        let edit = self
             .current_edit_context_ref()
             .unwrap()
             .current_edit_ref()
             .clone();
-        edit.resize_factor = None;
-        edit
+        Edit {
+            resize_factor: None,
+            ..edit
+        }
     }
 
     pub fn get_full_size_editted_image(&mut self) -> Arc<Image> {
-        let edit = self.get_full_size_edit();
-        let image = self
+        if let Some(ref result) = self
             .current_edit_context_ref()
             .unwrap()
-            .input_image()
-            .clone();
+            .current_full_size_editted_image
+        {
+            return result.clone();
+        }
+
+        let edit = self.get_full_size_edit();
+
         let (module, id_store) = to_ir_module(
             &edit,
             &IrGenerationOptions {
                 compute_histogram: false,
             },
         );
-        self.engine
-            .execute_module(&module, image, &mut self.engine_execution_context);
+
+        self.engine.execute_module(
+            &module,
+            self.current_edit_context_ref()
+                .unwrap()
+                .input_image()
+                .clone(),
+            &mut self.engine_execution_context,
+        );
         let result = self.collect_result(&id_store);
-        result.final_image
+        let full_size_result_image = result.final_image;
+
+        self.current_edit_context_mut()
+            .unwrap()
+            .current_full_size_editted_image = Some(full_size_result_image.clone());
+        full_size_result_image
     }
 
     fn collect_result(&mut self, id_store: &IdStore) -> EditResult {

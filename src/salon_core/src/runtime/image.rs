@@ -68,7 +68,7 @@ impl Image {
     pub fn mip_level_count(dimensions: &(u32, u32)) -> u32 {
         let max_dim = std::cmp::max(dimensions.0, dimensions.1);
         let levels = (max_dim as f32).log2() as u32;
-        levels
+        levels.max(1)
     }
 
     pub fn get_lowest_rendered_mip(

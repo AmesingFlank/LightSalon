@@ -45,7 +45,8 @@ pub struct AppUiState {
 
     pub new_album_name: Option<String>,
     pub export_file_name: Option<String>,
-    pub export_image_resolution: Option<(u32, u32)>,
+    pub export_image_full_resolution: Option<Arc<Image>>,
+    pub export_image_selected_resolution: Option<Arc<Image>>,
     pub export_quality: Option<u32>,
 }
 
@@ -78,7 +79,8 @@ impl AppUiState {
             library_side_panel_current_row: None,
             new_album_name: None,
             export_file_name: None,
-            export_image_resolution: None,
+            export_image_full_resolution: None,
+            export_image_selected_resolution: None,
             export_quality: None,
         }
     }
@@ -90,6 +92,9 @@ impl AppUiState {
         self.selected_mask_term_index = None;
         self.mask_edit_state.dragged_control_point_index = None;
         self.main_image_zoom = None;
+        self.export_file_name = None;
+        self.export_image_full_resolution = None;
+        self.export_image_selected_resolution = None;
         self.editor_panel = EditorPanel::LightAndColor;
     }
 }

@@ -18,7 +18,11 @@ pub fn file_dialogue_export_image(
     ui_state: &mut AppUiState,
 ) {
     session.editor.commit_transient_edit(false);
-    let final_image = session.editor.get_full_size_editted_image();
+    let final_image = ui_state
+        .export_image_selected_resolution
+        .as_ref()
+        .unwrap()
+        .clone();
     let final_image = session
         .toolbox
         .convert_color_space(final_image, ColorSpace::sRGB);
@@ -89,7 +93,11 @@ pub fn file_dialogue_export_image(
     ui_state: &mut AppUiState,
 ) {
     session.editor.commit_transient_edit(false);
-    let final_image = session.editor.get_full_size_editted_image();
+    let final_image = ui_state
+        .export_image_selected_resolution
+        .as_ref()
+        .unwrap()
+        .clone();
     let final_image = session
         .toolbox
         .convert_color_space(final_image, ColorSpace::sRGB);

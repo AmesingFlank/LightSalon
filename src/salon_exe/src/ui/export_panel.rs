@@ -30,21 +30,56 @@ pub fn export_panel(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiStat
         ));
     });
 
-    // ui.separator();
+    ui.separator();
 
-    // ui.horizontal(|ui| {
-    //     ui.label("Resolution: ");
-    //     ui.label("Width ");
-    //     let clamp_range = 1..=Runtime::get_required_max_texture_dim_1d_2d();
-    //     ui.add(
-    //         egui::DragValue::new(&mut ui_state.crop_rect_aspect_ratio.0).range(clamp_range.clone()),
-    //     );
-    //     ui.label(" x ");
-    //     ui.label("Height ");
-    //     ui.add(
-    //         egui::DragValue::new(&mut ui_state.crop_rect_aspect_ratio.1).range(clamp_range.clone()),
-    //     );
-    // });
+    if ui_state.export_image_full_resolution.is_none() {
+        ui_state.export_image_full_resolution = Some(session.editor.get_full_size_editted_image());
+        ui_state.export_image_selected_resolution = ui_state.export_image_full_resolution.clone();
+    }
+
+    let full_resolution = ui_state
+        .export_image_full_resolution
+        .as_ref()
+        .unwrap()
+        .properties
+        .dimensions
+        .clone();
+    let current_resolution = ui_state
+        .export_image_selected_resolution
+        .as_ref()
+        .unwrap()
+        .properties
+        .dimensions
+        .clone();
+    let mut resolution = current_resolution.clone();
+    let width_range = 1..=full_resolution.0;
+    let height_range = 1..=full_resolution.1;
+
+    ui.horizontal(|ui| {
+        ui.label("Resolution: ");
+        ui.label("Width ");
+        ui.add(egui::DragValue::new(&mut resolution.0).range(width_range));
+        ui.label(" x ");
+        ui.label("Height ");
+        ui.add(egui::DragValue::new(&mut resolution.1).range(height_range));
+    });
+
+    if resolution != current_resolution {
+        let new_resize_factor = if resolution.0 != current_resolution.0 {
+            resolution.0 as f32 / full_resolution.0 as f32
+        } else {
+            resolution.1 as f32 / full_resolution.1 as f32
+        };
+        let new_image = session.toolbox.resize_image(
+            ui_state
+                .export_image_full_resolution
+                .as_ref()
+                .unwrap()
+                .clone(),
+            new_resize_factor,
+        );
+        ui_state.export_image_selected_resolution = Some(new_image);
+    }
 
     ui.separator();
 
@@ -63,6 +98,8 @@ pub fn export_panel(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiStat
 pub fn exit_export_panel(ui_state: &mut AppUiState) {
     ui_state.app_page = AppPage::Editor;
     ui_state.export_file_name = None;
+    ui_state.export_image_full_resolution = None;
+    ui_state.export_image_selected_resolution = None;
 }
 
 fn editted_image_default_file_name(name: &String) -> String {

@@ -71,10 +71,12 @@ impl ImageResizer {
         bind_group_manager.clear_cache();
 
         let input_dimensions = input_img.properties.dimensions;
-        let output_dimensions = (
+        let mut output_dimensions = (
             (input_dimensions.0 as f32 * factor) as u32,
             (input_dimensions.1 as f32 * factor) as u32,
         );
+        output_dimensions.0 = output_dimensions.0.max(1);
+        output_dimensions.1 = output_dimensions.1.max(1);
         let output_properties = ImageProperties {
             dimensions: output_dimensions,
             ..input_img.properties
