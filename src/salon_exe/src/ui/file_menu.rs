@@ -39,6 +39,7 @@ pub fn file_menu(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) 
             .clicked()
         {
             ui.close_menu();
+            session.editor.commit_transient_edit(false);
             ui_state.app_page = AppPage::Export;
         }
 
