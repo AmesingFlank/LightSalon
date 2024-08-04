@@ -45,6 +45,16 @@ pub fn file_dialogue_export_image(session: &mut Session, ui_state: &mut AppUiSta
                 .expect("expecting an export file name"),
         );
     }
+
+    if let Some(identifier) = session.editor.current_image_identifier() {
+        if let Some(input_path) = identifier.get_path() {
+            if let Some(input_image_parent_dir) = input_path.parent() {
+                // not working on macOS?
+                task = task.set_directory(input_image_parent_dir);
+            }
+        }
+    }
+
     let file_handle = task.save_file();
     execute(async move {
         let file = file_handle.await;
