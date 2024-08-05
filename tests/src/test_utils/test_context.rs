@@ -35,6 +35,8 @@ fn make_test_runtime() -> Arc<Runtime> {
             .expect("failed to request adapter")
     }));
 
+    println!("{:#?}", adapter.get_info());
+
     let adapter_clone = adapter.clone();
     let (device, queue) = futures::executor::block_on(async move {
         adapter_clone
