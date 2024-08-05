@@ -1,4 +1,4 @@
-name: test suite
+name: Wasm build
 on: [push, pull_request]
 
 jobs:
