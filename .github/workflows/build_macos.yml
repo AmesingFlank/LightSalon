@@ -1,0 +1,11 @@
+name: macOS build
+on: [push, pull_request]
+
+jobs:
+  build_macos:
+    name: cargo build
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo build

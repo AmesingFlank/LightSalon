@@ -1,4 +1,4 @@
-name: Wasm build
+name: wasm build
 on: [push, pull_request]
 
 jobs:
