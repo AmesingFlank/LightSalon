@@ -117,5 +117,6 @@ impl ImageComparer {
         let rmse = mse.sqrt();
         println!("rmse: {}", rmse);
         assert!(rmse <= rmse_threshold);
+        assert!(false);
     }
 }
