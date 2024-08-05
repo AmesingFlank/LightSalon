@@ -58,7 +58,7 @@ impl App {
             wgpu_options: egui_wgpu::WgpuConfiguration {
                 supported_backends: wgpu::Backends::BROWSER_WEBGPU,
                 device_descriptor: Arc::new(|_adapter| wgpu::DeviceDescriptor {
-                    required_limits: Self::get_required_wgpu_limits(),
+                    required_limits: Runtime::get_required_wgpu_limits(),
                     ..Default::default()
                 }),
                 ..Default::default()
