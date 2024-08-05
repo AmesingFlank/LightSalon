@@ -13,6 +13,7 @@ fn test_image_edit() {
 }
 
 fn run_test(test_context: &mut TestContext, test: ImageEditTest) {
+    println!("testing {:#?}", test);
     let session = &mut test_context.session;
     let original_image_identifier = session
         .library
@@ -41,7 +42,13 @@ fn run_test(test_context: &mut TestContext, test: ImageEditTest) {
     session.editor.commit_transient_edit(false);
     let editted_image = session.editor.get_full_size_editted_image();
 
+    let threshold = if test_context.device_requires_higher_tolerence() {
+        0.002
+    } else {
+        0.0001
+    };
+
     test_context
         .image_comparer
-        .assert_eq(editted_image, expected_image, 0.0001);
+        .assert_eq(editted_image, expected_image, threshold);
 }

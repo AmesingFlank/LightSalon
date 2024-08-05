@@ -115,7 +115,7 @@ impl ImageComparer {
         const ERROR_FACTOR: f32 = 255.0;
         let mse = (buffer_values[0] as f32 / ERROR_FACTOR) / buffer_values[1] as f32;
         let rmse = mse.sqrt();
-        println!("rmse: {}",rmse);
+        println!("rmse: {}", rmse);
         assert!(rmse <= rmse_threshold);
     }
 }

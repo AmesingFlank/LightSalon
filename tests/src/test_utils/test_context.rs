@@ -23,6 +23,12 @@ impl TestContext {
             image_comparer,
         }
     }
+
+    pub fn device_requires_higher_tolerence(&self) -> bool {
+        let adapter_info = self.session.runtime.adapter.get_info();
+        // e.g. github action hosts
+        adapter_info.device_type == wgpu::DeviceType::Cpu
+    }
 }
 
 fn make_test_runtime() -> Arc<Runtime> {
@@ -34,8 +40,6 @@ fn make_test_runtime() -> Arc<Runtime> {
             .await
             .expect("failed to request adapter")
     }));
-
-    println!("{:#?}", adapter.get_info());
 
     let adapter_clone = adapter.clone();
     let (device, queue) = futures::executor::block_on(async move {
