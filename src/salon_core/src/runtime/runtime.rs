@@ -408,4 +408,16 @@ impl Runtime {
     pub fn get_required_max_buffer_size() -> usize {
         Self::get_required_max_texture_dim_1d_2d() * Self::get_required_max_texture_dim_1d_2d() * 4
     }
+
+    pub fn get_required_wgpu_limits() -> wgpu::Limits {
+        let max_dim = Runtime::get_required_max_texture_dim_1d_2d() as u32;
+        let max_buff_size = Runtime::get_required_max_buffer_size() as u64;
+        wgpu::Limits {
+            max_texture_dimension_1d: max_dim,
+            max_texture_dimension_2d: max_dim,
+            max_buffer_size: max_buff_size,
+            max_storage_buffer_binding_size: max_buff_size as u32,
+            ..Default::default()
+        }
+    }
 }

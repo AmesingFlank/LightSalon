@@ -3028,6 +3028,13 @@ dependencies = [
 [[package]]
 name = "salon_tests"
 version = "0.1.0"
+dependencies = [
+ "futures",
+ "salon_core",
+ "serde",
+ "serde_json",
+ "wgpu",
+]
 
 [[package]]
 name = "same-file"

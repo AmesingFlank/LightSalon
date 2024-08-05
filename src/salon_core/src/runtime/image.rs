@@ -11,7 +11,7 @@ pub struct Image {
     pub uuid: Uuid,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ColorSpace {
     // matches color_spaces.wgsl
     LinearRGB = 0,
@@ -21,7 +21,7 @@ pub enum ColorSpace {
     HSLuv = 4,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum ImageFormat {
     Rgba16Float,
     Rgba8Unorm,
@@ -54,7 +54,7 @@ impl ImageFormat {
     }
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ImageProperties {
     pub dimensions: (u32, u32),
     pub format: ImageFormat,

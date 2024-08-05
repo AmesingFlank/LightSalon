@@ -34,7 +34,7 @@ impl App {
             renderer: eframe::Renderer::Wgpu,
             wgpu_options: egui_wgpu::WgpuConfiguration {
                 device_descriptor: Arc::new(|_adapter| wgpu::DeviceDescriptor {
-                    required_limits: Self::get_required_wgpu_limits(),
+                    required_limits: Runtime::get_required_wgpu_limits(),
                     ..Default::default()
                 }),
                 ..Default::default()
@@ -76,18 +76,6 @@ impl App {
                 .await
                 .expect("failed to start eframe");
         });
-    }
-
-    fn get_required_wgpu_limits() -> wgpu::Limits {
-        let max_dim = Runtime::get_required_max_texture_dim_1d_2d() as u32;
-        let max_buff_size = Runtime::get_required_max_buffer_size() as u64;
-        wgpu::Limits {
-            max_texture_dimension_1d: max_dim,
-            max_texture_dimension_2d: max_dim,
-            max_buffer_size: max_buff_size,
-            max_storage_buffer_binding_size: max_buff_size as u32,
-            ..Default::default()
-        }
     }
 
     pub fn new(cc: &eframe::CreationContext) -> Self {

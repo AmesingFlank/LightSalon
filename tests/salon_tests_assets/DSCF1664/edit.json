@@ -1,0 +1,118 @@
+{
+  "resize_factor": null,
+  "rotation_degrees": null,
+  "crop_rect": null,
+  "masked_edits": [
+    {
+      "mask": {
+        "terms": [
+          {
+            "primitive": {
+              "Global": {
+                "value": 1.0
+              }
+            },
+            "inverted": false,
+            "subtracted": false
+          }
+        ]
+      },
+      "edit": {
+        "exposure": 0.0,
+        "contrast": 0.0,
+        "highlights": 0.0,
+        "shadows": 0.0,
+        "curve_control_points_all": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ]
+        ],
+        "curve_control_points_r": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ]
+        ],
+        "curve_control_points_g": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ]
+        ],
+        "curve_control_points_b": [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            1.0,
+            1.0
+          ]
+        ],
+        "temperature": 0.0,
+        "tint": 0.0,
+        "vibrance": 0.0,
+        "saturation": 50.0,
+        "color_mixer_edits": [
+          {
+            "hue": 0.0,
+            "saturation": 0.0,
+            "lightness": 0.0
+          },
+          {
+            "hue": 0.0,
+            "saturation": 0.0,
+            "lightness": 0.0
+          },
+          {
+            "hue": 0.0,
+            "saturation": 0.0,
+            "lightness": 0.0
+          },
+          {
+            "hue": 0.0,
+            "saturation": 0.0,
+            "lightness": 0.0
+          },
+          {
+            "hue": 0.0,
+            "saturation": 0.0,
+            "lightness": 0.0
+          },
+          {
+            "hue": 0.0,
+            "saturation": 0.0,
+            "lightness": 0.0
+          },
+          {
+            "hue": 0.0,
+            "saturation": 0.0,
+            "lightness": 0.0
+          },
+          {
+            "hue": 0.0,
+            "saturation": 0.0,
+            "lightness": 0.0
+          }
+        ],
+        "dehaze": 0.0,
+        "vignette": 0.0
+      },
+      "name": "Global"
+    }
+  ],
+  "framing": null
+}
