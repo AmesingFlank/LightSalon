@@ -42,7 +42,7 @@ fn make_test_runtime() -> Arc<Runtime> {
                 &wgpu::DeviceDescriptor {
                     label: None,
                     required_features: wgpu::Features::empty(),
-                    required_limits: Runtime::get_required_wgpu_limits(),
+                    required_limits: get_wgpu_limits_for_testing(),
                 },
                 None,
             )
@@ -51,4 +51,11 @@ fn make_test_runtime() -> Arc<Runtime> {
     });
 
     Arc::new(Runtime::new(adapter, Arc::new(device), Arc::new(queue)))
+}
+
+fn get_wgpu_limits_for_testing() -> wgpu::Limits {
+    wgpu::Limits {
+        max_storage_buffer_binding_size: 134217728, // limits imposed by github actions machines
+        ..Runtime::get_required_wgpu_limits()
+    }
 }
