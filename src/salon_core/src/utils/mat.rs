@@ -1,7 +1,7 @@
-use super::{math, vec::Vec2};
+use super::{vec::Vec2};
 use num::Num;
 use serde;
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Mul};
 
 // these are deliberately similar to WGSL
 #[derive(Clone, Copy, PartialEq, Debug, serde::Deserialize, serde::Serialize)]

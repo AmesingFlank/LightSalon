@@ -1,22 +1,10 @@
 use std::f32::consts::PI;
-use std::mem::size_of;
-use std::sync::Arc;
-use std::{collections::HashMap, num::NonZeroU64};
 
 use eframe::egui::{CursorIcon, Ui};
 use eframe::epaint::{Color32, Pos2, Stroke};
 use eframe::{egui, egui_wgpu};
-use salon_core::editor::Edit;
 use salon_core::ir::{LinearGradientMask, MaskPrimitive, RadialGradientMask};
-use salon_core::runtime::Image;
-use salon_core::runtime::Sampler;
-use salon_core::runtime::{
-    BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager, BindingResource,
-    Runtime,
-};
-use salon_core::runtime::{Buffer, BufferProperties, RingBuffer};
 use salon_core::session::Session;
-use salon_core::shader::{Shader, ShaderLibraryModule};
 use salon_core::utils::math::{
     get_crop_rect_translation_bounds, get_crop_rect_upscale_bounds, get_rotation_mat,
     handle_new_crop_rect,
@@ -24,9 +12,7 @@ use salon_core::utils::math::{
 use salon_core::utils::rectangle::Rectangle;
 use salon_core::utils::vec::{vec2, Vec2};
 
-use super::utils::{
-    get_abs_x_in_rect, get_abs_y_in_rect, get_max_image_size, pos2_to_vec2, AnimatedValue,
-};
+use super::utils::{get_max_image_size, pos2_to_vec2, AnimatedValue};
 use super::widgets::{ImageFramingCallback, ImageGeometryEditCallback, MainImageCallback};
 use super::{AppPage, AppUiState, CropDragEdgeOrCorner, EditorPanel, MainImageZoom, MaskEditState};
 
@@ -212,7 +198,7 @@ fn image_framing(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) 
                 };
 
                 let main_image_rect = main_image_callback.image_ui_rect();
-                let response = ui.allocate_rect(main_image_rect, egui::Sense::drag());
+                let _response = ui.allocate_rect(main_image_rect, egui::Sense::drag());
                 ui.painter().add(egui_wgpu::Callback::new_paint_callback(
                     main_image_rect,
                     main_image_callback,
@@ -231,7 +217,7 @@ fn image_framing(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) 
                 };
 
                 let main_image_rect = main_image_callback.image_ui_rect();
-                let response = ui.allocate_rect(main_image_rect, egui::Sense::drag());
+                let _response = ui.allocate_rect(main_image_rect, egui::Sense::drag());
                 ui.painter().add(egui_wgpu::Callback::new_paint_callback(
                     main_image_rect,
                     main_image_callback,
@@ -298,7 +284,7 @@ fn image_crop_and_rotate(ui: &mut Ui, session: &mut Session, ui_state: &mut AppU
     });
 }
 
-fn show_image_to_be_exported(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
+fn show_image_to_be_exported(ui: &mut Ui, _session: &mut Session, ui_state: &mut AppUiState) {
     ui.centered_and_justified(|ui| {
         let image_to_be_exported = ui_state
             .export_image_selected_resolution
@@ -1085,13 +1071,6 @@ fn draw_grid_impl(ui: &mut Ui, ui_crop_rect: egui::Rect, ui_state: &mut AppUiSta
             stroke,
         );
     }
-}
-
-pub fn get_ui_crop_rect(full_image_rect: egui::Rect, crop_rect: Rectangle) -> egui::Rect {
-    egui::Rect::from_center_size(
-        full_image_rect.center(),
-        full_image_rect.size() * egui::vec2(crop_rect.size.x, crop_rect.size.y),
-    )
 }
 
 pub fn get_image_size_in_ui(ui: &Ui, image_aspect_ratio: f32) -> egui::Vec2 {

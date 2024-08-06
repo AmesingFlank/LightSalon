@@ -1,14 +1,6 @@
-use std::io::Write;
-use std::path::Path;
-use std::{collections::HashMap, path::PathBuf, sync::Arc};
-
-use sha256::TrySha256Digest;
+use std::{collections::HashMap, path::PathBuf};
 
 use super::LibraryImageIdentifier;
-use crate::runtime::{ColorSpace, Image, ImageReaderJpeg, Toolbox};
-use crate::runtime::{ImageFormat, Runtime};
-use crate::session::Session;
-use crate::utils::uuid::{get_next_uuid, Uuid};
 
 #[cfg(not(target_arch = "wasm32"))]
 use notify::{RecursiveMode, Watcher};
@@ -26,14 +18,14 @@ pub struct AlbumPersistentState {
 pub struct Album {
     pub name: String,
     pub directory: Option<PathBuf>,
-    
+
     pub(super) additional_images: Vec<LibraryImageIdentifier>,
     pub(super) items_ordered: Vec<LibraryImageIdentifier>,
     pub(super) item_indices: HashMap<LibraryImageIdentifier, usize>,
     pub(super) items_order_dirty: bool,
 
     #[cfg(not(target_arch = "wasm32"))]
-    notify_debouncer: Option<
+    _notify_debouncer: Option<
         notify_debouncer_full::Debouncer<
             notify::RecommendedWatcher,
             notify_debouncer_full::FileIdMap,
@@ -78,7 +70,7 @@ impl Album {
             item_indices: HashMap::new(),
             items_order_dirty: false,
 
-            notify_debouncer,
+            _notify_debouncer: notify_debouncer,
             file_events_receiver,
         }
     }

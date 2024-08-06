@@ -2,7 +2,7 @@ use std::mem::size_of;
 
 use crate::runtime::{Buffer, Runtime};
 
-use super::vec::{vec2, vec4, Vec2, Vec4};
+use super::vec::{vec2, vec4, Vec2};
 
 // https://github.com/AmesingFlank/OxfordCSNotes/blob/master/GMOD18-19/Lecture9_GMod%20Drawing%20splines%3B%20degree%20elevation%2C%20sculptured%20surface%20patches.pdf
 fn catmull_rom_spline(
@@ -38,7 +38,7 @@ impl EvaluatedSpline {
         let n = control_points.len();
         let p_minus_1 =
             vec2(control_points[0]) + (vec2(control_points[0]) - vec2(control_points[1]));
-        let p_N = vec2(control_points[n - 1])
+        let p_n = vec2(control_points[n - 1])
             + (vec2(control_points[n - 1]) - vec2(control_points[n - 2]));
 
         let mut interpolated_points = Vec::with_capacity(n + 2);
@@ -46,7 +46,7 @@ impl EvaluatedSpline {
         for p in control_points.iter() {
             interpolated_points.push(vec2(*p));
         }
-        interpolated_points.push(p_N);
+        interpolated_points.push(p_n);
 
         let mut curr_p0 = 1usize;
         let mut curr_p0_curve_points = Vec::new();
@@ -57,7 +57,7 @@ impl EvaluatedSpline {
         };
         for i in 0..=num_steps {
             let x = i as f32 / num_steps as f32;
-            let mut y = 0.0;
+            let mut y: f32;
             if x <= control_points[0].0 {
                 y = control_points[0].1;
             } else if x >= control_points[n - 1].0 {

@@ -7,7 +7,7 @@ use crate::runtime::{
 };
 
 use super::{
-    bind_group_manager, BindGroupDescriptor, BindGroupEntry, BindGroupManager, BindingResource,
+    BindGroupDescriptor, BindGroupEntry, BindGroupManager, BindingResource,
 };
 
 pub struct MipmapGenerator {

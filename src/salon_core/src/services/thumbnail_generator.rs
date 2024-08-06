@@ -9,7 +9,6 @@ use std::{
     thread::JoinHandle,
 };
 
-use image::{DynamicImage, GenericImageView};
 use sha256::TrySha256Digest;
 
 use crate::{
@@ -34,7 +33,6 @@ use crate::{
  * 2 is used for mass generation of thumbnails for a folder of images (e.g. an album)
  */
 pub struct ThumbnailGeneratorService {
-    runtime: Arc<Runtime>,
     toolbox: Arc<Toolbox>,
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -86,7 +84,6 @@ impl ThumbnailGeneratorService {
         }));
 
         Self {
-            runtime,
             toolbox,
             write_request_sender,
             write_worker_stop_sender,
@@ -108,8 +105,8 @@ impl ThumbnailGeneratorService {
     }
 
     #[cfg(target_arch = "wasm32")]
-    pub fn new(runtime: Arc<Runtime>, toolbox: Arc<Toolbox>) -> Self {
-        Self { runtime, toolbox }
+    pub fn new(_runtime: Arc<Runtime>, toolbox: Arc<Toolbox>) -> Self {
+        Self { toolbox }
     }
 
     #[cfg(not(target_arch = "wasm32"))]

@@ -1,4 +1,4 @@
-use std::{primitive, thread::yield_now};
+
 
 use eframe::{
     egui::{self, CollapsingHeader, Ui},
@@ -80,7 +80,7 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                 });
                 row.col(|ui| {
                     ui.with_layout(egui::Layout::left_to_right(egui::Align::LEFT), |ui| {
-                        ui.horizontal_centered(|mut ui| {
+                        ui.horizontal_centered(|ui| {
                             if let Some(ref result) = session
                                 .editor
                                 .current_edit_context_ref()
@@ -134,10 +134,10 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                         if ui_state.selected_mask_term_index == Some(term_index) {
                             row.set_selected(true);
                         }
-                        row.col(|ui| {});
+                        row.col(|_ui| {});
                         row.col(|ui| {
                             ui.with_layout(egui::Layout::left_to_right(egui::Align::LEFT), |ui| {
-                                ui.horizontal_centered(|mut ui| {
+                                ui.horizontal_centered(|ui| {
                                     ui.separator();
                                     if let Some(ref result) = session
                                         .editor
@@ -200,9 +200,9 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                         if let MaskPrimitive::RadialGradient(ref mut radial) = &mut term.primitive {
                             body.row(row_height, |mut row| {
                                 row.set_selected(true);
-                                row.col(|ui| {});
+                                row.col(|_ui| {});
                                 row.col(|ui| {
-                                    ui.horizontal_centered(|mut ui| {
+                                    ui.horizontal_centered(|ui| {
                                         ui.separator();
                                         ui.add(
                                             EditorSlider::new(&mut radial.feather, 0.0..=100.0)
@@ -210,7 +210,7 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                                         );
                                     });
                                 });
-                                row.col(|ui| {});
+                                row.col(|_ui| {});
                             });
                         }
                     }
@@ -220,9 +220,9 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
             // row for adding/subtracting terms
             if is_selected {
                 body.row(row_height, |mut row| {
-                    row.col(|ui| {});
+                    row.col(|_ui| {});
                     row.col(|ui| {
-                        ui.horizontal_centered(|mut ui| {
+                        ui.horizontal_centered(|ui| {
                             if !edit.masked_edits[mask_index].mask.is_singe_global() {
                                 new_mask_term_menu_button(
                                     ui,
@@ -241,7 +241,7 @@ pub fn masks_table(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState
                             );
                         });
                     });
-                    row.col(|ui| {});
+                    row.col(|_ui| {});
                 });
             }
         }

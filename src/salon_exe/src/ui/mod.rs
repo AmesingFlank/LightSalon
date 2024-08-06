@@ -7,7 +7,10 @@ mod curve;
 mod edit_menu;
 mod editor;
 mod effects;
+#[allow(dead_code)]
 mod file_dialogues;
+
+mod export_panel;
 mod file_menu;
 mod framing;
 mod histogram;
@@ -20,7 +23,6 @@ mod main_image;
 mod masking;
 mod menu_bar;
 mod rotate_and_crop;
-mod export_panel;
 
 mod utils;
 

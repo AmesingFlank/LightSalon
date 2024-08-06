@@ -1,5 +1,7 @@
 mod colored_radio_button;
+#[allow(dead_code)]
 mod editor_slider;
+
 mod editor_slider_rect;
 mod main_image;
 mod image_geometry_edit;

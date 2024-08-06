@@ -1,12 +1,12 @@
-use std::collections::HashMap;
+
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use crate::editor::{Edit, EditHistory, Editor};
+use crate::editor::{Editor};
 use crate::library::{Library, LibraryImageIdentifier};
 use crate::runtime::{Runtime, Toolbox};
 use crate::services::services::Services;
-use crate::versioning::Version;
+
 
 pub struct Session {
     pub library: Library,

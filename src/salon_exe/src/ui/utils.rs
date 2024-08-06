@@ -1,16 +1,13 @@
 use std::ops::{Add, Mul, Sub};
 
 use eframe::{
-    egui::{self, Ui},
+    egui::{self},
     epaint::Pos2,
 };
 use salon_core::{
     editor::Edit,
     library::Album,
-    runtime::Image,
-    session::Session,
     utils::{
-        rectangle::Rectangle,
         vec::{vec2, Vec2},
     },
 };
@@ -36,14 +33,6 @@ pub fn legalize_ui_state(ui_state: &mut AppUiState, edit: &Edit) {
             ui_state.selected_mask_term_index = None;
         }
     }
-}
-
-pub fn get_abs_x_in_rect(rect: egui::Rect, relative_x: f32) -> f32 {
-    rect.min.x + rect.width() * relative_x
-}
-
-pub fn get_abs_y_in_rect(rect: egui::Rect, relative_y: f32) -> f32 {
-    rect.min.y + rect.height() * relative_y
 }
 
 pub fn get_max_image_size(image_aspect_ratio: f32, max_width: f32, max_height: f32) -> egui::Vec2 {

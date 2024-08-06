@@ -10,7 +10,7 @@ impl ImageHistogram {
     pub fn max_bins() -> usize {
         256
     }
-    pub fn num_bins_for(dimensions: (u32, u32)) -> usize {
+    pub fn num_bins_for(_dimensions: (u32, u32)) -> usize {
         // need more sophisticated logic here?
         100
     }

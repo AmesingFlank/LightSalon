@@ -7,7 +7,7 @@ use crate::shader::{Shader, ShaderLibraryModule};
 use crate::utils::math::div_up;
 
 use super::{
-    bind_group_manager, BindGroupDescriptor, BindGroupEntry, BindGroupManager, BindingResource,
+    BindGroupDescriptor, BindGroupEntry, BindGroupManager, BindingResource,
 };
 
 pub struct ColorSpaceConverter {

@@ -1,13 +1,11 @@
 use eframe::{
-    egui::{self, CollapsingHeader, SelectableLabel, Ui},
-    egui_wgpu,
+    egui::{self, CollapsingHeader, Ui},
 };
-use egui_extras::{Column, TableBuilder};
+
 use salon_core::session::Session;
 
 use super::{
-    ui_set_current_editor_image, utils::get_album_name_text_with_emoji_and_count,
-    widgets::ThumbnailCallback, AppUiState,
+    utils::get_album_name_text_with_emoji_and_count, AppUiState,
 };
 
 pub fn library_albums_browser(

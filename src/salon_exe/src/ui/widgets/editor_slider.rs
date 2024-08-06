@@ -736,7 +736,7 @@ impl<'a> EditorSlider<'a> {
         let response = ui.add({
             let mut dv = DragValue::new(&mut value)
                 .speed(speed)
-                .clamp_range(self.clamp_range())
+                .range(self.clamp_range())
                 .min_decimals(self.min_decimals)
                 .max_decimals_opt(self.max_decimals)
                 .suffix(self.suffix.clone())

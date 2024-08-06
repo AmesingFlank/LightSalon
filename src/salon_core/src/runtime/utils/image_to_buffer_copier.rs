@@ -1,13 +1,13 @@
-use std::collections::HashMap;
+
 use std::{mem::size_of, sync::Arc};
 
-use crate::runtime::{Buffer, BufferProperties, ColorSpace, Image, ImageFormat, Runtime};
+use crate::runtime::{Buffer, BufferProperties, Image, ImageFormat, Runtime};
 
-use crate::shader::{Shader, ShaderLibraryModule};
+use crate::shader::{Shader};
 use crate::utils::math::div_up;
 
 use super::{
-    bind_group_manager, BindGroupDescriptor, BindGroupEntry, BindGroupManager, BindingResource,
+    BindGroupDescriptor, BindGroupEntry, BindGroupManager, BindingResource,
 };
 
 // do image->buffer copy using a compute shader to avoid having to deal with wgpu::COPY_BYTES_PER_ROW_ALIGNMENT

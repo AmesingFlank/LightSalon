@@ -219,7 +219,7 @@ pub fn library_images_browser(ui: &mut Ui, session: &mut Session, ui_state: &mut
 fn image_rating(
     ui: &mut Ui,
     session: &mut Session,
-    ui_state: &mut AppUiState,
+    _ui_state: &mut AppUiState,
     rating_rect: egui::Rect,
     image_frame_hovered: bool,
     identifier: &LibraryImageIdentifier,

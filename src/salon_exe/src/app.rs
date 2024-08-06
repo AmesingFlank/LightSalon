@@ -1,6 +1,6 @@
 use crate::ui::widgets::{ImageFramingRenderResources, ImageGeometryEditRenderResources};
 use crate::ui::{
-    self, file_menu,
+    self,
     widgets::{
         EditorSliderRectRenderResources, MainImageRenderResources, MaskIndicatorRenderResources,
         ThumbnailRenderResources,
@@ -89,7 +89,7 @@ impl App {
             wgpu_render_state.queue.clone(),
         ));
 
-        let mut session = Session::new(runtime.clone());
+        let session = Session::new(runtime.clone());
         let toolbox = session.toolbox.clone();
         App::create_widget_render_resources(wgpu_render_state, runtime.clone());
 
@@ -170,7 +170,7 @@ impl App {
         }
     }
 
-    fn maybe_handled_imported_image(&mut self, ctx: &egui::Context) {
+    fn maybe_handled_imported_image(&mut self, _ctx: &egui::Context) {
         while let Some(added_image) = self.ui_state.import_image_dialog.get_added_image() {
             match added_image {
                 AddedImageOrAlbum::ImagesFromPaths(paths) => {
@@ -188,7 +188,7 @@ impl App {
                     ui_set_current_editor_image(&mut self.session, &mut self.ui_state, identifier);
                 }
                 AddedImageOrAlbum::AlbumFromPath(album_dir) => {
-                    let album_index = self.session.library.add_album_from_directory(album_dir);
+                    let _album_index = self.session.library.add_album_from_directory(album_dir);
                 }
             }
         }

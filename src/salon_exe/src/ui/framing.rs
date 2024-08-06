@@ -1,25 +1,21 @@
 use eframe::{
-    egui::{self, CollapsingHeader, Ui},
-    epaint::Color32,
+    egui::{self, Ui},
 };
-use egui_plot::{Line, MarkerShape, Plot, Points};
+
 use salon_core::{
     editor::Edit,
     ir::Frame,
     session::Session,
     utils::{
         math::{
-            approximate_aspect_ratio, get_cropped_image_dimensions,
-            get_max_crop_rect_with_aspect_ratio, handle_new_crop_rect, handle_new_rotation,
-            maybe_shrink_crop_rect_due_to_rotation, reduced_aspect_ratio,
+            approximate_aspect_ratio, reduced_aspect_ratio,
         },
-        rectangle::Rectangle,
     },
 };
 
 use super::{widgets::EditorSlider, AppUiState};
 
-pub fn framing(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState, edit: &mut Edit) {
+pub fn framing(ui: &mut Ui, _session: &mut Session, _ui_state: &mut AppUiState, edit: &mut Edit) {
     ui.spacing_mut().slider_width = ui.available_width() * 0.6;
 
     let mut use_framing = edit.framing.is_some();

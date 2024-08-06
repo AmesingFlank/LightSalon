@@ -1,9 +1,9 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{sync::Arc};
 
-use exif::In;
+
 
 use crate::{
-    ir::{Id, InputOp, Module, Op, Value},
+    ir::{Module, Op, Value},
     runtime::{Image, Runtime, Toolbox},
 };
 
@@ -22,18 +22,17 @@ use super::{
         framing::ApplyFramingImpl,
         global_mask::ComputeGlobalMaskImpl,
         highlights_shadows::AdjustHighlightsAndShadowsImpl,
-        histogram::{self, ComputeHistogramImpl},
+        histogram::{ComputeHistogramImpl},
         invert_mask::InvertMaskImpl,
         linear_gradient_mask::ComputeLinearGradientMaskImpl,
         radial_gradient_mask::ComputeRadialGradientMaskImpl,
         resize::ResizeImpl,
         rotate_and_crop::RotateAndCropImpl,
-        subtract_mask::{self, SubtractMaskImpl},
+        subtract_mask::{SubtractMaskImpl},
         temperature_tint::AdjustTemperatureAndTintImpl,
         vibrance_saturation::AdjustVibranceAndSaturationImpl,
         vignette::AdjustVignetteImpl,
     },
-    value_store::ValueStore,
     ExecutionContext,
 };
 

@@ -1,6 +1,5 @@
-use std::mem::size_of;
+use std::collections::HashMap;
 use std::sync::Arc;
-use std::{collections::HashMap, num::NonZeroU64};
 
 use eframe::egui_wgpu::ScreenDescriptor;
 use eframe::{egui, egui_wgpu};
@@ -10,9 +9,7 @@ use salon_core::runtime::{
     BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager, BindingResource,
     Runtime,
 };
-use salon_core::runtime::{Buffer, BufferProperties, RingBuffer};
 use salon_core::shader::{Shader, ShaderLibraryModule};
-use wgpu::util::DeviceExt;
 
 pub struct MaskIndicatorCallback {
     pub image: Arc<Image>,
@@ -27,7 +24,7 @@ impl egui_wgpu::CallbackTrait for MaskIndicatorCallback {
         _egui_encoder: &mut wgpu::CommandEncoder,
         resources: &mut egui_wgpu::CallbackResources,
     ) -> Vec<wgpu::CommandBuffer> {
-        let mut resources: &mut MaskIndicatorRenderResources = resources.get_mut().unwrap();
+        let resources: &mut MaskIndicatorRenderResources = resources.get_mut().unwrap();
         resources.prepare(device, queue, self.image.as_ref());
         Vec::new()
     }
@@ -89,8 +86,8 @@ impl MaskIndicatorRenderResources {
 
     fn prepare(
         &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        _device: &wgpu::Device,
+        _queue: &wgpu::Queue,
         image: &salon_core::runtime::Image,
     ) {
         let bind_group_desc = BindGroupDescriptor {

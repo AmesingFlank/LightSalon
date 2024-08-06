@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{ir::Op, runtime::Runtime, utils::uuid::Uuid};
+use crate::{runtime::Runtime, utils::uuid::Uuid};
 
 pub struct Buffer {
     pub properties: BufferProperties,

@@ -1,16 +1,16 @@
-use std::{collections::HashMap, mem::size_of, sync::Arc};
+use std::{mem::size_of, sync::Arc};
 
 use crate::runtime::Toolbox;
 
 use crate::{
     engine::value_store::ValueStore,
-    ir::{ComputeLinearGradientMaskOp, Id},
+    ir::{ComputeLinearGradientMaskOp},
     runtime::{
-        BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager,
+        BindGroupDescriptor, BindGroupEntry, BindGroupManager,
         BindingResource, Runtime,
     },
-    runtime::{Buffer, BufferProperties, RingBuffer},
-    runtime::{ColorSpace, ImageFormat, ImageProperties},
+    runtime::{BufferProperties, RingBuffer},
+    runtime::{ImageFormat, ImageProperties},
     shader::{Shader, ShaderLibraryModule},
     utils::math::div_up,
 };

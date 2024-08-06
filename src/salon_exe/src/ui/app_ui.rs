@@ -1,6 +1,5 @@
 use eframe::{
-    egui::{self, CollapsingHeader, Ui},
-    egui_wgpu,
+    egui::{self},
 };
 use salon_core::{library::LibraryImageIdentifier, session::Session};
 

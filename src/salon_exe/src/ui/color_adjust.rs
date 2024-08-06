@@ -1,16 +1,15 @@
 use eframe::{
-    egui::{self, CollapsingHeader, Ui},
-    epaint::Color32,
+    egui::{CollapsingHeader, Ui},
 };
-use egui_plot::{Line, MarkerShape, Plot, Points};
+
 use salon_core::{editor::GlobalEdit, runtime::ColorSpace, session::Session};
 
 use super::{widgets::EditorSlider, AppUiState};
 
 pub fn color_adjust(
     ui: &mut Ui,
-    session: &mut Session,
-    ui_state: &mut AppUiState,
+    _session: &mut Session,
+    _ui_state: &mut AppUiState,
     edit: &mut GlobalEdit,
 ) {
     CollapsingHeader::new("Color")

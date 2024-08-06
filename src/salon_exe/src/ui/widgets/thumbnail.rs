@@ -1,6 +1,6 @@
 use std::mem::size_of;
 use std::sync::Arc;
-use std::{collections::HashMap, num::NonZeroU64};
+use std::{collections::HashMap};
 
 use eframe::egui_wgpu::ScreenDescriptor;
 use eframe::{egui, egui_wgpu};
@@ -10,9 +10,9 @@ use salon_core::runtime::{
     BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager, BindingResource,
     Runtime,
 };
-use salon_core::runtime::{Buffer, BufferProperties, RingBuffer};
+use salon_core::runtime::{BufferProperties, RingBuffer};
 use salon_core::shader::{Shader, ShaderLibraryModule};
-use wgpu::util::DeviceExt;
+
 
 pub struct ThumbnailCallback {
     pub image: Arc<Image>,
@@ -35,7 +35,7 @@ impl egui_wgpu::CallbackTrait for ThumbnailCallback {
         _egui_encoder: &mut wgpu::CommandEncoder,
         resources: &mut egui_wgpu::CallbackResources,
     ) -> Vec<wgpu::CommandBuffer> {
-        let mut resources: &mut ThumbnailRenderResources = resources.get_mut().unwrap();
+        let resources: &mut ThumbnailRenderResources = resources.get_mut().unwrap();
         resources.prepare(device, queue, self);
         Vec::new()
     }
@@ -103,7 +103,7 @@ impl ThumbnailRenderResources {
 
     fn prepare(
         &mut self,
-        device: &wgpu::Device,
+        _device: &wgpu::Device,
         queue: &wgpu::Queue,
         render_call: &ThumbnailCallback,
     ) {

@@ -1,8 +1,7 @@
 use eframe::{
-    egui::{self, CollapsingHeader, ScrollArea, Ui},
-    epaint::Color32,
+    egui::{ScrollArea, Ui},
 };
-use egui_plot::{Line, MarkerShape, Plot, Points};
+
 use salon_core::{editor::GlobalEdit, session::Session};
 
 use super::{

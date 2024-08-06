@@ -1,15 +1,13 @@
 use super::{AddedImageOrAlbum, AppUiState};
-use eframe::{
-    egui::{self, Ui},
-    egui_wgpu,
-};
-use egui_extras::{Column, TableBuilder};
+
+#[cfg(target_arch = "wasm32")]
+use salon_core::library::LibraryImageMetaData;
+
 use salon_core::{
-    library::{LibraryImageIdentifier, LibraryImageMetaData},
     runtime::{ColorSpace, ImageFormat, ImageReaderJpeg, Runtime, Toolbox},
     session::Session,
 };
-use std::{future::Future, ops::Add, sync::Arc};
+use std::{future::Future, sync::Arc};
 
 #[cfg(not(target_arch = "wasm32"))]
 pub fn file_dialogue_export_image(session: &mut Session, ui_state: &mut AppUiState) {
@@ -33,7 +31,7 @@ pub fn file_dialogue_export_image(session: &mut Session, ui_state: &mut AppUiSta
     );
 
     let mut task = rfd::AsyncFileDialog::new().add_filter("extension", &["jpg"]);
-    if let Some(name) = session
+    if let Some(_name) = session
         .library
         .get_metadata(&session.editor.current_image_identifier().unwrap())
         .name
@@ -66,7 +64,7 @@ pub fn file_dialogue_export_image(session: &mut Session, ui_state: &mut AppUiSta
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-pub fn file_dialogue_export_edit(session: &mut Session, ui_state: &mut AppUiState) {
+pub fn file_dialogue_export_edit(session: &mut Session, _ui_state: &mut AppUiState) {
     let edit = session.editor.get_full_size_edit();
     let edit_json_str = serde_json::to_string_pretty(&edit).expect("failed to serialize to json");
 
@@ -362,7 +360,7 @@ impl ImageImportDialog {
             .pick_files();
 
         let sender = self.channel.0.clone();
-        let runtime = self.runtime.clone();
+        let _runtime = self.runtime.clone();
 
         execute(async move {
             let files = task.await;
@@ -384,7 +382,7 @@ impl ImageImportDialog {
         let task = rfd::AsyncFileDialog::new().pick_folder();
 
         let sender = self.channel.0.clone();
-        let runtime = self.runtime.clone();
+        let _runtime = self.runtime.clone();
 
         execute(async move {
             let file = task.await;

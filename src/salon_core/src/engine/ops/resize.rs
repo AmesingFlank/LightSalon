@@ -1,17 +1,17 @@
-use std::{collections::HashMap, mem::size_of, sync::Arc};
+use std::{mem::size_of, sync::Arc};
 
 use crate::runtime::Toolbox;
 
 use crate::{
     engine::value_store::ValueStore,
-    ir::{Id, ResizeOp},
+    ir::{ResizeOp},
     runtime::{
-        BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager,
+        BindGroupDescriptor, BindGroupEntry, BindGroupManager,
         BindingResource, Runtime,
     },
-    runtime::{Buffer, BufferProperties, RingBuffer, Sampler},
-    runtime::{ColorSpace, ImageProperties},
-    shader::{Shader, ShaderLibraryModule},
+    runtime::{BufferProperties, RingBuffer, Sampler},
+    runtime::{ImageProperties},
+    shader::{Shader},
     utils::math::div_up,
 };
 

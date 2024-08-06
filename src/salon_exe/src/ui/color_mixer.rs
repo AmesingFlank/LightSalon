@@ -1,10 +1,10 @@
 use std::f32::consts::PI;
 
 use eframe::{
-    egui::{self, CollapsingHeader, Ui},
+    egui::{CollapsingHeader, Ui},
     epaint::Color32,
 };
-use egui_plot::{Line, MarkerShape, Plot, Points};
+
 use salon_core::{editor::GlobalEdit, runtime::ColorSpace, session::Session};
 
 use super::{
@@ -14,7 +14,7 @@ use super::{
 
 pub fn color_mixer(
     ui: &mut Ui,
-    session: &mut Session,
+    _session: &mut Session,
     ui_state: &mut AppUiState,
     edit: &mut GlobalEdit,
 ) {
@@ -67,7 +67,7 @@ pub fn color_mixer(
             let hue_range = PI * 2.0;
             let group_hue_range = hue_range / 8.0;
 
-            let mut base_hue = index as f32 * group_hue_range;
+            let base_hue = index as f32 * group_hue_range;
 
             let mut left_hue = base_hue - group_hue_range;
             if left_hue < 0.0 {

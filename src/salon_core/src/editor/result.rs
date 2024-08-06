@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::engine::common::ImageHistogram;
-use crate::runtime::{Buffer, BufferReader, Image, Runtime};
+use crate::runtime::{BufferReader, Image};
 
 pub struct EditResult {
     pub final_image: Arc<Image>,

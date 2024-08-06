@@ -1,5 +1,5 @@
 use eframe::{
-    egui::{self, Align, CollapsingHeader, Ui},
+    egui::{self, Align, Ui},
     egui_wgpu,
 };
 use egui_extras::{Column, TableBuilder};
@@ -60,7 +60,7 @@ pub fn library_side_panel(ui: &mut Ui, session: &mut Session, ui_state: &mut App
         session.library.num_images_total()
     };
 
-    table.body(|mut body| {
+    table.body(|body| {
         body.rows(cell_width, num_images, |mut row| {
             let row_index = row.index();
             let image_identifier = if let Some(album_index) = ui_state.selected_album {

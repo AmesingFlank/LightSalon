@@ -1,8 +1,7 @@
+use std::collections::HashMap;
 use std::mem::size_of;
 use std::sync::Arc;
-use std::{collections::HashMap, num::NonZeroU64};
 
-use eframe::egui::Ui;
 use eframe::egui_wgpu::ScreenDescriptor;
 use eframe::{egui, egui_wgpu};
 use salon_core::runtime::Image;
@@ -11,12 +10,11 @@ use salon_core::runtime::{
     BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager, BindingResource,
     Runtime,
 };
-use salon_core::runtime::{Buffer, BufferProperties, RingBuffer};
+use salon_core::runtime::{BufferProperties, RingBuffer};
 use salon_core::shader::{Shader, ShaderLibraryModule};
-use salon_core::utils::rectangle::Rectangle;
 
 use crate::ui::utils::get_max_image_size;
-use crate::ui::{get_ui_crop_rect, MainImageZoom};
+use crate::ui::MainImageZoom;
 
 pub struct MainImageCallback {
     pub image: Arc<Image>,
@@ -63,7 +61,7 @@ impl egui_wgpu::CallbackTrait for MainImageCallback {
         _egui_encoder: &mut wgpu::CommandEncoder,
         resources: &mut egui_wgpu::CallbackResources,
     ) -> Vec<wgpu::CommandBuffer> {
-        let mut resources: &mut MainImageRenderResources = resources.get_mut().unwrap();
+        let resources: &mut MainImageRenderResources = resources.get_mut().unwrap();
         resources.prepare(device, queue, self);
         Vec::new()
     }
@@ -134,7 +132,7 @@ impl MainImageRenderResources {
 
     fn prepare(
         &mut self,
-        device: &wgpu::Device,
+        _device: &wgpu::Device,
         queue: &wgpu::Queue,
         render_call: &MainImageCallback,
     ) {

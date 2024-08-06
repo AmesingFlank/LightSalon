@@ -1,13 +1,11 @@
 use std::sync::Arc;
 
 use salon_core::{
-    editor::Editor,
-    runtime::{Runtime, Toolbox},
-    services::services::Services,
+    runtime::{Runtime},
     session::Session,
 };
 
-use super::{image_comparer, ImageComparer};
+use super::{ImageComparer};
 
 pub struct TestContext {
     pub session: Session,

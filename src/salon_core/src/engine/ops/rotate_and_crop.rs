@@ -1,18 +1,18 @@
-use std::{collections::HashMap, mem::size_of, sync::Arc};
+use std::{mem::size_of, sync::Arc};
 
 use crate::runtime::Toolbox;
 
 use crate::utils::math::get_cropped_image_dimensions;
 use crate::{
     engine::value_store::ValueStore,
-    ir::{Id, RotateAndCropOp},
+    ir::{RotateAndCropOp},
     runtime::{
-        BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager,
+        BindGroupDescriptor, BindGroupEntry, BindGroupManager,
         BindingResource, Runtime,
     },
-    runtime::{Buffer, BufferProperties, RingBuffer, Sampler},
-    runtime::{ColorSpace, ImageProperties},
-    shader::{Shader, ShaderLibraryModule},
+    runtime::{BufferProperties, RingBuffer, Sampler},
+    runtime::{ImageProperties},
+    shader::{Shader},
     utils::math::div_up,
 };
 
@@ -71,7 +71,7 @@ impl RotateAndCropImpl {
         encoder: &mut wgpu::CommandEncoder,
         op: &RotateAndCropOp,
         value_store: &mut ValueStore,
-        toolbox: &Toolbox,
+        _toolbox: &Toolbox,
     ) {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
 

@@ -1,11 +1,9 @@
-use num::{complex::ComplexFloat, Num};
-
 use crate::{editor::Edit, ir::MaskPrimitive};
 
 use super::{
     mat::Mat2x2,
     rectangle::Rectangle,
-    vec::{vec2, vec3, Vec2, Vec3, Vec4},
+    vec::{vec2, Vec2},
 };
 
 pub fn div_up(a: u32, b: u32) -> u32 {
@@ -339,7 +337,7 @@ pub fn get_crop_rect_upscale_bounds(
     let mut crop_rect_center = crop_rect.center;
     crop_rect_center.x *= image_aspect_ratio;
 
-    let mut relevant_corners = Vec::new();
+    let mut relevant_corners: Vec<Vec2<f32>>;
 
     if upscale_dir.x == 0.0 && upscale_dir.y == 1.0 {
         relevant_corners = vec![

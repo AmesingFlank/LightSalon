@@ -2,14 +2,14 @@ use std::collections::HashMap;
 use std::{mem::size_of, sync::Arc};
 
 use crate::runtime::{
-    Buffer, BufferProperties, ColorSpace, Image, ImageFormat, ImageProperties, Runtime, Sampler,
+    Buffer, BufferProperties, Image, ImageFormat, ImageProperties, Runtime, Sampler,
 };
 
 use crate::shader::{Shader, ShaderLibraryModule};
 use crate::utils::math::div_up;
 
 use super::{
-    bind_group_manager, BindGroupDescriptor, BindGroupEntry, BindGroupManager, BindingResource,
+    BindGroupDescriptor, BindGroupEntry, BindGroupManager, BindingResource,
 };
 
 pub struct ImageResizer {

@@ -1,8 +1,7 @@
 use eframe::{
-    egui::{self, CollapsingHeader, Ui},
-    epaint::Color32,
+    egui::{self, Ui},
 };
-use egui_plot::{Line, MarkerShape, Plot, Points};
+
 use salon_core::{
     editor::Edit,
     runtime::Runtime,
@@ -10,8 +9,7 @@ use salon_core::{
     utils::{
         math::{
             approximate_aspect_ratio, get_cropped_image_dimensions,
-            get_max_crop_rect_with_aspect_ratio, handle_new_crop_rect, handle_new_rotation,
-            maybe_shrink_crop_rect_due_to_rotation, reduced_aspect_ratio,
+            get_max_crop_rect_with_aspect_ratio, handle_new_crop_rect, handle_new_rotation, reduced_aspect_ratio,
         },
         rectangle::Rectangle,
     },
@@ -22,7 +20,7 @@ use super::{widgets::EditorSlider, AppUiState};
 pub fn rotate_and_crop(
     ui: &mut Ui,
     session: &mut Session,
-    ui_state: &mut AppUiState,
+    _ui_state: &mut AppUiState,
     edit: &mut Edit,
 ) {
     ui.spacing_mut().slider_width = ui.available_width() * 0.6;

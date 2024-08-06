@@ -1,20 +1,20 @@
 use std::collections::HashSet;
-use std::io::Write;
-use std::path::Path;
+
+
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
-use sha256::TrySha256Digest;
 
-use crate::runtime::{ColorSpace, Image, ImageReaderJpeg, Toolbox};
+
+use crate::runtime::{ColorSpace, Image, Toolbox};
 use crate::runtime::{ImageFormat, Runtime};
-use crate::services;
+
 use crate::services::services::Services;
 use crate::session::Session;
 use crate::utils::uuid::{get_next_uuid, Uuid};
 use crate::versioning::Version;
 
 use super::image_cache::ImageCache;
-use super::{album, is_supported_image_file, Album, AlbumPersistentState, ImageRating};
+use super::{is_supported_image_file, Album, AlbumPersistentState, ImageRating};
 
 use crate::services::thumbnail_generator::ThumbnailGeneratorService;
 
@@ -80,16 +80,6 @@ struct LibraryPersistentState {
 struct LibraryPersistentStateItem {
     pub path: PathBuf,
     pub rating: ImageRating,
-}
-
-impl LibraryPersistentState {
-    pub fn new() -> Self {
-        Self {
-            version: Version::current_build(),
-            items: Vec::new(),
-            albums: Vec::new(),
-        }
-    }
 }
 
 impl Library {
@@ -410,7 +400,7 @@ impl Library {
         #[cfg(not(target_arch = "wasm32"))]
         for loaded_thumbnail in self.services.thumbnail_generator.poll_loaded_thumbnails() {
             let identifier = LibraryImageIdentifier::Path(loaded_thumbnail.original_image_path);
-            if let Some(item) = self.items.get_mut(&identifier) {
+            if let Some(_item) = self.items.get_mut(&identifier) {
                 if !self.thumbnails_cache.contains(&identifier) {
                     self.thumbnails_cache
                         .set(identifier.clone(), loaded_thumbnail.thumbnail);
@@ -461,7 +451,7 @@ impl Library {
         for image_path in images {
             let item_identifier = LibraryImageIdentifier::Path(image_path.clone());
             if self.items.contains_key(&item_identifier) {
-                let item = self.items.get_mut(&item_identifier).unwrap();
+                let _item = self.items.get_mut(&item_identifier).unwrap();
                 self.images_cache.remove(&item_identifier);
                 self.thumbnails_cache.remove(&item_identifier);
                 #[cfg(not(target_arch = "wasm32"))]

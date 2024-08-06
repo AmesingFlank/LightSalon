@@ -8,7 +8,7 @@ use salon_core::{editor::GlobalEdit, session::Session, utils::spline::EvaluatedS
 
 use super::{widgets::ColoredRadioButton, AppUiState, CurveScope};
 
-pub fn curve(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState, edit: &mut GlobalEdit) {
+pub fn curve(ui: &mut Ui, _session: &mut Session, ui_state: &mut AppUiState, edit: &mut GlobalEdit) {
     CollapsingHeader::new("Curve")
         .default_open(true)
         .show(ui, |ui| {

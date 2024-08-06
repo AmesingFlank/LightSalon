@@ -6,7 +6,7 @@ use std::{
 };
 
 use bytemuck::Pod;
-use image::{buffer, imageops, DynamicImage, GenericImageView, ImageBuffer, Rgb};
+use image::{imageops, DynamicImage, GenericImageView};
 
 use crate::runtime::{
     buffer::{Buffer, BufferProperties},
@@ -39,7 +39,7 @@ impl Runtime {
         device: Arc<wgpu::Device>,
         queue: Arc<wgpu::Queue>,
     ) -> Self {
-        let mut runtime = Runtime {
+        let runtime = Runtime {
             adapter,
             device,
             queue,

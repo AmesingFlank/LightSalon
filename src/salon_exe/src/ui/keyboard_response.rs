@@ -1,12 +1,11 @@
 use eframe::{
-    egui::{self, Modifiers, Ui},
-    egui_wgpu,
+    egui::{self},
 };
-use egui_extras::{Column, TableBuilder};
+
 use salon_core::session::Session;
 
 use super::{
-    export_panel::exit_export_panel, redo_action, ui_set_current_editor_image, undo_action, utils::legalize_ui_state, AppPage, AppUiState, EditorPanel
+    export_panel::exit_export_panel, redo_action, ui_set_current_editor_image, undo_action, AppPage, AppUiState, EditorPanel
 };
 
 pub fn keyboard_response(ctx: &egui::Context, session: &mut Session, ui_state: &mut AppUiState) {

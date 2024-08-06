@@ -1,6 +1,6 @@
 use crate::utils::rectangle::Rectangle;
 
-use super::{GlobalMask, Id, LinearGradientMask, Mask, RadialGradientMask};
+use super::{GlobalMask, Id, LinearGradientMask, RadialGradientMask};
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum Op {
@@ -32,7 +32,7 @@ pub enum Op {
 impl Op {
     pub fn get_arg_ids(&self) -> Vec<Id> {
         match self {
-            Op::Input(ref o) => vec![],
+            Op::Input(ref _o) => vec![],
             Op::AdjustExposure(ref o) => vec![o.arg],
             Op::AdjustContrast(ref o) => vec![o.arg, o.basic_stats],
             Op::AdjustHighlightsAndShadows(ref o) => vec![o.arg],

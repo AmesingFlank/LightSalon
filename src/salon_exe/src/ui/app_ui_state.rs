@@ -1,10 +1,10 @@
 use std::path::PathBuf;
-use std::sync::mpsc::{channel, Receiver, Sender};
+
 use std::sync::Arc;
-use std::{fmt, time::SystemTime};
+use std::{fmt};
 
 use eframe::egui;
-use salon_core::library::{LibraryImageIdentifier, LibraryImageMetaData};
+use salon_core::library::{LibraryImageMetaData};
 use salon_core::runtime::{Image, Runtime, Toolbox};
 
 use super::file_dialogues::ImageImportDialog;
@@ -231,6 +231,7 @@ impl MaskEditState {
     }
 }
 
+#[allow(dead_code)]
 pub enum AddedImageOrAlbum {
     Image(Arc<Image>, LibraryImageMetaData),
     ImagesFromPaths(Vec<PathBuf>),

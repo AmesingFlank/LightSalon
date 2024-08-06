@@ -1,18 +1,18 @@
 use std::mem::size_of;
 use std::sync::Arc;
-use std::{collections::HashMap, num::NonZeroU64};
+use std::{collections::HashMap};
 
 use eframe::egui_wgpu::ScreenDescriptor;
 use eframe::{egui, egui_wgpu};
-use salon_core::runtime::Sampler;
+
 use salon_core::runtime::{
     BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager, BindingResource,
     Runtime,
 };
 use salon_core::runtime::{Buffer, BufferProperties, RingBuffer};
-use salon_core::runtime::{ColorSpace, Image};
+use salon_core::runtime::{ColorSpace};
 use salon_core::shader::{Shader, ShaderLibraryModule};
-use wgpu::util::DeviceExt;
+
 
 pub struct EditorSliderRectCallback {
     pub left_color: [f32; 3],
@@ -30,7 +30,7 @@ impl egui_wgpu::CallbackTrait for EditorSliderRectCallback {
         _egui_encoder: &mut wgpu::CommandEncoder,
         resources: &mut egui_wgpu::CallbackResources,
     ) -> Vec<wgpu::CommandBuffer> {
-        let mut resources: &mut EditorSliderRectRenderResources = resources.get_mut().unwrap();
+        let resources: &mut EditorSliderRectRenderResources = resources.get_mut().unwrap();
         resources.prepare(
             device,
             queue,
@@ -98,7 +98,7 @@ impl EditorSliderRectRenderResources {
 
     fn prepare(
         &mut self,
-        device: &wgpu::Device,
+        _device: &wgpu::Device,
         queue: &wgpu::Queue,
         left_color: [f32; 3],
         right_color: [f32; 3],

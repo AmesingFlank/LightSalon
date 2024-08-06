@@ -1,12 +1,9 @@
-use std::{
-    collections::HashMap,
-    sync::{mpsc::Receiver, Arc},
-};
+use std::{collections::HashMap, sync::Arc};
 
 use crate::{
     engine::{common::ImageHistogram, Engine, ExecutionContext},
     library::LibraryImageIdentifier,
-    runtime::{Buffer, BufferReader, Image, Runtime, Toolbox},
+    runtime::{BufferReader, Image, Runtime, Toolbox},
     services::{edit_writer::EditWriterService, services::Services},
 };
 
@@ -71,11 +68,11 @@ impl EditContext {
 
     // returns true iff an update was made
     fn update_transient_edit(&mut self, transient_edit: Edit) -> bool {
-        let mut needs_update = false;
+        let needs_update: bool;
         if let Some(ref curr_transient_edit) = self.transient_edit {
-            needs_update = (*curr_transient_edit != transient_edit);
+            needs_update = *curr_transient_edit != transient_edit;
         } else {
-            needs_update = (self.edit_history[self.current_edit_index] != transient_edit);
+            needs_update = self.edit_history[self.current_edit_index] != transient_edit;
         }
         if needs_update {
             self.transient_edit = Some(transient_edit);
@@ -97,7 +94,7 @@ impl EditContext {
             }
             self.edit_history.push(self.transient_edit.take().unwrap());
             self.current_edit_index = self.edit_history.len() - 1;
-            
+
             self.current_full_size_editted_image = None;
         }
         self.transient_edit = None;

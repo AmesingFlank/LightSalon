@@ -1,8 +1,7 @@
 use eframe::{
     egui::{self, Ui},
-    egui_wgpu,
 };
-use egui_extras::{Column, TableBuilder};
+
 use salon_core::session::Session;
 
 use super::{utils::legalize_ui_state, AppUiState};

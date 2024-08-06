@@ -1,15 +1,14 @@
 use eframe::{
-    egui::{self, Ui},
-    egui_wgpu,
+    egui::{Ui},
 };
-use egui_extras::{Column, TableBuilder};
+
 use salon_core::session::Session;
 
 use super::AppUiState;
 
-use std::time::{SystemTime, UNIX_EPOCH};
 
-pub fn bottom_bar(ui: &mut Ui, session: &mut Session, ui_state: &mut AppUiState) {
+
+pub fn bottom_bar(ui: &mut Ui, _session: &mut Session, ui_state: &mut AppUiState) {
     let fps_counter = &mut ui_state.fps_counter;
     let now = instant::Instant::now();
     let duration_since_last_record = now

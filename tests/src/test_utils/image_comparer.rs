@@ -1,9 +1,9 @@
-use std::collections::HashMap;
+
 use std::{mem::size_of, sync::Arc};
 
 use salon_core::runtime::{
     BindGroupDescriptor, BindGroupEntry, BindGroupManager, BindingResource, Buffer,
-    BufferProperties, BufferReader, Image, ImageFormat, Runtime,
+    BufferProperties, BufferReader, Image, Runtime,
 };
 use salon_core::shader::Shader;
 use salon_core::utils::math::div_up;

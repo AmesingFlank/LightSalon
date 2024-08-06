@@ -1,4 +1,4 @@
-use crate::{runtime::BufferProperties, utils::uuid::Uuid};
+use crate::utils::uuid::Uuid;
 use std::sync::Arc;
 
 use super::{Buffer, Runtime, Toolbox};
@@ -15,6 +15,7 @@ pub struct Image {
 pub enum ColorSpace {
     // matches color_spaces.wgsl
     LinearRGB = 0,
+    #[allow(non_camel_case_types)]
     sRGB = 1,
     HSL = 2,
     LCh = 3,
@@ -85,7 +86,6 @@ impl Image {
 
 pub struct ImageReaderJpeg {
     runtime: Arc<Runtime>,
-    toolbox: Arc<Toolbox>,
     image: Arc<Image>,
     quality: u8,
     buffer: Arc<Buffer>,
@@ -109,7 +109,6 @@ impl ImageReaderJpeg {
         let map_ready_receiver: flume::Receiver<()> = runtime.map_host_readable_buffer(&buffer);
         Self {
             runtime,
-            toolbox,
             image,
             quality,
             buffer,

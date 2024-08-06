@@ -1,16 +1,15 @@
-use std::{collections::HashMap, mem::size_of, sync::Arc};
+use std::{mem::size_of, sync::Arc};
 
 use crate::runtime::Toolbox;
 
 use crate::{
     engine::{value_store::ValueStore},
-    ir::{ApplyDehazeOp, Id},
-    runtime::ColorSpace,
+    ir::{ApplyDehazeOp},
     runtime::{
-        BindGroupDescriptor, BindGroupDescriptorKey, BindGroupEntry, BindGroupManager,
+        BindGroupDescriptor, BindGroupEntry, BindGroupManager,
         BindingResource, Runtime,
     },
-    runtime::{Buffer, BufferProperties, RingBuffer},
+    runtime::{BufferProperties, RingBuffer},
     shader::{Shader, ShaderLibraryModule},
     utils::math::div_up,
 };
@@ -59,7 +58,7 @@ impl ApplyDehazeImpl {
         encoder: &mut wgpu::CommandEncoder,
         op: &ApplyDehazeOp,
         value_store: &mut ValueStore,
-        toolbox: &Toolbox,
+        _toolbox: &Toolbox,
     ) {
         let input_img = value_store.map.get(&op.arg).unwrap().as_image().clone();
         let dehazed_img = value_store.map.get(&op.dehazed).unwrap().as_image().clone();

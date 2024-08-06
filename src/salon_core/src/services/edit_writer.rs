@@ -1,4 +1,4 @@
-use std::{io::Write, path::PathBuf, thread::JoinHandle};
+use std::{path::PathBuf, thread::JoinHandle};
 
 use sha256::TrySha256Digest;
 
