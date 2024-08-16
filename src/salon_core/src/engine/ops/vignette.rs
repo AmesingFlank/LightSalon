@@ -3,12 +3,9 @@ use std::{mem::size_of, sync::Arc};
 use crate::runtime::Toolbox;
 
 use crate::{
-    engine::{value_store::ValueStore},
-    ir::{AdjustVignetteOp},
-    runtime::{
-        BindGroupDescriptor, BindGroupEntry, BindGroupManager,
-        BindingResource, Runtime,
-    },
+    engine::value_store::ValueStore,
+    ir::AdjustVignetteOp,
+    runtime::{BindGroupDescriptor, BindGroupEntry, BindGroupManager, BindingResource, Runtime},
     runtime::{BufferProperties, RingBuffer},
     shader::{Shader, ShaderLibraryModule},
     utils::math::div_up,
@@ -34,7 +31,7 @@ impl AdjustVignetteImpl {
         let ring_buffer = RingBuffer::new(
             runtime.clone(),
             BufferProperties {
-                size: size_of::<f32>(),
+                size: size_of::<f32>() * 4,
                 host_readable: false,
             },
         );
@@ -69,9 +66,16 @@ impl AdjustVignetteImpl {
 
         let buffer = self.ring_buffer.get();
 
-        self.runtime
-            .queue
-            .write_buffer(&buffer.buffer, 0, bytemuck::cast_slice(&[op.vignette]));
+        self.runtime.queue.write_buffer(
+            &buffer.buffer,
+            0,
+            bytemuck::cast_slice(&[
+                op.vignette.vignette,
+                op.vignette.midpoint,
+                op.vignette.feather,
+                op.vignette.roundness,
+            ]),
+        );
 
         let bind_group = self.bind_group_manager.get_or_create(BindGroupDescriptor {
             entries: vec![

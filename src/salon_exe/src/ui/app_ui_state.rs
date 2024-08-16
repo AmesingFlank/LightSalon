@@ -48,6 +48,8 @@ pub struct AppUiState {
     pub export_image_full_resolution: Option<Arc<Image>>,
     pub export_image_selected_resolution: Option<Arc<Image>>,
     pub export_quality: Option<u8>,
+
+    pub vignette_expanded: bool,
 }
 
 impl AppUiState {
@@ -81,6 +83,7 @@ impl AppUiState {
             export_image_full_resolution: None,
             export_image_selected_resolution: None,
             export_quality: None,
+            vignette_expanded: false,
         }
     }
 

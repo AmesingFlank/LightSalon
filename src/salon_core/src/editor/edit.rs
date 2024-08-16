@@ -1,4 +1,4 @@
-use crate::ir::{ColorMixGroup, Frame, GlobalMask, Mask, MaskPrimitive, MaskTerm};
+use crate::ir::{ColorMixGroup, Frame, GlobalMask, Mask, MaskPrimitive, MaskTerm, Vignette};
 
 use crate::utils::rectangle::Rectangle;
 
@@ -68,7 +68,7 @@ pub struct GlobalEdit {
     pub color_mixer_edits: [ColorMixGroup; 8],
 
     pub dehaze: f32,
-    pub vignette: f32,
+    pub vignette: Vignette,
 }
 
 impl GlobalEdit {
@@ -92,7 +92,7 @@ impl GlobalEdit {
             color_mixer_edits: [ColorMixGroup::new(); 8],
 
             dehaze: 0.0,
-            vignette: 0.0,
+            vignette: Vignette::new(),
         }
     }
 

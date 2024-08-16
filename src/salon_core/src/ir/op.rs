@@ -166,11 +166,30 @@ impl ColorMixGroup {
     }
 }
 
+#[derive(Clone, PartialEq, Debug, serde::Deserialize, serde::Serialize)]
+pub struct Vignette {
+    pub vignette: f32,
+    pub midpoint: f32,
+    pub feather: f32,
+    pub roundness: f32,
+}
+
+impl Vignette {
+    pub fn new() -> Self {
+        Self {
+            vignette: 0.0,
+            midpoint: 50.0,
+            feather: 50.0,
+            roundness: 0.0,
+        }
+    }
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub struct AdjustVignetteOp {
     pub result: Id,
     pub arg: Id,
-    pub vignette: f32,
+    pub vignette: Vignette,
 }
 
 #[derive(Clone, PartialEq, Debug)]

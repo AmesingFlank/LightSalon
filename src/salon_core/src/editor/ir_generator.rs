@@ -288,12 +288,12 @@ fn maybe_add_color_mix(edit: &GlobalEdit, module: &mut Module, current_output_id
 }
 
 fn maybe_add_vignette(edit: &GlobalEdit, module: &mut Module, current_output_id: &mut Id) {
-    if edit.vignette != 0.0 {
+    if edit.vignette.vignette != 0.0 {
         let adjusted_image_id = module.alloc_id();
         module.push_op(Op::AdjustVignette(AdjustVignetteOp {
             result: adjusted_image_id,
             arg: *current_output_id,
-            vignette: edit.vignette,
+            vignette: edit.vignette.clone(),
         }));
         *current_output_id = adjusted_image_id;
     }
